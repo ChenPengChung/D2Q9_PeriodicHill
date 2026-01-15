@@ -2,8 +2,8 @@
 .DS_Store
 ._*
 
-# IDE
-.vscode/
+# IDE (保留 settings.json)
+# .vscode/
 
 # Build outputs
 *.o

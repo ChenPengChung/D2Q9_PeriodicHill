@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+._*
+
+# IDE
+.vscode/
+
+# Build outputs
+*.o
+*.out
+*.exe
+
+# CUDA compiled
+*.cubin
+*.ptx

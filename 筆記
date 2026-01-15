@@ -1,0 +1,119 @@
+y_h 是在 main.cu 做出的全域變數
+，initialization.h 被包含後同一個編譯單元就能直接讀寫它；
+只要包含順序保持在全域定義之後，GenerateMesh_Z 對 y_h 的讀取與寫入都沒問題。
+
+
+
+
+for( step = 0 ; step < loop ; step++, accu_num++ ) {
+
+        Launch_CollisionStreaming( ft, fd );
+
+        if( (int)TBSWITCH ) { Launch_TurbulentSum( fd ); }
+
+        CHECK_CUDA( cudaDeviceSynchronize() );
+        step += 1;
+        accu_num += 1;
+
+        //Launch_ModifyForcingTerm();
+        Launch_CollisionStreaming( fd, ft );
+
+        if( (int)TBSWITCH ) { Launch_TurbulentSum( ft ); }
+
+        CHECK_CUDA( cudaDeviceSynchronize() );
+
+        if ( myid == 0 && step% 5000 == 1 ) {
+            CHECK_CUDA( cudaEventRecord( stop1,0 ) );
+            CHECK_CUDA( cudaEventSynchronize( stop1 ) );
+			float cudatime1;
+			CHECK_CUDA( cudaEventElapsedTime( &cudatime1,start1,stop1 ) );
+            double rho_residual = ComputeMaxRhoResidual();
+            cout << "+----------------------------------------------------------------+\n";
+            cout << "| Step = " << step << " \n";
+            cout << "|" << argv[0] << " running with "<< setw(4) << NX6 << 'x'<< setw(4) << (NY6) << 'x'<< setw(4) << (NZ6) << " grids:\n" ;
+            cout << "| Running "
+                      << fixed << std::setprecision(6)
+                      << (cudatime1 / 60.0 / 1000.0)
+                      << " mins                                           \n";
+            cout << "| Max |rho-1| = "
+                      << std::scientific << std::setprecision(6)
+                      << rho_residual
+                      << "                                       \n";
+            cout << "+----------------------------------------------------------------+\n";
+            cout.flush();
+            //寫檔與 H2D/D2H 轉移很重，僅在較疏的區間做快照
+            const int SNAPSHOT_INTERVAL = 5000;
+            if (step % SNAPSHOT_INTERVAL == 1) {
+                OutputVelocitySnapshot(step);
+            }
+            
+            std::ofstream progress("progress.log", std::ios::app);
+            if (progress.is_open()) {
+                progress << "Step=" << step
+                         << ", grids=" << static_cast<int>(NX6)
+                         << "x" << static_cast<int>(NY6)
+                        << "x" << static_cast<int>(NZ6)
+                        << ", runtime(min)="
+                        << std::fixed << std::setprecision(6)
+                        << (cudatime1 / 60.0 / 1000.0)
+                        << '\n';
+                        progress.close();
+            }
+            cudaEventRecord(start1,0);
+        }
+  
+        if (  (step%(int)NDTFRC == 1) ) {
+            Launch_ModifyForcingTerm();
+        }
+
+		if ( step%(int)NDTMIT == 1 ) {
+			Launch_Monitor( accu_num );
+		}
+
+        cudaDeviceSynchronize();
+        cudaMemcpy(Force_h, Force_d, sizeof(double), cudaMemcpyDeviceToHost);   
+        //Global Mass Conservation Modify
+        
+            SendDataToCPU( ft );
+            double rho_LocalSum  = 0.0;
+            double rho_GlobalSum = 0.0;
+            double rho_global;
+            for( int j = 3 ; j < NYD6-4; j++){
+            for( int k = 3 ; k < NZ6-3; k++){
+            for( int i = 3 ; i < NX6-4; i++){ 
+                int index = j*NX6*NZ6 + k*NX6 + i;
+                rho_LocalSum =  rho_LocalSum + rho_h_p[index];
+            }}}
+            MPI_Reduce((void *)&rho_LocalSum, (void *)&rho_GlobalSum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+            if ( myid == 0){
+                rho_global = 1.0*(NX6-7)*(NY6-7)*(NZ6-6);
+                rho_modify_h[0] =( rho_global - rho_GlobalSum ) / ((NX6-7)*(NY6-7)*(NZ6-6));
+                cudaMemcpy(rho_modify_d, rho_modify_h, sizeof(double), cudaMemcpyHostToDevice);
+            }
+        
+        
+        //Check Mass Conservation
+        if ( step % 100 == 1){
+            SendDataToCPU( ft ); 
+            double rho_LocalSum = 0;
+            double rho_GlobalSum = 0;
+            double rho_initial = 1.0 ;
+            for( int j = 3 ; j < NYD6-4; j++){
+            for( int k = 3 ; k < NZ6-3; k++){
+            for( int i = 3 ; i < NX6-4; i++){ 
+                int index = j*NX6*NZ6 + k*NX6 + i;
+                rho_LocalSum =  rho_LocalSum + rho_h_p[index] ;
+            }}}
+            double rho_LocalAvg;
+            rho_LocalAvg = rho_LocalSum / ((NX6-7)*(NYD6-7)*(NZ6-6));
+            MPI_Reduce((void *)&rho_LocalAvg, (void *)&rho_GlobalSum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+            if( myid ==0 ){
+                FILE *checkrho;
+                checkrho = fopen("checkrho.dat","a");
+                fprintf(checkrho,"%d\t %lf\t %lf\n",step, rho_initial, rho_GlobalSum/(double)jp );
+                fclose (checkrho);
+            }
+        }
+        //fprintf(checkrho, "Step =%d\tRho_inital=%lf\tRho_avg=%lf\n",step, rho_inital, rho_avg );
+         
+    }

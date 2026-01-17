@@ -78,14 +78,8 @@ void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_
     //此函數為產生xi方向預配置權重一維連續記憶體
     //每一個y值對應的物理空間計算點總長度皆不同
     double L = LZ - HillFunction( pos_y ) - minSize; 
-    double pos_xi = (LXi / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
-    if( k >= 3 && k <= 6 ){
-        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, 3 );
-    } else if ( k >= NZ6-7 && k <= NZ6-4 ) {
-        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, NZ6-10 );
-    } else {
-        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, now-3 );
-    }  
+    double rate = (1 / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
+    
 }
 
 

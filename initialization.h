@@ -80,11 +80,11 @@ void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_
     double total = LZ - HillFunction( y_global[now_y] ) - minSize; 
     double pos_z = rate * total + HillFunction( y_global[now_y] ) + minSize/2.0;
     if( now_z >= 3 && now_z <= 6 ){
-        GetParameter_6th( XiPara, pos_z, Pos_z  , IdxToStore , 3 );
+        GetParameter_6th( XiPara, pos_z, Pos_z  , now_y*NZ6 + now_z , now_y*NZ6 + 3);
     } else if ( now_z >= NZ6-7 && now_z <= NZ6-4 ) {
-        GetParameter_6th( XiPara, pos_z, Pos_z , IdxToStore, NZ6-10 );
+        GetParameter_6th( XiPara, pos_z, Pos_z , now_y*NZ6 + now_z, now_y*NZ6 + NZ6 -10  );
     } else {
-        GetParameter_6th( XiPara, pos_z, Pos_z , IdxToStore, now_z-3 );
+        GetParameter_6th( XiPara, pos_z, Pos_z , now_y*NZ6 + now_z , now_y*NZ6 + now_z -3  );
     } 
 }
 

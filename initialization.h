@@ -1,11 +1,9 @@
-#include <cstdlib>
-#include <cstdio>
-#include <cmath>
-
 #ifndef INITIALIZATION_FILE
 #define INITIALIZATION_FILE
+#include <iostream>
+using namespace std;
+#include "initializationTool.h"
 
-#include "initializationTool.h" 
 void InitialUsingDftFunc() {
     //正規化離散粒子速度場
     double e[9][2]={{0.0,0.0},{1.0,0.0},{0.0,1.0},{-1.0,0.0},{0.0,-1.0},{1.0,1.0},{-1.0,1.0},{-1.0,-1.0},{1.0,-1.0}}; 
@@ -35,7 +33,7 @@ void InitialUsingDftFunc() {
 void GenerateMesh_Y() {
     double dy;
     double y_global[NY6];
-    int bfr = 3;
+    int buffr = 3;
 
     if( Uniform_In_Ydir ){
         dy = LY / (double)(NY6-2*bfr-1);
@@ -49,7 +47,7 @@ void GenerateMesh_Y() {
         }
 
     } else {
-        printf("Mesh needs to be uniform in periodic hill problem, exit...\n");
+        cout << "Mesh needs to be uniform in periodic hill problem, exit..." << endl ;
         exit(0);
     }
 }

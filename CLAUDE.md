@@ -452,3 +452,32 @@ void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_
     ...
 }
 ```
+
+### 你修改版 `GetParameterXi(...)` 是否等價？（避免顯式無因次化）
+
+你提出的改法核心是：先算相對位置比例 `rate`（等同 `xi/LXi`），再把同一個比例映回某個參考列 `y_ref = y_global[now_y]` 的實體座標 `pos_z_mapped`，最後直接在 `Pos_z` 上算 6th 權重。
+
+在目前專案的 `tanhFunction(...)` 網格定義下，這樣做在數學上是**等價**的（權重會一致，差異只會來自浮點誤差），因為：
+- 由定義可得 `z(y,k) - Hill(y) - minSize/2` 與 `xi(k)` 對同一組 `k` 是**線性比例縮放**（`tanhFunction` 對長度參數 `L` 是線性的）。
+- 6th Lagrange 權重在座標做仿射變換（線性縮放 + 平移）下不變；用 `xi_h` 當座標算權重，或改用對應 `y_ref` 的 `z` 座標陣列算權重，本質上等價。
+
+你版本中這兩行的物理意義也可以這樣看：
+- `rate = (pos_z - Hill(pos_y) - minSize/2) / L(pos_y)` 其實就是 `rate = pos_xi / LXi`（只是你不再顯式寫出 `pos_xi`）。
+- `pos_z_mapped = rate * L(y_ref) + Hill(y_ref) + minSize/2` 是把同一個 `rate` 映射回參考列的 `z`。
+
+實作上注意兩點：
+- 你程式片段中 `double pos_z = ...;` 會和參數 `pos_z` 重名，會編譯失敗；請改名成 `pos_z_mapped`（或類似）。
+- `Pos_z` 必須是 **`y_ref = y_global[now_y]` 那一列**的 `z` 座標陣列（同樣的 flatten 索引），而且 `now_y/now_z` 的索引要跟 `Pos_z` 的儲存方式一致，才會等價。
+
+### 關於曲面下「2D/3D 預配置連乘權重」是否會引入額外誤差？
+
+你提出的直覺是合理的：如果用「平面直角座標」的想法去看，`y` 不同時 `Hill(y)` 不同，確實會導致同一個物理 `z` 對應到不同的無因次座標；看起來像是「多個點共用同一組 `xi` 權重」會產生誤差。
+
+但這份程式（`GetXiParameter` + `F3/F4..._Intrpl7` 的寫法）其實是在做**曲線座標 (y, xi) 的張量積插值**，而不是在 (y, z) 的直角網格上插值：
+- 網格資料點是 `(y_j, xi_k)` 的 tensor-product；對應到物理座標才會變成 `(y_j, z(y_j,xi_k))` 的「曲面網格」。
+- 因此在做 2D/3D 插值時，內層先用同一個 `xi_dep`（由目標點 `(pos_y,pos_z)` 算出）在每個 `y_j` 上求 `f(y_j, xi_dep)`，外層再沿 `y` 插到 `y_dep`，這是標準的 separable/interpolation-in-computational-space 作法。
+- 換句話說，程式**不是**假設不同 `y` 時「同一個 `z`」要共用同一套權重；而是用 `xi` 把不同 `y` 的垂直方向做正規化後，在同一個 `xi` 上插值。
+
+仍然會有誤差，但主要是「插值截斷誤差」（跟網格解析度/階數/函數光滑度有關），不是因為權重被錯誤共用。
+
+如果你想做更「直角物理空間」的做法（固定物理 `z` 在不同 `y` 上取值），那就需要對每個 `y` stencil 點各自算 `xi(y_j, z_dep)`，讓每一個 `y_j` 都用**不同的 `xi` 權重**做內層插值；那會變成非張量積（或更昂貴的）插值流程，成本與實作複雜度都會明顯上升。

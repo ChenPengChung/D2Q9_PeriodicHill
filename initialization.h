@@ -40,10 +40,11 @@ void GenerateMesh_Y() {
         dy = LY / (double)(NY6-2*buffr-1); //-7為計算物理空間計算點數量
         for( int i = 0; i < NY6; i++ ){
             y_global[i] = dy * ((double)(i-buffr));//配合Hill Function進行座標平移
-        }
+        }//物理空間計算點在外網格中為節點佈局，換言之，同一個物理空間計算點作為Lattic的中心點，卻作為外網格的節點
     } else {
         cout << "Mesh needs to be uniform in periodic hill problem, exit..." << endl ;
         exit(0);
     }
 }
+
 #endif 

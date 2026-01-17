@@ -46,6 +46,21 @@
 - `y_h` 為 main.cu 中的全域變數，initialization.h 包含後可直接讀寫
 - 包含順序需在全域定義之後
 
+### 待定義全域變數 (main.cu)
+
+以下變數在 `initialization.h` 中使用，需在 `main.cu` 中宣告：
+
+```cpp
+double rho[NY6 * NZ6];           // 密度場
+double v[NY6 * NZ6];             // Y方向速度
+double w[NY6 * NZ6];             // Z方向速度
+double f[9][NY6 * NZ6];          // 分佈函數 (D2Q9)
+double Force[2];                 // 外力項 (Fy, Fz)
+double xi_h[NZ6];                // 無因次化Z座標
+```
+
+**注意**：`#include "initialization.h"` 必須放在這些全域變數宣告之後
+
 ---
 
 ## 2025-01-14 BFL 邊界條件判斷式
@@ -140,7 +155,21 @@
 **已實作功能**：
 - ✅ HillFunction_Inverse_Left/Right (二分搜尋法)
 - ✅ tanhFunction 巨集 (非均勻網格)
-- ✅ GetNonuniParameter() (計算伸縮參數 a)
+- ✅ GetNonuniParameter() (計算伸縮參數 a，使物理空間計算點的最小距離等於晶格大小 minSize)
+  - **目的**：調整 tanh 非均勻網格的伸縮參數 a，確保最小網格間距 = minSize (晶格大小)
+  - **方法**：二分法搜尋 a ∈ (0.1, 1.0)
+  - **關鍵判斷**：
+    ```c
+    x_temp[0] = tanhFunction(total, minSize, a_mid, 0, (NZ6-7));
+    x_temp[1] = tanhFunction(total, minSize, a_mid, 1, (NZ6-7));
+    dx = x_temp[1] - x_temp[0];  // 第 0 與第 1 個計算點的間距
+    if( dx - minSize >= 0.0 )    // dx >= minSize 則 a 可以更大
+        a_temp[0] = a_mid;
+    else
+        a_temp[1] = a_mid;
+    // 收斂條件：|dx - minSize| < 1e-14
+    ```
+  - **物理意義**：讓壁面附近(k=0)的網格間距精確等於晶格大小，確保 ISLBM 插值精度
 - ✅ Lagrange_6th() (6 階插值)
 - ✅ GetParameter_6th() (預計算插值權重)
 - ✅ IsLeftHill_Boundary_yPlus() (左丘 +Y 邊界判斷)

@@ -37,7 +37,7 @@ void GenerateMesh_Y() {
     int buffr = 3;
 
     if( Uniform_In_Ydir ){
-        dy = LY / (double)(NY6-2*buffr-1); //-7為計算物理空間計算點數量
+        dy = LY / (double)(NY6-2*buffr-1); //主流場Steram-Wise方向作為Wet-node boundary 節點佈局
         for( int i = 0; i < NY6; i++ ){
             y_global[i] = dy * ((double)(i-buffr));//配合Hill Function進行座標平移
         }//物理空間計算點在外網格中為節點佈局，換言之，同一個物理空間計算點作為Lattic的中心點，卻作為外網格的節點
@@ -46,5 +46,47 @@ void GenerateMesh_Y() {
         exit(0);
     }
 }
+
+void GenerateMesh_Z() {
+    int bufferlayer = 3; //單邊bufferlayer的厚度為3 
+    if( Uniform_In_Zdir ){
+        cout << "Mesh needs to be non-uniform in z-direction in periodic hill problem, exit..." << endl ;
+        exit(0);
+    }//Z方向做非均勻網格系統
+    double a = GetNonuniParameter(); //計算最合適非均勻參數 
+    
+    //計算(不含山丘)離散化無因次化Z座標
+    for( int k = bufferlayer; k < NZ6-bufferlayer; k++ ){ //3~NZ6-4 
+        xi_h[k] = tanhFunction( LXi, minSize, a, (k-3), (NZ6-7) ) - minSize/2.0;
+    }
+    //計算(含山丘)離散化全域z座標
+    double y_global[NY6];
+    double z_global[NY6*NZ6];
+    for( int j = 0; j < NY6; j++ ){
+        double dy = LY / (double)(NY6-2*bufferlayer-1);
+        y_global[j] = dy * ((double)(j-bufferlayer));//配合Hill Function做座標平移
+        double total = LZ - HillFunction( y_global[j] ) - minSize;
+        for( int k = bufferlayer; k < NZ6-bufferlayer; k++ ){
+            z_global[j*NZ6+k] = tanhFunction( total, minSize, a, (k-3), (NZ6-7) ) + 
+                                HillFunction( y_global[j] );
+        }
+        z_global[j*NZ6+2] = HillFunction( y_global[j] );
+        z_global[j*NZ6+(NZ6-3)] = (double)LZ;
+    }
+}
+void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_xi , double now , double start){
+    //此函數為產生xi方向預配置權重一維連續記憶體
+    //每一個y值對應的物理空間計算點總長度皆不同
+    double L = LZ - HillFunction( pos_y ) - minSize; 
+    double pos_xi = (LXi / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
+    if( k >= 3 && k <= 6 ){
+        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, 3 );
+    } else if ( k >= NZ6-7 && k <= NZ6-4 ) {
+        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, NZ6-10 );
+    } else {
+        GetParameter_6th( XiPara, pos_xi, Pos_xi, now, now-3 );
+    }  
+}
+
 
 #endif 

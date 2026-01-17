@@ -30,10 +30,9 @@ void InitialUsingDftFunc() {
         Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
 }
 //建立Y(主流場方向)方向之均勻網格系統
-//計算y_globle 
+//計算y_global
 void GenerateMesh_Y() {
     double dy;
-    double y_global[NY6];
     int buffr = 3;
 
     if( Uniform_In_Ydir ){
@@ -60,8 +59,7 @@ void GenerateMesh_Z() {
         xi_h[k] = tanhFunction( LXi, minSize, a, (k-3), (NZ6-7) ) - minSize/2.0;
     }
     //計算(含山丘)離散化全域z座標
-    double y_global[NY6];
-    double z_global[NY6*NZ6];
+
     for( int j = 0; j < NY6; j++ ){
         double dy = LY / (double)(NY6-2*bufferlayer-1);
         y_global[j] = dy * ((double)(j-bufferlayer));//配合Hill Function做座標平移
@@ -74,12 +72,20 @@ void GenerateMesh_Z() {
         z_global[j*NZ6+(NZ6-3)] = (double)LZ;
     }
 }
-void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_z , double now , double start){
+void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_z , int now_y , int now_z ,  double start){
     //此函數為產生xi方向預配置權重一維連續記憶體
     //每一個y值對應的物理空間計算點總長度皆不同
     double L = LZ - HillFunction( pos_y ) - minSize; 
     double rate = (1 / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
-    double total = LZ - HillFunction(  ) - minSize; 
+    double total = LZ - HillFunction( y_global[now_y] ) - minSize; 
+    double pos_z = rate * total + HillFunction( y_global[now_y] ) + minSize/2.0;
+    if( now_z >= 3 && now_z <= 6 ){
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, 3 );
+    } else if ( now_z >= NZ6-7 && now_z <= NZ6-4 ) {
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, NZ6-10 );
+    } else {
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, now_z-3 );
+    } 
 }
 
 

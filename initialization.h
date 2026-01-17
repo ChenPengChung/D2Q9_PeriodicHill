@@ -72,7 +72,7 @@ void GenerateMesh_Z() {
         z_global[j*NZ6+(NZ6-3)] = (double)LZ;
     }
 }
-void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_z , int now_y , int now_z ,  double start){
+void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_z , int now_y , int now_z ){
     //此函數為產生xi方向預配置權重一維連續記憶體
     //每一個y值對應的物理空間計算點總長度皆不同
     double L = LZ - HillFunction( pos_y ) - minSize; 
@@ -80,11 +80,11 @@ void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_
     double total = LZ - HillFunction( y_global[now_y] ) - minSize; 
     double pos_z = rate * total + HillFunction( y_global[now_y] ) + minSize/2.0;
     if( now_z >= 3 && now_z <= 6 ){
-        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, 3 );
+        GetParameter_6th( XiPara, pos_z, Pos_z  , IdxToStore , 3 );
     } else if ( now_z >= NZ6-7 && now_z <= NZ6-4 ) {
-        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, NZ6-10 );
+        GetParameter_6th( XiPara, pos_z, Pos_z , IdxToStore, NZ6-10 );
     } else {
-        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, now_z-3 );
+        GetParameter_6th( XiPara, pos_z, Pos_z , IdxToStore, now_z-3 );
     } 
 }
 

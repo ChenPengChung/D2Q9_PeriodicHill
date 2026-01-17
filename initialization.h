@@ -30,22 +30,17 @@ void InitialUsingDftFunc() {
         Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
 }
 //建立Y(主流場方向)方向之均勻網格系統
+//計算y_globle 
 void GenerateMesh_Y() {
     double dy;
     double y_global[NY6];
     int buffr = 3;
 
     if( Uniform_In_Ydir ){
-        dy = LY / (double)(NY6-2*bfr-1);
+        dy = LY / (double)(NY6-2*buffr-1); //-7為計算物理空間計算點數量
         for( int i = 0; i < NY6; i++ ){
-            y_global[i] = dy * ((double)(i-bfr));//配合Hill Function進行座標評儀
+            y_global[i] = dy * ((double)(i-buffr));//配合Hill Function進行座標評儀
         }
-
-        for( int j = 0; j < NYD6; j++ ) {
-            int j_global = myid * (NYD6-2*bfr-1) + j;
-            y_h[j] = y_global[j_global];
-        }
-
     } else {
         cout << "Mesh needs to be uniform in periodic hill problem, exit..." << endl ;
         exit(0);

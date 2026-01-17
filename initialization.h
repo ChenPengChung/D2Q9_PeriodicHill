@@ -39,22 +39,10 @@ void GenerateMesh_Y() {
     if( Uniform_In_Ydir ){
         dy = LY / (double)(NY6-2*buffr-1); //-7為計算物理空間計算點數量
         for( int i = 0; i < NY6; i++ ){
-            y_global[i] = dy * ((double)(i-buf 人ㄙㄩㄤㄗㄧㄤㄤ、、」、」、ㄥ「fr));//配合Hill Function進行座標評儀
-
-
-‘
-、5        }
-        //輸出網格資訊
-        cout << "----- Mesh Information in Y direction -----" << endl ;
-        cout << " Total number of nodes in Y direction : " << NY6 << endl ;
-        cout << " Mesh size in Y direction : " << dy << endl ;
-        cout << "------------------------------------------" << endl ;                                                nbvfghjmk,mjhgfdcvbm,iop[jkl]klkml;'
-        m,./
-        ,;'
-        \,,;;;,;,,,m,.                                  '
-    } else {\
-    \
-=       cout << "Mesh needs to be uniform in periodic hill problem, exit..." << endl ;
+            y_global[i] = dy * ((double)(i-buffr));//配合Hill Function進行座標評儀
+        }
+    } else {
+        cout << "Mesh needs to be uniform in periodic hill problem, exit..." << endl ;
         exit(0);
     }
 }

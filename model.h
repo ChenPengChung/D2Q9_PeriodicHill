@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <variables.h>
+#include "variables.h"
 using namespace std;
 //此篇為二維方向Y-Z方向之山坡模型
 #ifndef MODEL_FILE

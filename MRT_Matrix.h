@@ -6,15 +6,15 @@
 //特殊選鬆弛因子與宏觀參數之關係
 //TimKruger第422頁 
 #define Relaxation \
-    s0 = 0.0 \
-    s1 = omega_1 \
-    s2 = 1.0 /*freeparameter*/ \
-    s3 = 0.0 \
-    s4 = 1.0 /*freeparameter*/ \
-    s5 = 0.0 \
-    s6 = 1.0 /*freeparameter*/ \
-    s7 = omega_7 \
-    s8 = omega_7  
+    s0 = 0.0 ;\
+    s1 = omega_2 ;\
+    s2 = 1.0 ;/*freeparameter*/ \
+    s3 = 0.0 ;\
+    s4 = 1.0 ;/*freeparameter*/ \
+    s5 = 0.0 ;\
+    s6 = 1.0 ;/*freeparameter*/ \
+    s7 = omega_7 ;  \
+    s8 = omega_7 ;  
 //分佈函數的基底變換矩陣
 //假設為可逆矩陣作為正交矩陣作正交對角化
 #define Matrix\

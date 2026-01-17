@@ -369,3 +369,86 @@ F8    (1, -1)            1/36      是 (+Y-Z)
 
 **參考文獻**：
 - Guo, Z., Zheng, C., & Shi, B. (2002). Discrete lattice effects on the forcing term in the lattice Boltzmann method. *Physical Review E*, 65(4), 046308.
+
+---
+
+## 2026-01-17 Xi 插值權重筆記（GetIntrplParameter_Xi / GetXiParameter / GetParameterXi）
+
+### 為什麼需要同時輸入 `pos_y` 與 `pos_z`？
+
+補充：`GetIntrplParameter_Xi()` 本身是 `void` 無參數；真正需要 `pos_z`/`pos_y` 的是它在迴圈中呼叫的 `GetXiParameter(...)`（CPU 版對應 `GetParameterXi(...)`），用來把 `(y,z)` 轉成 `pos_xi` 並產生插值權重。
+
+Periodic Hill 的底壁高度為 `HillFunction(y)`（隨 `y` 改變），因此從物理座標 `(y, z)` 轉成無因次化的 `xi` 時，需要同時知道：
+- 這個位置的底壁高度 `HillFunction(pos_y)`
+- 這個位置的垂直座標 `pos_z`
+
+關鍵在於：局部通道高度與離壁距離都跟 `y` 有關，所以同一個 `pos_z` 在不同的 `pos_y` 會得到不同的 `pos_xi`。
+
+`pos_xi` 的核心關係式（概念上就是你筆記裡的 `pos_z - Hill - 0.5*minSize`）：
+
+```cpp
+L      = LZ - HillFunction(pos_y) - minSize;
+pos_xi = LXi * (pos_z - (HillFunction(pos_y) + minSize/2.0)) / L;
+```
+
+也因此在使用上，像 `y+` 與 `y-` 會對應到不同的 `HillFunction(y±minSize)`，所以即使 `pos_z` 一樣，`pos_xi` 仍會不同（權重需要分開算）。
+
+### 兩個指標（`XiPara` / `Pos_xi`）的意義
+
+以 `GetParameterXi(...)` / `GetXiParameter(...)` 這類函式來說，常見有兩個「指標類」參數：
+- `XiPara`（或 GPU 版的 `double *XiPara*_h[7]`）：用來**存插值權重**。6th order 會有 7 個權重，所以第一維是 7；第二維是「要存到哪個網格點」的索引。
+- `Pos_xi`（例如 `xi_h`）：`xi` 方向的**座標陣列**，提供給 `GetParameter_6th(...)` 去定位 stencil 並計算 7 點權重。
+
+### 為什麼「矩陣第二個參數」會是 `NYD6*NZ6`？
+
+`z_h` 在程式裡是以 `(j,k)` 的 2D 分佈使用，但通常用一維連續記憶體存放並 flatten：
+- `index = j*NZ6 + k`
+- 總點數 = `NYD6 * NZ6`
+
+而 `xi` 插值權重會隨 `y` 改變（因為 `HillFunction(y)` 會影響 `L` 與 `pos_xi`），所以每個 `(j,k)` 都需要各自一組 7 點權重；因此每個權重陣列的長度就會是 `NYD6*NZ6`。
+
+### 關鍵程式碼（從 `periodic hill_6thIBLBM` 搜出）
+
+檔案：`periodic hill_6thIBLBM/50hill_4GPU/initialization.h`
+
+```cpp
+void GetXiParameter(
+    double *XiPara_h[7],    double pos_z,       double pos_y,
+    double *Pos_xi,         int IdxToStore,     int k  )
+{
+    double L = LZ - HillFunction(pos_y) - minSize;
+    double pos_xi = LXi * (pos_z - (HillFunction(pos_y)+minSize/2.0)) / L;
+
+    if( k >= 3 && k <= 6 ){
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, 3 );
+    } else if ( k >= NZ6-7 && k <= NZ6-4 ) {
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, NZ6-10 );
+    } else {
+        GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, k-3 );
+    }
+}
+
+void GetIntrplParameter_Xi() {
+    for( int j = 3; j < NYD6-3; j++ ){
+    for( int k = 3; k < NZ6-3;  k++ ){
+        GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF5_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF6_h,  z_h[j*NZ6+k]+minSize, y_h[j],         xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF15_h, z_h[j*NZ6+k]-minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF16_h, z_h[j*NZ6+k]-minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF17_h, z_h[j*NZ6+k]+minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+        GetXiParameter( XiParaF18_h, z_h[j*NZ6+k]+minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+    }}
+}
+```
+
+（對照概念）檔案：`initialization.h`
+
+```cpp
+void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_xi , double now , double start){
+    double L = LZ - HillFunction( pos_y ) - minSize;
+    double pos_xi = (LXi / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
+    ...
+}
+```

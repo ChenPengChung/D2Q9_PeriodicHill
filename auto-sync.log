@@ -1902,3 +1902,52 @@ To https://github.com/ChenPengChung/D2Q9_PeriodicHill.git
 [2026-01-17 22:07:13] 同步完成!
 
 [2026-01-17 22:12:15] 偵測到修改，開始同步...
+[main 2bd3fba] auto-sync: 2026-01-17 22:12:15
+ 44 files changed, 20354 insertions(+)
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5521cdw_EN.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5526cdw_EN.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5526cdw_JA.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSP5026cdw_EN.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSP5026cdw_JA.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CommandCenterRX_EN.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CommandCenterRX_JA.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/DirectPrint_KD_EN.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/DirectPrint_KD_JA.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/ECOSYSM5521cdw_AR.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/ECOSYSM5521cdw_CA.pdf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/DriverDll.dll"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/K_logo.ico"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmDiscover.dll"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInst32.pnf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInst32.str"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInstall.str"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInstall4.ini"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmUsb.dll"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KxPackagerDll.dll"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KyoRm.ini"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/QuickInstlang.dat"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/autorun.inf"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/lang.dat"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/lang4.dat"
+ create mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/setup.ini"
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/MRT_Matrix.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/MRT_Process.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/combinepltv2.c
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/common.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/communication.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/evolution.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/fileIO.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/initialization.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/initializationTool.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/interpolationHillISLBM.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/interpolationISLBM.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/main.cu
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/memory.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/model.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/monitor.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/statistics.h
+ create mode 100644 periodic hill_6thIBLBM/50hill_4GPU/variables.h
+fatal: unable to access 'https://github.com/ChenPengChung/D2Q9_PeriodicHill.git/': Could not resolve host: github.com
+[2026-01-17 22:12:15] 同步完成!
+
+[2026-01-17 22:17:20] 偵測到修改，開始同步...

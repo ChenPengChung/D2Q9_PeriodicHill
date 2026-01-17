@@ -74,12 +74,12 @@ void GenerateMesh_Z() {
         z_global[j*NZ6+(NZ6-3)] = (double)LZ;
     }
 }
-void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_xi , double now , double start){
+void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_z , double now , double start){
     //此函數為產生xi方向預配置權重一維連續記憶體
     //每一個y值對應的物理空間計算點總長度皆不同
     double L = LZ - HillFunction( pos_y ) - minSize; 
     double rate = (1 / L) * (pos_z - HillFunction( pos_y ) - minSize/2.0);
-    
+    double total = LZ - HillFunction(  ) - minSize; 
 }
 
 

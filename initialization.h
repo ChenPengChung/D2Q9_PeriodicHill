@@ -1,3 +1,7 @@
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+
 #ifndef INITIALIZATION_FILE
 #define INITIALIZATION_FILE
 
@@ -24,7 +28,29 @@ void InitialUsingDftFunc() {
                                                     3.0 *(e[dir][0] * v[index] + e[dir][1] * w[index])+          //1階項
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
-        //離散化宏觀外立場的初始化 
+        //離散化宏觀外立場的初始化initilaoization of the discrete macroscopic force term 
         Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
+}
+//建立Y(主流場方向)方向之均勻網格系統
+void GenerateMesh_Y() {
+    double dy;
+    double y_global[NY6];
+    int bfr = 3;
+
+    if( Uniform_In_Ydir ){
+        dy = LY / (double)(NY6-2*bfr-1);
+        for( int i = 0; i < NY6; i++ ){
+            y_global[i] = dy * ((double)(i-bfr));//配合Hill Function進行座標評儀
+        }
+
+        for( int j = 0; j < NYD6; j++ ) {
+            int j_global = myid * (NYD6-2*bfr-1) + j;
+            y_h[j] = y_global[j_global];
+        }
+
+    } else {
+        printf("Mesh needs to be uniform in periodic hill problem, exit...\n");
+        exit(0);
+    }
 }
 #endif 

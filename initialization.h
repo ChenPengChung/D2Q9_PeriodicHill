@@ -133,25 +133,27 @@ void BFLInitialization() {
     for(int j = 3 ; j <= NY6 ; j++){
         for(int k = 3 ; k <= NZ6-3 ; k++){
             //F1:(左丘)
-            double q1 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
-
-            if(!IsLeftHill_Boundary_Diagonal45(y[j] ,z_global[j*NZ6+k])){
+            double q1 = Left_q_yPlus(y[j] ,z_global[j*NZ6+k]);
+            double delta1 = minSize * (1-2*q1) ; 
+            if(!IsLeftHill_Boundary_yPlus(y[j] ,z_global[j*NZ6+k])){
             //ParameterforF1 at direction y and z 
-
+            
             }
             //F2:(右丘)
-            double q2 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
-            Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
-            if(!IsRightHill_Boundary_Diagonal135(y[j] ,z_global[j*NZ6+k])){
+            double q2 = Right_q_yMinus(y[j] ,z_global[j*NZ6+k]);
+            double delta2 = minSize * (1-2*q2) ;
+            if(!!IsRightHill_Boundary_yMinus(y[j] ,z_global[j*NZ6+k])){
                 
             }
             //F5:(左丘)
-            double q5 = Left_q_DiagonalMinus45(y[j] ,z_global[j*NZ6+k]);
-            if(!IsLeftHill_Boundary_DiagonalMinus45(y[j] ,z_global[j*NZ6+k])){
+            double q5 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
+            double delta5 = minSize * (1-2*q5) ;
+            if(!IsLeftHill_Boundary_Diagonal45(y[j] ,z_global[j*NZ6+k])){
             }
             //F6:(右丘)
-            Right_q_DiagonalMinus135(y[j] ,z_global[j*NZ6+k]);
-            if(!IsRightHill_Boundary_DiagonalMinus135(y[j] ,z_global[j*NZ6+k])){
+            double q6 = Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
+            double delta6 = minSize * (1-2*q6) ;
+            if(!IsRightHill_Boundary_Diagonal135(y[j] ,z_global[j*NZ6+k])){
             }
         }
     }

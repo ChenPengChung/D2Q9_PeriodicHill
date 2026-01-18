@@ -127,10 +127,10 @@ void GetIntrplParameter_Xi() {
 }
 
 void BFLInitialization() {
-    size_t nBytes;
+
 
     for( int k = 0; k < 2;      k++ ){
-    for( int j = 3; j < NYD6-3; j++ ){
+    for( int j = 3; j < NY6-3; j++ ){
         //尋找 第三編號碰撞前插值後一般態分佈函數的物理空間邊界計算點 
         BFLReqF3_h[k*NYD6+j]  = IsBFLBCNeeded(y_h[j]-minSize, z_h[j*NZ6+k+3]);
         //尋找 第三編號碰撞前插值後一般態分佈函數的物理空間邊界計算點 

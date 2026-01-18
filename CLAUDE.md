@@ -730,7 +730,7 @@ void BFLInitialization() {
             // F5 的邊界處理：F7 入射撞左丘 → F5 反彈離開
             if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){
                 double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
-                double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
+                double delta5 = minSize * (1.0 - 2.0*q5);
                 // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
                 GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, ...);  // 用 F7 插值
                 GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, ...);
@@ -740,7 +740,7 @@ void BFLInitialization() {
             // F6 的邊界處理：F8 入射撞右丘 → F6 反彈離開
             if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){
                 double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
-                double delta6 = minSize * (1.0 - 2.0*q6) / sqrt(2.0);
+                double delta6 = minSize * (1.0 - 2.0*q6);
                 // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
                 GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, ...);  // 用 F8 插值
                 GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6, ...);
@@ -765,7 +765,7 @@ delta = minSize * (1.0 - 2.0*q)
 - 當 `q = 0.5`（計算點在中間）：`delta = 0`
 - 當 `q = 1`（計算點離壁面一格）：`delta = -minSize`
 
-對於斜向（45°/135°），delta 需要除以 `sqrt(2.0)` 因為移動距離是斜向的。
+對於斜向（45°/135°），若 `q` 是用這份程式的定義（`q = |Δy|/minSize`，等同沿 link 的無因次距離），則 `delta` 仍用 `delta = minSize*(1-2q)`；斜向的「實際位移長度」才會是 `sqrt(2.0)*delta`（但你在座標上做的是 `y±delta, z±delta`）。
 
 ### 權重陣列命名規則
 

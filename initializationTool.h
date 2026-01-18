@@ -18,7 +18,7 @@
 
 // * 半邊山丘寬度 (無因次化)
 #define HillHalfWidth (54.0/28.0) 
-
+//1.
 /**
  * @brief 左半丘反函數 (數值法)
  * 
@@ -46,7 +46,7 @@ double HillFunction_Inverse_Left(double z) {
     }
     return y_mid;
 }
-
+//2.
 /**
  * @brief 右半丘反函數 (數值法)
  * 
@@ -74,7 +74,7 @@ double HillFunction_Inverse_Right(double z) {
     }
     return y_mid;
 }
-
+//3.
 /**
  * @brief 雙曲正切非均勻網格座標轉換巨集
  * 
@@ -93,7 +93,7 @@ double HillFunction_Inverse_Right(double z) {
 (           \
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
 )
-
+//4.
 /**
  * @brief 計算非均勻網格伸縮參數 a
  * 
@@ -127,7 +127,7 @@ double GetNonuniParameter() {
     } while (fabs( dx - minSize) > 1e-14 );
     return a_mid;
 }
-
+//5.
 /**
  * @brief 六階 Lagrange 插值基底函數
  * 
@@ -151,7 +151,7 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
 }
-
+//6.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列
  * 
@@ -175,7 +175,7 @@ void GetParameter_6th( double** Para , double Position , double* phy , int now ,
     Para[5][now] = Lagrange_6th( Position , *(phy+start+5) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+6) ) ;     
     Para[6][now] = Lagrange_6th( Position , *(phy+start+6) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ) ;     
 }
-
+//7.
 /**
  * @brief 判斷是否為左山丘的 +y 方向物理空間邊界計算點
  * 
@@ -204,7 +204,7 @@ bool IsLeftHill_Boundary_yPlus(double y , double z){
         }
     }
 }
-
+//8.
 /**
  * @brief 判斷是否為右山丘的 -y 方向物理空間邊界計算點
  * 
@@ -231,7 +231,7 @@ bool IsRightHill_Boundary_yMinus(double y , double z){
         }
     }
 }
-
+//9.
 /**
  * @brief 判斷是否為左山丘的 45 度斜向物理空間邊界計算點
  * 
@@ -262,7 +262,7 @@ bool IsLeftHill_Boundary_Diagonal45(double y , double z){
         }
     }
 }
-
+//10.
 /**
  * @brief 判斷是否為右山丘的 135 度斜向物理空間邊界計算點
  * 
@@ -293,6 +293,11 @@ bool IsRightHill_Boundary_Diagonal135(double y , double z){
         }
     }
 }
+//11.判斷使否為
+
+
+
+
 
 /**
  * @brief 計算左山丘 +y 方向的 BFL 邊界條件 q 值
@@ -376,6 +381,7 @@ double Left_q_Diagonal45(double y , double z){
     y_target = y_middle ;
     return fabs(y - y_target) / minSize ;
 }
+
 
 /**
  * @brief 計算右山丘 135 度斜向的 BFL 邊界條件 q 值

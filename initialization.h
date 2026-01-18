@@ -137,24 +137,29 @@ void BFLInitialization() {
             double delta1 = minSize * (1-2*q1) ; 
             if(!IsLeftHill_Boundary_yPlus(y[j] ,z_global[j*NZ6+k])){
             //ParameterforF1 at direction y and z 
-            GetPartameter_65h
-            Get
+            GetParameter_6th(YParaF1_h, y[j]+delta1,y_h,j,j-3) ; 
+            GetXiParameter(XiParaF1_h,z_global[j*NZ6+k],y[j]+delta1.xi_h,j*NZ6+k,k) ; 
             }
             //F2:(右丘)
             double q2 = Right_q_yMinus(y[j] ,z_global[j*NZ6+k]);
             double delta2 = minSize * (1-2*q2) ;
             if(!!IsRightHill_Boundary_yMinus(y[j] ,z_global[j*NZ6+k])){
-                
+            GetParameter_6th(YParaF2_h, y[j]-delta2,y_h,j,j-3) ;
+            GetXiParameter(XiParaF2_h,z_global[j*NZ6+k]-delta2.xi_h,y[j]-delta2,j*NZ6+k,k) ;
             }
             //F5:(左丘)
             double q5 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
-            double delta5 = minSize * (1-2*q5) ;
+            double delta5 = minSize * (1-2*q5)  / sqrt(2.0);
             if(!IsLeftHill_Boundary_Diagonal45(y[j] ,z_global[j*NZ6+k])){
+            GetParameter_6th(YParaF5_h, y[j]+delta5,y_h,j,j-3) ;
+            GetXiParameter(XiParaF5_h,z_global[j*NZ6+k]+delta5,y[j]+delta5,j*NZ6+k,k) ;
             }
             //F6:(右丘)
             double q6 = Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
-            double delta6 = minSize * (1-2*q6) ;
+            double delta6 = minSize * (1-2*q6)  / sqrt(2.0);
             if(!IsRightHill_Boundary_Diagonal135(y[j] ,z_global[j*NZ6+k])){
+            GetParameter_6th(YParaF6_h, y[j]-delta6,y_h,j,j-3) ;
+            GetXiParameter(XiParaF6_h,z_global[j*NZ6+k]-delta6.xi_h,y[j]-delta6,j*NZ6+k,k) ;
             }
         }
     }

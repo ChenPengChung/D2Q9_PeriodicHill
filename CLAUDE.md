@@ -1115,3 +1115,180 @@ const double F0_eq = (4./9.) * rho_s * (1.0-1.5*udot);
 - 然後計算平衡態
 
 兩種方式數學上等價，`evolution.h` 的版本更適合在 stream-collide 流程中使用，因為它直接從 post-streaming 的分佈函數開始計算。
+
+---
+
+## 2026-01-19 外力項動態修正機制
+
+### 功能目的
+
+在週期性驅動流中，初始外力是根據 Poiseuille 流解析解估算的，但由於：
+1. Periodic Hill 的幾何形狀造成額外壓力損失
+2. 非均勻網格的數值誤差
+3. MRT 碰撞的數值黏滯
+
+實際流速可能偏離目標值 `Uref`。**動態外力調整**使用比例控制器讓實際流速趨近目標流速。
+
+### 控制器公式
+
+```
+F_new = F_old + β × (U_target - U_actual) × U_ref / L
+```
+
+| 參數 | 意義 | 數值 |
+|------|------|------|
+| `β` | 控制增益 | `max(0.001, 3/Re)` |
+| `U_target` | 目標流速 | `Uref` |
+| `U_actual` | 實際平均流速 | `Ub_avg` |
+| `L` | 特徵長度 | `LZ` |
+
+**控制邏輯**：
+- 當 `U_actual < U_target` → 誤差為正 → 增加外力 → 加速流體
+- 當 `U_actual > U_target` → 誤差為負 → 減少外力 → 減速流體
+
+### 新增函數
+
+#### 1. `AccumulateUbulk()` (evolution.h:235-242)
+
+```cpp
+void AccumulateUbulk(double* v_field, double* Ub_sum_ptr) {
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            *Ub_sum_ptr += v_field[idx];
+        }
+    }
+}
+```
+
+- **功能**：累積 Y 方向平均速度
+- **呼叫時機**：每個時間步
+- **輸入**：`v_field` - Y 方向速度場
+- **輸出**：`Ub_sum_ptr` - 累積的速度總和（透過指標更新）
+
+#### 2. `ModifyForcingTerm()` (evolution.h:261-278)
+
+```cpp
+void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
+    // 1. 計算時間與空間平均速度
+    int num_cells = (NY6 - 6) * (NZ6 - 6);
+    double Ub_avg = (*Ub_sum_ptr) / (double)(num_cells * NDTFRC);
+
+    // 2. 計算控制增益
+    double beta = fmax(0.001, 3.0 / (double)Re);
+
+    // 3. 調整外力
+    Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
+
+    // 4. 輸出監控資訊
+    printf("Force Update: Ub_avg = %.6f, Uref = %.6f, Force = %.5e\n",
+           Ub_avg, Uref, Force[0]);
+
+    // 5. 重置累加器
+    *Ub_sum_ptr = 0.0;
+}
+```
+
+- **功能**：使用比例控制器調整外力
+- **呼叫時機**：每 `NDTFRC` 步（建議 10000 步）
+- **輸入**：
+  - `Force` - 外力陣列
+  - `Ub_sum_ptr` - 累積的速度總和
+  - `NDTFRC` - 累積的時間步數
+- **輸出**：
+  - 更新後的 `Force[0]`
+  - 重置 `*Ub_sum_ptr = 0`
+
+### 主程式使用範例
+
+```cpp
+// main.cpp
+#include "evolution.h"
+
+int main() {
+    // ... 初始化 ...
+
+    double Ub_sum = 0.0;           // 累積的平均速度
+    int force_update_count = 0;    // 累積的時間步數
+    const int NDTFRC = 10000;      // 每多少步修正一次
+
+    for(int t = 0; t < loop; t++) {
+        // 1. Stream + Collide
+        stream_collide(...);
+
+        // 2. 週期性邊界
+        periodicSW(...);
+
+        // 3. 累積平均速度
+        AccumulateUbulk(v, &Ub_sum);
+        force_update_count++;
+
+        // 4. 每 NDTFRC 步修正外力
+        if(force_update_count >= NDTFRC) {
+            ModifyForcingTerm(Force, &Ub_sum, NDTFRC);
+            force_update_count = 0;
+        }
+
+        // 5. 交換 f_old 與 f_new 指標
+        std::swap(f0_old, f0_new);
+        std::swap(f1_old, f1_new);
+        // ... 其他方向 ...
+    }
+    return 0;
+}
+```
+
+### 參數建議
+
+| 參數 | 建議值 | 說明 |
+|------|--------|------|
+| `NDTFRC` | 10000 | 太小會震盪，太大會收斂慢 |
+| `β` 下限 | 0.001 | 避免高 Re 時控制增益過小 |
+| `β` 上限 | 3/Re | 低 Re 時較大，高 Re 時較小 |
+
+### 與原始 GPU 版本的差異
+
+| 項目 | 原始 GPU 版本 | 目前 CPU 版本 |
+|------|--------------|--------------|
+| 速度累積 | GPU kernel + cudaMemcpy | CPU 直接迴圈 |
+| 多 GPU 同步 | MPI_Reduce + MPI_Bcast | 不需要 |
+| 記憶體 | Ub_avg_d[NX6*NZ6] | Ub_sum (純量) |
+
+---
+
+## 2026-01-19 週期性邊界條件 periodicSW()
+
+### 功能說明
+
+`periodicSW()` 實現 Y 方向（Stream-Wise，主流場方向）的週期性邊界條件。
+
+### 網格配置
+
+```
+Y 方向索引 (j):
+  0   1   2  |  3   4   5  ...  NY6-6  NY6-5  NY6-4  |  NY6-3  NY6-2  NY6-1
+  ←buffer→  |  ←────────── 計算區域 ──────────────→  |  ←───buffer───→
+```
+
+### 複製邏輯
+
+#### 左側 Buffer 填充（從右邊複製）
+```cpp
+int idx_right = (i+NY6-6)*NZ6 + k;   // 來源：j = NY6-6, NY6-5, NY6-4
+int buffer_left = i*NZ6 + k;         // 目標：j = 0, 1, 2
+```
+
+#### 右側 Buffer 填充（從左邊複製）
+```cpp
+int idx_left = (i+3)*NZ6 + k;        // 來源：j = 3, 4, 5
+int buffer_right = (i+NY6-3)*NZ6+k;  // 目標：j = NY6-3, NY6-2, NY6-1
+```
+
+### 複製內容
+
+- 分佈函數：`f0_new ~ f8_new`
+- 宏觀量：`v`, `w`, `rho_d`
+
+### 已修正問題
+
+將 `k` 的範圍從 `0 ~ NZ6` 改為 `3 ~ NZ6-3`，只複製 Z 方向的有效計算區域。

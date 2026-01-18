@@ -14,10 +14,13 @@ double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double
 }
 
 void stream_collide(
-    //f_old:物理空間計算點
+    //f_old:上一個時間步所更新的物理空間計算點的碰撞後插值前一般態分佈函數
      double *f0_old, double *f1_old, double *f2_old, double *f3_old, double *f4_old, double *f5_old, double *f6_old, double *f7_old, double *f8_old,
-     double *f0_new, double *f1_new, double *f2_new, double *f3_new, double *f4_new, double *f5_new, double *f6_new, double *f7_new, double *f8_new, 
-
+    //f_new:本時間步所更新的物理空間計算點的碰撞後插值前一般態分佈函數
+    double *f0_new, double *f1_new, double *f2_new, double *f3_new, double *f4_new, double *f5_new, double *f6_new, double *f7_new, double *f8_new, 
+    //Ｙ方向預配置連乘權重
+    double *Y0_0,  double *Y0_1, double *Y0_2,  double *Y0_3,  double *Y0_4,  double *Y0_5,  double *Y0_6,  
+    double *Y2_0,  double *Y2_1,  double *Y2_2,  double *Y2_3,  double *Y2_4,  double *Y2_5,  double *Y2_6,
     ){
 
 }

@@ -91,10 +91,28 @@ void GetXiParameter(
 
 void GetIntrplParameter_Y() {
     for( int i = 3; i < NY6-3; i++ ){
-        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );//使用在F1，y方向連乘權重一為
-        GetParameter_6th( YPara2_h, y_h[i]+minSize, y_h, i, i-3 );
+        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );//使用在F1，作為y方向預配置連乘權重一維連續記憶體 
+        GetParameter_6th( YPara2_h, y_h[i]+minSize, y_h, i, i-3 );//使用在F3，作為y方向預配置連乘權重一維連續記憶體 
     }
 }
+
+
+void GetIntrplParameter_Xi() {
+    for( int j = 3; j < NYD6-3; j++ ){
+        for( int k = 3; k < NZ6-3;  k++ ){
+            //為什麼需要二維記憶體配置，因為在y_z平面上，每一個座標點的 
+            GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF5_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF6_h,  z_h[j*NZ6+k]+minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF15_h, z_h[j*NZ6+k]-minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF16_h, z_h[j*NZ6+k]-minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF17_h, z_h[j*NZ6+k]+minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF18_h, z_h[j*NZ6+k]+minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+    }}
+}
+
+
 
 
 #endif 

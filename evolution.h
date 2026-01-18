@@ -192,8 +192,9 @@ void periodicSW(
     //目的，複製 buffer Layer 
     //新值的更新
     for(int k = 0 ; k < NZ6 ; k++){
-        for(int i = 1 ; i <= 3 v; i++){
-            //右邊左側buffer
+        for(int i = 0 ; i <= 2 ; i++){
+            //右邊左側buffer layer
+            int idx_left = (i+NY6-6)*NZ6 + k ;
         }
         //上邊界 to 下邊界
         int idx_top = (NY6-4)*NZ6 + k ;

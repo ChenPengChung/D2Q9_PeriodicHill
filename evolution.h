@@ -191,6 +191,40 @@ void periodicSW(
 ){//SW:Stream-Wise
     //目的，複製 buffer Layer 
     //新值的更新
-    
+    for(int k = 0 ; k < NZ6 ; k++){
+        for(int i = 1 ; i <= 3 v; i++){
+            //右邊左側buffer
+        }
+        //上邊界 to 下邊界
+        int idx_top = (NY6-4)*NZ6 + k ;
+        int idx_bottom = 3*NZ6 + k ;
+        f0_new[idx_bottom] = f0_new[idx_top];
+        f1_new[idx_bottom] = f1_new[idx_top];
+        f2_new[idx_bottom] = f2_new[idx_top];
+        f3_new[idx_bottom] = f3_new[idx_top];
+        f4_new[idx_bottom] = f4_new[idx_top];
+        f5_new[idx_bottom] = f5_new[idx_top];
+        f6_new[idx_bottom] = f6_new[idx_top];
+        f7_new[idx_bottom] = f7_new[idx_top];
+        f8_new[idx_bottom] = f8_new[idx_top];
+        v[idx_bottom] = v[idx_top];
+        w[idx_bottom] = w[idx_top];
+        rho_d[idx_bottom] = rho_d[idx_top];
+        //下邊界 to 上邊界
+        idx_top = 3*NZ6 + k ;
+        idx_bottom = (NY6-4)*NZ6 + k ;
+        f0_new[idx_bottom] = f0_new[idx_top];
+        f1_new[idx_bottom] = f1_new[idx_top];
+        f2_new[idx_bottom] = f2_new[idx_top];
+        f3_new[idx_bottom] = f3_new[idx_top];
+        f4_new[idx_bottom] = f4_new[idx_top];
+        f5_new[idx_bottom] = f5_new[idx_top];
+        f6_new[idx_bottom] = f6_new[idx_top];
+        f7_new[idx_bottom] = f7_new[idx_top];
+        f8_new[idx_bottom] = f8_new[idx_top];
+        v[idx_bottom] = v[idx_top];
+        w[idx_bottom] = w[idx_top];
+        rho_d[idx_bottom] = rho_d[idx_top];
+    }
 }
 #endif

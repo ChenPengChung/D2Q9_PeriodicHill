@@ -127,39 +127,56 @@ void GetIntrplParameter_Xi() {
 }
 
 void BFLInitialization() {
-    //此函數是為計算邊界計算點的q值以及編借計算點的預配置連乘權重一維連續記憶體
-    //q
-    //Parameter 
-    for(int j = 3 ; j <= NY6 ; j++){
-        for(int k = 3 ; k <= NZ6-3 ; k++){
-            //F1:(左丘)
-            double q1 = Left_q_yPlus(y[j] ,z_global[j*NZ6+k]);
-            double delta1 = minSize * (1-2*q1) ; 
-            if(!IsLeftHill_Boundary_yPlus(y[j] ,z_global[j*NZ6+k])){
-            //ParameterforF1 at direction y and z 
-            GetParameter_6th(YParaF1_h, y[j]+delta1,y_h,j,j-3) ; 
-            GetXiParameter(XiParaF1_h,z_global[j*NZ6+k],y[j]+delta1.xi_h,j*NZ6+k,k) ; 
+    //此函數是為計算邊界計算點的q值以及邊界計算點的預配置連乘權重一維連續記憶體
+    //q: 計算點到壁面的無因次距離
+    //delta: BFL 反彈點相對於計算點的偏移量
+    //Parameter: 預配置 Lagrange 插值權重
+
+    for(int j = 3; j < NY6-3; j++){
+        for(int k = 3; k < NZ6-3; k++){
+
+            //F1 (+Y方向): 左丘邊界
+            // 當粒子從 -Y 方向來，可能撞到左丘
+            if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
+                double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
+                double delta1 = minSize * (1.0 - 2.0*q1);
+                // BFL 反彈點在 +Y 方向: y + delta, z 不變
+                GetParameter_6th(YBFLParaF1_h, y_global[j]+delta1, y_global, j*NZ6+k, j-3);
+                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]+delta1, xi_h, j*NZ6+k, k);
+                Q1_h[j*NZ6+k] = q1;
             }
-            //F2:(右丘)
-            double q2 = Right_q_yMinus(y[j] ,z_global[j*NZ6+k]);
-            double delta2 = minSize * (1-2*q2) ;
-            if(!!IsRightHill_Boundary_yMinus(y[j] ,z_global[j*NZ6+k])){
-            GetParameter_6th(YParaF2_h, y[j]-delta2,y_h,j,j-3) ;
-            GetXiParameter(XiParaF2_h,z_global[j*NZ6+k]-delta2.xi_h,y[j]-delta2,j*NZ6+k,k) ;
+
+            //F3 (-Y方向): 右丘邊界
+            // 當粒子從 +Y 方向來，可能撞到右丘
+            if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){
+                double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
+                double delta3 = minSize * (1.0 - 2.0*q3);
+                // BFL 反彈點在 -Y 方向: y - delta, z 不變
+                GetParameter_6th(YBFLParaF3_h, y_global[j]-delta3, y_global, j*NZ6+k, j-3);
+                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]-delta3, xi_h, j*NZ6+k, k);
+                Q3_h[j*NZ6+k] = q3;
             }
-            //F5:(左丘)
-            double q5 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
-            double delta5 = minSize * (1-2*q5)  / sqrt(2.0);
-            if(!IsLeftHill_Boundary_Diagonal45(y[j] ,z_global[j*NZ6+k])){
-            GetParameter_6th(YParaF5_h, y[j]+delta5,y_h,j,j-3) ;
-            GetXiParameter(XiParaF5_h,z_global[j*NZ6+k]+delta5,y[j]+delta5,j*NZ6+k,k) ;
+
+            //F5 (+Y+Z方向, 45度): 左丘邊界
+            // 當粒子從 (-Y,-Z) 方向來，可能撞到左丘
+            if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){
+                double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
+                double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
+                // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
+                GetParameter_6th(YBFLParaF5_h, y_global[j]+delta5, y_global, j*NZ6+k, j-3);
+                GetXiParameter(XiBFLParaF5_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, xi_h, j*NZ6+k, k);
+                Q5_h[j*NZ6+k] = q5;
             }
-            //F6:(右丘)
-            double q6 = Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
-            double delta6 = minSize * (1-2*q6)  / sqrt(2.0);
-            if(!IsRightHill_Boundary_Diagonal135(y[j] ,z_global[j*NZ6+k])){
-            GetParameter_6th(YParaF6_h, y[j]-delta6,y_h,j,j-3) ;
-            GetXiParameter(XiParaF6_h,z_global[j*NZ6+k]-delta6.xi_h,y[j]-delta6,j*NZ6+k,k) ;
+
+            //F7 (-Y-Z方向, 135度): 右丘邊界
+            // 當粒子從 (+Y,+Z) 方向來，可能撞到右丘
+            if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){
+                double q7 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
+                double delta7 = minSize * (1.0 - 2.0*q7) / sqrt(2.0);
+                // BFL 反彈點在 (-Y,-Z) 方向: y - delta, z - delta
+                GetParameter_6th(YBFLParaF7_h, y_global[j]-delta7, y_global, j*NZ6+k, j-3);
+                GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]-delta7, y_global[j]-delta7, xi_h, j*NZ6+k, k);
+                Q7_h[j*NZ6+k] = q7;
             }
         }
     }

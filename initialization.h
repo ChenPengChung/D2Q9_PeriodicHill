@@ -141,8 +141,8 @@ void BFLInitialization() {
                 double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
                 double delta1 = minSize * (1.0 - 2.0*q1);
                 // BFL 反彈點在 +Y 方向: y + delta, z 不變
-                GetParameter_6th(YBFLParaF1_h, y_global[j]+delta1, y_global, j*NZ6+k, j-3);
-                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]+delta1, xi_h, j*NZ6+k, k);
+                GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j*NZ6+k, j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1 
+                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1, xi_h , j*NZ6+k, k);
                 Q1_h[j*NZ6+k] = q1;
             }
 

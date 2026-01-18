@@ -13,4 +13,6 @@ double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double
     return rho_local;
 }
 
+void stream_collide(
+    
 #endif

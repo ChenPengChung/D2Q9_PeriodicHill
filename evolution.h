@@ -45,11 +45,16 @@ void stream_collide(
     //BFL邊界條件無因次化距離q
     double *Q3_h,        double*Q4_h,         double *Q15_h,       double*Q16_h){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
     
+    // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
+        Matrix;
+        Matrix_Inverse;
+        Relaxation; 
     //1.函數內直接開始執行雙重for迴圈
 for(int j = 3 ; j <= NZ6-4 ; j++){
     for(int k = 3 ; k <= NZ6-4 ; k++){
         int idx_xi = j *NZ6 + k ;
         int idx ; 
+        int nface = NZ6 ; 
         //宣告物理空間計算點的碰撞前插值後一般態分佈函數
         double F0_in,  F1_in,  F2_in,  F3_in,  F4_in,  F5_in,  F6_in,  F7_in,  F8_in ;   
         //MRT Variables
@@ -62,10 +67,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
         if( k <= 6 ) cell_z = 3;
         if( k >= NZ6-7 ) cell_z = NZ6-10;
 
-        // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
-        Matrix;
-        Matrix_Inverse;
-        Relaxation; 
+        
         //1.Interpolation and Streaming 
         F0_Intrpl7(f0_old, j, k);
 

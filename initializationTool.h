@@ -331,17 +331,13 @@ bool IsRightHill_Boundary_DiagonalMinus135(double y , double z){
 
 
 
-
+//13.
 /**
  * @brief 計算左山丘 +y 方向的 BFL 邊界條件 q 值
- * 
  * * 計算 +y 方向邊界計算點到曲面壁面的無因次距離 q
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * 
  * ! q = |y - y_wall| / minSize，用於 BFL 插值邊界條件
  * @see IsLeftHill_Boundary_yPlus(), HillFunction_Inverse_Left()
  */
@@ -353,16 +349,13 @@ double Left_q_yPlus(double y , double z){
     return fabs(y - HillFunction_Inverse_Left(z)) / minSize;
 }
 
+//14.
 /**
  * @brief 計算右山丘 -y 方向的 BFL 邊界條件 q 值
- * 
  * * 計算 -y 方向邊界計算點到曲面壁面的無因次距離 q
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * 
  * ! q = |y - y_wall| / minSize，用於 BFL 插值邊界條件
  * @see IsRightHill_Boundary_yMinus(), HillFunction_Inverse_Right()
  */
@@ -374,16 +367,13 @@ double Right_q_yMinus(double y , double z){
     return fabs(y - HillFunction_Inverse_Right(z)) / minSize;
 }
 
+//15.
 /**
  * @brief 計算左山丘 45 度斜向的 BFL 邊界條件 q 值
- * 
  * * 使用二分法求解 45 度斜線與山丘曲面的交點，計算無因次距離 q
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * 
  * ! 45 度射線方程：z = y + (z0 - y0)
  * @see IsLeftHill_Boundary_Diagonal45()
  */
@@ -415,17 +405,13 @@ double Left_q_Diagonal45(double y , double z){
     return fabs(y - y_target) / minSize ;
 }
 
-
+//16.
 /**
- * @brief 計算右山丘 135 度斜向的 BFL 邊界條件 q 值
- * 
+ * @brief 計算右山丘 135 度斜向的 BFL 邊界條件 q 值 
  * * 使用二分法求解 135 度斜線與山丘曲面的交點，計算無因次距離 q
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * 
  * ! 135 度射線方程：z = -y + (z0 + y0)
  * @see IsRightHill_Boundary_Diagonal135()
  */
@@ -455,6 +441,80 @@ double Right_q_Diagonal135(double y , double z){
     y_target = y_middle ;
     return fabs(y - y_target) / minSize ;
 }
+
+/**
+ * @brief 計算左山丘 -45 度斜向的 BFL 邊界條件 q 值
+ * * 使用二分法求解 -45 度斜線與山丘曲面的交點，計算無因次距離 q
+ * @param y Y 座標 (流向)
+ * @param z Z 座標 (法向)
+ * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
+ * ! -45 度射線方程：z = -y + (z0 + y0)
+ * @see IsLeftHill_Boundary_DiagonalMinus45()
+ */
+double Left_q_DiagonalMinus45(double y , double z){
+    if(!IsLeftHill_Boundary_DiagonalMinus45(y , z)){
+        return -1.0 ; // ! 非邊界點返回-1
+    }
+    double y_target ;
+    // * 利用區間搜尋法尋找y_target ;
+    double y_temp[2] = {y-minSize ,y} ;
+    //y[0] = y-minSize ; y[1] = y ;
+    double y_middle = 0.0 ;
+    double z_middle = 0.0 ; //在-45度射線上相對應y_middle的z座標
+    double Length_z = 0.0 ;
+    do{
+        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
+        z_middle = -y_middle + (z+y) ; // -45度射線：z = -y + (z0+y0)
+        Length_z = fabs(z_middle - HillFunction(y_middle));
+        if(HillFunction(y_middle) > z_middle){
+            //將y_middle往右移動
+            y_temp[0] = y_middle;
+        }else{
+            //將y_middle往左移動
+            y_temp[1] = y_middle;
+        }
+    }while(Length_z >= 1e-12) ;
+    y_target = y_middle ;
+    return fabs(y - y_target) / minSize ;
+}
+
+/**
+ * @brief 計算右山丘 -135 度斜向的 BFL 邊界條件 q 值
+ * * 使用二分法求解 -135 度斜線與山丘曲面的交點，計算無因次距離 q
+ * @param y Y 座標 (流向)
+ * @param z Z 座標 (法向)
+ * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
+ * ! -135 度射線方程：z = y + (z0 - y0)
+ * @see IsRightHill_Boundary_DiagonalMinus135()
+ */
+double Right_q_DiagonalMinus135(double y , double z){
+    if(!IsRightHill_Boundary_DiagonalMinus135(y , z)){
+        return -1.0 ; // ! 非邊界點返回-1
+    }
+    double y_target ;
+    // * 利用區間搜尋法尋找y_target ;
+    double y_temp[2] = {y , y+minSize} ;
+    //y[0] = y ; y[1] = y+minSize ;
+    double y_middle = 0.0 ;
+    double z_middle = 0.0 ; //在-135度射線上相對應y_middle的z座標
+    double Length_z = 0.0 ;
+    do{
+        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
+        z_middle = y_middle + (z-y) ; // -135度射線：z = y + (z0-y0)
+        Length_z = fabs(z_middle - HillFunction(y_middle));
+        if(HillFunction(y_middle) > z_middle){
+            //將y_middle往左移動
+            y_temp[1] = y_middle;
+        }else{
+            //將y_middle往右移動
+            y_temp[0] = y_middle;
+        }
+    }while(Length_z >= 1e-12) ;
+    y_target = y_middle ;
+    return fabs(y - y_target) / minSize ;
+}
+
+
 #endif
 
 

@@ -4,29 +4,24 @@
 /**
  * @file initializationTool.h
  * @brief 初始化工具函數集 - 用於週期性山丘流場的幾何計算與插值
- * 
  * * 本檔案包含：
  * * - 山丘函數反函數計算
  * * - 非均勻網格參數計算
  * * - Lagrange 插值函數
  * * - BFL 邊界條件判斷函數
  */
-
 #include <cmath>
 #include "variables.h"
 #include "model.h"
-
 // * 半邊山丘寬度 (無因次化)
 #define HillHalfWidth (54.0/28.0) 
+
 //1.
 /**
  * @brief 左半丘反函數 (數值法)
- * 
  * * 使用二分法求解左半丘的反函數，給定高度 z 返回對應的 y 座標
- * 
  * @param z 目標高度值
  * @return 對應的 y 座標
- * 
  * ! 注意：使用二分法，精度為 1e-12
  * ? 左半丘是遞減函數：y 越大，HillFunction(y) 越小
  * @see HillFunction(), HillFunction_Inverse_Right()
@@ -46,15 +41,13 @@ double HillFunction_Inverse_Left(double z) {
     }
     return y_mid;
 }
+
 //2.
 /**
  * @brief 右半丘反函數 (數值法)
- * 
  * * 使用二分法求解右半丘的反函數，給定高度 z 返回對應的 y 座標
- * 
  * @param z 目標高度值
  * @return 對應的 y 座標
- * 
  * ! 注意：使用二分法，精度為 1e-12
  * ? 右半丘是遞增函數：y 越大，HillFunction(y) 越大
  * @see HillFunction(), HillFunction_Inverse_Left()
@@ -62,7 +55,6 @@ double HillFunction_Inverse_Left(double z) {
 double HillFunction_Inverse_Right(double z) {
     double y_low = LY - HillHalfWidth, y_high = LY;
     double y_mid;
-
     // ? 右半丘是遞增函數: y 越大，HillFunction(y) 越大
     while (y_high - y_low > 1e-12) {
         y_mid = (y_low + y_high) / 2.0;
@@ -74,18 +66,16 @@ double HillFunction_Inverse_Right(double z) {
     }
     return y_mid;
 }
+
 //3.
 /**
  * @brief 雙曲正切非均勻網格座標轉換巨集
- * 
  * * 核心網格轉換公式
- * 
  * @param L 計算點所包圍的總長度
  * @param MinSize 粒子晶格大小 (最小網格尺寸)
  * @param a 非均勻網格伸縮參數 (0 < a < 1)
  * @param j 計算點編號
  * @param N 計算點為節點之網格數量
- * 
  * ! 注意：a 必須在 (0, 1) 範圍內
  * @return 第 j 個計算點的物理座標
  */
@@ -93,14 +83,12 @@ double HillFunction_Inverse_Right(double z) {
 (           \
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
 )
+
 //4.
 /**
  * @brief 計算非均勻網格伸縮參數 a
- * 
  * * 使用二分法求解伸縮參數，使最小網格間距等於 minSize
- * 
  * @return 伸縮參數 a (0 < a < 1)
- * 
  * ! minSize 定義為以 LZ-(y=0.0 下的山坡高度) 為總長度均勻切割下的網格大小 × 0.6
  * TODO: 考慮改用 Newton-Raphson 加速收斂
  * @see tanhFunction
@@ -127,12 +115,11 @@ double GetNonuniParameter() {
     } while (fabs( dx - minSize) > 1e-14 );
     return a_mid;
 }
+
 //5.
 /**
  * @brief 六階 Lagrange 插值基底函數
- * 
  * * 計算在位置 pos 處，以 x_i 為插值節點的 Lagrange 基底函數值
- * 
  * @param pos 目標插值位置
  * @param x_i 當前插值節點
  * @param x1 第 1 個節點座標
@@ -141,28 +128,23 @@ double GetNonuniParameter() {
  * @param x4 第 4 個節點座標
  * @param x5 第 5 個節點座標
  * @param x6 第 6 個節點座標
- * 
  * ! 注意：確保所有節點座標互不相同，避免除零錯誤
  * @return Lagrange 基底函數值
- * 
  * @see GetParameter_6th()
  */
 double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
-}
+}\
 //6.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列
- * 
  * * 計算並儲存七個插值節點的 Lagrange 權重係數
- * 
  * @param[out] Para 二維權重陣列 [7][now]，儲存七個節點的權重
  * @param[in] Position 目標插值位置
  * @param[in] phy 物理座標陣列指標
  * @param[in] now 當前計算點編號
  * @param[in] start 起始節點索引
- * 
  * ! 確保 Para 陣列已正確分配記憶體
  * @see Lagrange_6th()
  */
@@ -175,20 +157,17 @@ void GetParameter_6th( double** Para , double Position , double* phy , int now ,
     Para[5][now] = Lagrange_6th( Position , *(phy+start+5) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+6) ) ;     
     Para[6][now] = Lagrange_6th( Position , *(phy+start+6) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ) ;     
 }
-//7.
+
+//7.0度去向邊界計算點
 /**
  * @brief 判斷是否為左山丘的 +y 方向物理空間邊界計算點
- * 
  * * 考察任意物理空間計算點是否為曲面邊界的邊界點
  * ? 判斷標準：以曲面邊界為本體，往 +y 方向考察半格移動距離 (minSize)
  * ? 若移動後會進入山丘內部，則為邊界計算點
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return true 為 +y 方向邊界計算點，可套用 BFL 邊界條件
  * @return false 非邊界計算點
- * 
  * ! 考察範圍：左下角方形區域 pos_y: [0, HillHalfWidth], pos_z: [0, 1]
  * @see Left_q_yPlus(), IsRightHill_Boundary_yMinus()
  */
@@ -204,18 +183,15 @@ bool IsLeftHill_Boundary_yPlus(double y , double z){
         }
     }
 }
-//8.
+
+//8.180度去向邊界計算點
 /**
- * @brief 判斷是否為右山丘的 -y 方向物理空間邊界計算點
- * 
+ * @brief 判斷是否為右山丘的 -y 方向物理空間邊界計算點 
  * * 判斷往 -y 方向移動一個 minSize 後是否會進入右山丘內部
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return true 為 -y 方向邊界計算點，可套用 BFL 邊界條件
  * @return false 非邊界計算點
- * 
  * ! 考察範圍：右下角方形區域 pos_y: [LY-HillHalfWidth, LY], pos_z: [0, 1]
  * @see Right_q_yMinus(), IsLeftHill_Boundary_yPlus()
  */
@@ -231,7 +207,8 @@ bool IsRightHill_Boundary_yMinus(double y , double z){
         }
     }
 }
-//9.
+//9.45度去向邊
+z界計算點
 /**
  * @brief 判斷是否為左山丘的 45 度斜向物理空間邊界計算點
  * 
@@ -262,7 +239,7 @@ bool IsLeftHill_Boundary_Diagonal45(double y , double z){
         }
     }
 }
-//10.
+//10.135度去向邊界計算點*
 /**
  * @brief 判斷是否為右山丘的 135 度斜向物理空間邊界計算點
  * 
@@ -293,8 +270,8 @@ bool IsRightHill_Boundary_Diagonal135(double y , double z){
         }
     }
 }
-//11.判斷使否為
-
+//11.判斷使否為-45度去向邊界計算點(先過濾掉，從左丘附近判斷)
+//12.判斷使否為-135度去向邊界計算點(先過濾掉，從右丘附近判斷)
 
 
 

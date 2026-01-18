@@ -32,7 +32,14 @@ void stream_collide(
     double* XiF8_0, double* XiF8_1, double* XiF8_2, double* XiF8_3, double* XiF8_4, double* XiF8_5, double* XiF8_6,
     //BFL邊界條件(q<0.5)v下的y方向預配置連乘權重一維連續記憶體
     double* YBFLF3_0, double* YBFLF3_1, double* YBFLF3_2, double* YBFLF3_3, double* YBFLF3_4, double* YBFLF3_5, double* YBFLF3_6,
+    double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
+    double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
+    double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
     //BFL邊界條件(q<0.5)v下的z方向預配置連乘權重一維連續記憶體
+    double* XiBFLF3_0, double* XiBFLF3_1, double* XiBFLF3_2, double* XiBFLF3_3, double* XiBFLF3_4, double* XiBFLF3_5, double* XiBFLF3_6,
+    double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
+    double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
+    double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
     ){
 
 }

@@ -40,7 +40,11 @@ void stream_collide(
     double* XiBFLF1_0, double* XiBFLF1_1, double* XiBFLF1_2, double* XiBFLF1_3, double* XiBFLF1_4, double* XiBFLF1_5, double* XiBFLF1_6,
     double* XiBFLF7_0, double* XiBFLF7_1, double* XiBFLF7_2, double* XiBFLF7_3, double* XiBFLF7_4, double* XiBFLF7_5, double* XiBFLF7_6,
     double* XiBFLF8_0, double* XiBFLF8_1, double* XiBFLF8_2, double* XiBFLF8_3, double* XiBFLF8_4, double* XiBFLF8_5, double* XiBFLF8_6,
-    ){
+    //宏觀參數
+    double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
+    //BFL邊界條件無因次化距離q
+    double *Q3_d,        double*Q4_d,         double *Q15_d,       double*Q16_d)    
+    {
 
 }
 

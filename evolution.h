@@ -1,6 +1,8 @@
 #ifndef EVOLUTION_FILE
 #define EVOLUTION_FILE
 
+#include <cmath>
+#include <cstdio>
 #include "interpolationHillISLBM.h"
 #include "initialization.h"
 #include "MRT_Process.h"
@@ -227,5 +229,54 @@ void periodicSW(
     }
 }
 
+//=============================================================================
+// 累積 Y 方向平均速度（每個時間步呼叫）
+// 輸入：v_field - Y方向速度場
+// 輸出：Ub_sum_ptr - 累積的速度總和
+//=============================================================================
+void AccumulateUbulk(double* v_field, double* Ub_sum_ptr) {
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            *Ub_sum_ptr += v_field[idx];
+        }
+    }
+}
+
+//=============================================================================
+// 修正外力項（每 NDTFRC 步呼叫一次）
+// 使用比例控制器讓實際流速趨近目標流速 Uref
+//
+// 控制公式：F_new = F_old + β × (U_target - U_actual) × U_ref / L
+//   - β = max(0.001, 3/Re)：控制增益
+//   - U_target = Uref：目標流速
+//   - U_actual = Ub_avg：實際平均流速
+//
+// 輸入：
+//   Force - 外力陣列
+//   Ub_sum_ptr - 累積的速度總和
+//   NDTFRC - 累積的時間步數
+// 輸出：
+//   更新後的 Force[0]
+//   重置 *Ub_sum_ptr = 0
+//=============================================================================
+void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
+    // 1. 計算時間與空間平均速度
+    int num_cells = (NY6 - 6) * (NZ6 - 6);  // 計算區域的網格數
+    double Ub_avg = (*Ub_sum_ptr) / (double)(num_cells * NDTFRC);
+
+    // 2. 計算控制增益（低雷諾數時較大，高雷諾數時較小）
+    double beta = fmax(0.001, 3.0 / (double)Re);
+
+    // 3. 調整外力（比例控制器）
+    Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
+
+    // 4. 輸出監控資訊
+    printf("Force Update: Ub_avg = %.6f, Uref = %.6f, Force = %.5e\n",
+           Ub_avg, Uref, Force[0]);
+
+    // 5. 重置累加器
+    *Ub_sum_ptr = 0.0;
+}
 
 #endif

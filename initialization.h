@@ -133,18 +133,20 @@ void BFLInitialization() {
     for(int j = 3 ; j <= NY6 ; j++){
         for(int k = 3 ; k <= NZ6-3 ; k++){
             //F1:(左丘)
-            Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
+            double q1 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
+
             if(!IsLeftHill_Boundary_Diagonal45(y[j] ,z_global[j*NZ6+k])){
             //ParameterforF1 at direction y and z 
-            
+
             }
             //F2:(右丘)
+            double q2 = Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
             Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
             if(!IsRightHill_Boundary_Diagonal135(y[j] ,z_global[j*NZ6+k])){
                 
             }
             //F5:(左丘)
-            Left_q_DiagonalMinus45(y[j] ,z_global[j*NZ6+k]);
+            double q5 = Left_q_DiagonalMinus45(y[j] ,z_global[j*NZ6+k]);
             if(!IsLeftHill_Boundary_DiagonalMinus45(y[j] ,z_global[j*NZ6+k])){
             }
             //F6:(右丘)

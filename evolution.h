@@ -185,5 +185,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
         w[idx_xi] = w1;
 }}}
 //y方向週期邊界條件 
-void 
+void periodicSW(){//SW:Stream-Wise
+    //目的，複製 buffer Layer 
+    //新職
+}
 #endif

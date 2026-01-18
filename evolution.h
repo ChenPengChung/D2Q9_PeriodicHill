@@ -267,7 +267,7 @@ void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
 
     // 2. 計算控制增益（低雷諾數時較大，高雷諾數時較小）
     double beta = fmax(0.001, 3.0 / (double)Re);
-    //透過平均速度與參考速度
+    //透過平均速度與參考速度修正外力項
     // 3. 調整外力（比例控制器）
     Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
 

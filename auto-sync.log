@@ -3583,3 +3583,53 @@ To https://github.com/ChenPengChung/D2Q9_PeriodicHill.git
 [2026-01-19 02:56:13] 同步完成!
 
 [2026-01-19 02:58:58] 偵測到修改，開始同步...
+[main 2f2ccd2] auto-sync: 2026-01-19 02:58:58
+ 45 files changed, 18 insertions(+), 20358 deletions(-)
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5521cdw_EN.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5526cdw_EN.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSM5526cdw_JA.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSP5026cdw_EN.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CardAuth_B_ECOSYSP5026cdw_JA.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CommandCenterRX_EN.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/CommandCenterRX_JA.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/DirectPrint_KD_EN.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/DirectPrint_KD_JA.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/ECOSYSM5521cdw_AR.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/Document/ECOSYSM5521cdw_CA.pdf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/DriverDll.dll"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/K_logo.ico"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmDiscover.dll"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInst32.pnf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInst32.str"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInstall.str"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmInstall4.ini"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KmUsb.dll"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KxPackagerDll.dll"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/KyoRm.ini"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/QuickInstlang.dat"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/autorun.inf"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/lang.dat"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/lang4.dat"
+ delete mode 100644 "periodic hill_6thIBLBM/50hill_4GPU/KYOCERA M5520\351\251\205\345\213\225\347\250\213\345\274\217/setup.ini"
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/MRT_Matrix.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/MRT_Process.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/combinepltv2.c
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/common.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/communication.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/evolution.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/fileIO.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/initialization.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/initializationTool.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/interpolationHillISLBM.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/interpolationISLBM.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/main.cu
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/memory.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/model.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/monitor.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/statistics.h
+ delete mode 100644 periodic hill_6thIBLBM/50hill_4GPU/variables.h
+To https://github.com/ChenPengChung/D2Q9_PeriodicHill.git
+   aceffdd..2f2ccd2  main -> main
+[2026-01-19 02:58:58] 同步完成!
+
+[2026-01-19 03:01:15] 偵測到修改，開始同步...

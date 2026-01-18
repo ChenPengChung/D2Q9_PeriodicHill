@@ -5,78 +5,84 @@
 #include "interpolationHillISLBM.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
+
 //1.物理空間計算點的平均密度場的時變量最小值
-double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
-                  double f1_old, double f2_old, double f3_old, double f4_old, double f5_old, double f6_old, double f7_old, double f8_old){
+double dRhoglobal(double F0_in, double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
+                  double f0_old, double f1_old, double f2_old, double f3_old, double f4_old, double f5_old, double f6_old, double f7_old, double f8_old){
     double rho_local;
-    rho_local = F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in
-                - (f1_old + f2_old + f3_old + f4_old + f5_old + f6_old + f7_old + f8_old);
+    rho_local = (F0_in + F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in)
+              - (f0_old + f1_old + f2_old + f3_old + f4_old + f5_old + f6_old + f7_old + f8_old);
     return rho_local;
 }
 
 void stream_collide(
     //f_old:上一個時間步所更新的物理空間計算點的碰撞後插值前一般態分佈函數
-     double *f0_old, double *f1_old, double *f2_old, double *f3_old, double *f4_old, double *f5_old, double *f6_old, double *f7_old, double *f8_old,
+    double *f0_old, double *f1_old, double *f2_old, double *f3_old, double *f4_old, double *f5_old, double *f6_old, double *f7_old, double *f8_old,
     //f_new:本時間步所更新的物理空間計算點的碰撞後插值前一般態分佈函數
-    double *f0_new, double *f1_new, double *f2_new, double *f3_new, double *f4_new, double *f5_new, double *f6_new, double *f7_new, double *f8_new, 
-    //Ｙ方向預配置連乘權重一維連續記憶體
-    double *Y0_0,  double *Y0_1, double *Y0_2,  double *Y0_3,  double *Y0_4,  double *Y0_5,  double *Y0_6,  //(處理F1,F5,F8等等y方向插值問題)
-    double *Y2_0,  double *Y2_1,  double *Y2_2,  double *Y2_3,  double *Y2_4,  double *Y2_5,  double *Y2_6, //(處理F3,F6,F7等等y方向插值問題)
+    double *f0_new, double *f1_new, double *f2_new, double *f3_new, double *f4_new, double *f5_new, double *f6_new, double *f7_new, double *f8_new,
+    //Y方向預配置連乘權重一維連續記憶體
+    double *Y0_0, double *Y0_1, double *Y0_2, double *Y0_3, double *Y0_4, double *Y0_5, double *Y0_6,  //(處理F1,F5,F8等等y方向插值問題)
+    double *Y2_0, double *Y2_1, double *Y2_2, double *Y2_3, double *Y2_4, double *Y2_5, double *Y2_6,  //(處理F3,F6,F7等等y方向插值問題)
     //Z方向預配置連乘權重一維連續記憶體
-    double* XiF1_0, double* XiF1_1, double* XiF1_2, double* XiF1_3, double* XiF1_4, double* XiF1_5, double* XiF1_6,
-    double* XiF2_0, double* XiF2_1, double* XiF2_2, double* XiF2_3, double* XiF2_4, double* XiF2_5, double* XiF2_6,
-    double* XiF3_0, double* XiF3_1, double* XiF3_2, double* XiF3_3, double* XiF3_4, double* XiF3_5, double* XiF3_6,
-    double* XiF4_0, double* XiF4_1, double* XiF4_2, double* XiF4_3, double* XiF4_4, double* XiF4_5, double* XiF4_6,
-    double* XiF5_0, double* XiF5_1, double* XiF5_2, double* XiF5_3, double* XiF5_4, double* XiF5_5, double* XiF5_6,
-    double* XiF6_0, double* XiF6_1, double* XiF6_2, double* XiF6_3, double* XiF6_4, double* XiF6_5, double* XiF6_6,
-    double* XiF7_0, double* XiF7_1, double* XiF7_2, double* XiF7_3, double* XiF7_4, double* XiF7_5, double* XiF7_6,
-    double* XiF8_0, double* XiF8_1, double* XiF8_2, double* XiF8_3, double* XiF8_4, double* XiF8_5, double* XiF8_6,
-    //BFL邊界條件(q<0.5)v下的y方向預配置連乘權重一維連續記憶體
-    double* YBFLF3_0, double* YBFLF3_1, double* YBFLF3_2, double* YBFLF3_3, double* YBFLF3_4, double* YBFLF3_5, double* YBFLF3_6,
-    double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
-    double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
-    double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
-    //BFL邊界條件(q<0.5)v下的z方向預配置連乘權重一維連續記憶體
-    double* XiBFLF3_0, double* XiBFLF3_1, double* XiBFLF3_2, double* XiBFLF3_3, double* XiBFLF3_4, double* XiBFLF3_5, double* XiBFLF3_6,
-    double* XiBFLF1_0, double* XiBFLF1_1, double* XiBFLF1_2, double* XiBFLF1_3, double* XiBFLF1_4, double* XiBFLF1_5, double* XiBFLF1_6,
-    double* XiBFLF7_0, double* XiBFLF7_1, double* XiBFLF7_2, double* XiBFLF7_3, double* XiBFLF7_4, double* XiBFLF7_5, double* XiBFLF7_6,
-    double* XiBFLF8_0, double* XiBFLF8_1, double* XiBFLF8_2, double* XiBFLF8_3, double* XiBFLF8_4, double* XiBFLF8_5, double* XiBFLF8_6,
+    double *XiF1_0, double *XiF1_1, double *XiF1_2, double *XiF1_3, double *XiF1_4, double *XiF1_5, double *XiF1_6,
+    double *XiF2_0, double *XiF2_1, double *XiF2_2, double *XiF2_3, double *XiF2_4, double *XiF2_5, double *XiF2_6,
+    double *XiF3_0, double *XiF3_1, double *XiF3_2, double *XiF3_3, double *XiF3_4, double *XiF3_5, double *XiF3_6,
+    double *XiF4_0, double *XiF4_1, double *XiF4_2, double *XiF4_3, double *XiF4_4, double *XiF4_5, double *XiF4_6,
+    double *XiF5_0, double *XiF5_1, double *XiF5_2, double *XiF5_3, double *XiF5_4, double *XiF5_5, double *XiF5_6,
+    double *XiF6_0, double *XiF6_1, double *XiF6_2, double *XiF6_3, double *XiF6_4, double *XiF6_5, double *XiF6_6,
+    double *XiF7_0, double *XiF7_1, double *XiF7_2, double *XiF7_3, double *XiF7_4, double *XiF7_5, double *XiF7_6,
+    double *XiF8_0, double *XiF8_1, double *XiF8_2, double *XiF8_3, double *XiF8_4, double *XiF8_5, double *XiF8_6,
+    //BFL邊界條件(q<0.5)下的y方向預配置連乘權重一維連續記憶體
+    double *YBFLF3_0, double *YBFLF3_1, double *YBFLF3_2, double *YBFLF3_3, double *YBFLF3_4, double *YBFLF3_5, double *YBFLF3_6,
+    double *YBFLF1_0, double *YBFLF1_1, double *YBFLF1_2, double *YBFLF1_3, double *YBFLF1_4, double *YBFLF1_5, double *YBFLF1_6,
+    double *YBFLF7_0, double *YBFLF7_1, double *YBFLF7_2, double *YBFLF7_3, double *YBFLF7_4, double *YBFLF7_5, double *YBFLF7_6,
+    double *YBFLF8_0, double *YBFLF8_1, double *YBFLF8_2, double *YBFLF8_3, double *YBFLF8_4, double *YBFLF8_5, double *YBFLF8_6,
+    //BFL邊界條件(q<0.5)下的z方向預配置連乘權重一維連續記憶體
+    double *XiBFLF3_0, double *XiBFLF3_1, double *XiBFLF3_2, double *XiBFLF3_3, double *XiBFLF3_4, double *XiBFLF3_5, double *XiBFLF3_6,
+    double *XiBFLF1_0, double *XiBFLF1_1, double *XiBFLF1_2, double *XiBFLF1_3, double *XiBFLF1_4, double *XiBFLF1_5, double *XiBFLF1_6,
+    double *XiBFLF7_0, double *XiBFLF7_1, double *XiBFLF7_2, double *XiBFLF7_3, double *XiBFLF7_4, double *XiBFLF7_5, double *XiBFLF7_6,
+    double *XiBFLF8_0, double *XiBFLF8_1, double *XiBFLF8_2, double *XiBFLF8_3, double *XiBFLF8_4, double *XiBFLF8_5, double *XiBFLF8_6,
     //宏觀參數
-    double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
-    //BFL邊界條件無因次化距離q
-    double *Q3_h,        double*Q4_h,         double *Q15_h,       double*Q16_h){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
-    
+    double *v, double *w, double *rho_d, double *Force, double *rho_modify,
+    //BFL邊界條件無因次化距離q (D2Q9: Q1, Q3, Q5, Q6)
+    double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h)
+{
     // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
     Matrix;
     Matrix_Inverse;
-    Relaxation; 
-    //1.函數內直接開始執行雙重for迴圈
-for(int j = 3 ; j <= NZ6-4 ; j++){
-    for(int k = 3 ; k <= NZ6-4 ; k++){
-        int idx_xi = j *NZ6 + k ;
-        int idx ; 
-        int nface = NZ6 ; 
-        //宣告物理空間計算點的碰撞前插值後一般態分佈函數
-        double F0_in,  F1_in,  F2_in,  F3_in,  F4_in,  F5_in,  F6_in,  F7_in,  F8_in ;   
-        //MRT Variables
-        double m0, m1, m2, m3, m4, m5, m6, m7, m8;
-        double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;
+    Relaxation;
 
-        //xi方向預配置連乘權重一維連續記憶體的內插成員起始編號
-        //也是xi_h[NZ6]在Z方向有設立bufferlayer沒有使用的證據
-        int cell_z = k-3;
-        if( k <= 6 ) cell_z = 3;
-        if( k >= NZ6-7 ) cell_z = NZ6-10;
+    // nface 定義在迴圈外，避免重複宣告
+    int nface = NZ6;
 
-        
-        //1.Interpolation and Streaming 
-        F0_Intrpl7(f0_old, j, k);
+    // 雙重 for 迴圈遍歷所有計算點
+    for(int j = 3; j < NY6-3; j++){
+        for(int k = 3; k < NZ6-3; k++){
+            int idx_xi = j * NZ6 + k;
+            int idx;
 
+            // 宣告物理空間計算點的碰撞前插值後一般態分佈函數
+            double F0_in, F1_in, F2_in, F3_in, F4_in, F5_in, F6_in, F7_in, F8_in;
 
+            // MRT Variables
+            double m0, m1, m2, m3, m4, m5, m6, m7, m8;
+            double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;
 
+            // xi方向預配置連乘權重一維連續記憶體的內插成員起始編號
+            // 也是xi_h[NZ6]在Z方向有設立bufferlayer沒有使用的證據
+            int cell_z = k - 3;
+            if(k <= 6) cell_z = 3;
+            if(k >= NZ6-7) cell_z = NZ6 - 10;
 
+            // 1. Interpolation and Streaming
+            F0_Intrpl7(f0_old, j, k);
 
-
-}}}
+            // TODO: 完成其他方向的插值
+            // TODO: MRT 碰撞
+            // TODO: BFL 邊界處理
+            // TODO: 更新 f_new
+        }
+    }
+}
 
 #endif

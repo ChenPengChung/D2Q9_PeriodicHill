@@ -100,7 +100,7 @@ void GetIntrplParameter_Y() {
 void GetIntrplParameter_Xi() {
     for( int j = 3; j < NYD6-3; j++ ){
         for( int k = 3; k < NZ6-3;  k++ ){
-            //為什麼需要二維記憶體配置，因為在y_z平面上，每一個座標點的 
+            //為什麼需要二維記憶體配置，因為在y_z平面上，每一個物理空間計算點的相應非物理空間計算點的Z方向預配置連乘權重一維連續記憶體都不一樣，會受到座標比例影響內插計算結果。 
             GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
             GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
             GetXiParameter( XiParaF5_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );

@@ -207,19 +207,15 @@ bool IsRightHill_Boundary_yMinus(double y , double z){
         }
     }
 }
-//9.45度去向邊
-z界計算點
+
+//9.45度去向邊界計算點
 /**
  * @brief 判斷是否為左山丘的 45 度斜向物理空間邊界計算點
- * 
  * * 判斷往 (-Y, -Z) 方向 (即 45 度斜下方) 移動後是否會進入左山丘內部
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
  * @return true 為 45 度斜向邊界計算點，可套用 BFL 邊界條件
  * @return false 非邊界計算點
- * 
  * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
  * @see Left_q_Diagonal45(), IsRightHill_Boundary_Diagonal135()
  */
@@ -239,18 +235,15 @@ bool IsLeftHill_Boundary_Diagonal45(double y , double z){
         }
     }
 }
+
 //10.135度去向邊界計算點*
 /**
- * @brief 判斷是否為右山丘的 135 度斜向物理空間邊界計算點
- * 
+ * @brief 判斷是否為右山丘的 135 度斜向物理空間邊界計算點 
  * * 判斷往 (+Y, -Z) 方向 (即 135 度斜下方) 移動後是否會進入右山丘內部
- * 
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
- * 
- * @return true 為 135 度斜向邊界計算點，可套用 BFL 邊界條件
+ * @return true 為 135 斜向邊界計算點，可套用 BFL 邊界條件
  * @return false 非邊界計算點
- * 
  * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
  * @see Right_q_Diagonal135(), IsLeftHill_Boundary_Diagonal45()
  */
@@ -270,8 +263,71 @@ bool IsRightHill_Boundary_Diagonal135(double y , double z){
         }
     }
 }
-//11.判斷使否為-45度去向邊界計算點(先過濾掉，從左丘附近判斷)
-//12.判斷使否為-135度去向邊界計算點(先過濾掉，從右丘附近判斷)
+//11.-45度去向邊界計算點
+/**
+ * @brief 判斷是否為左山丘的 -45 度斜向物理空間邊界計算點
+ *
+ * * 判斷往 (-Y, +Z) 方向 (即 -45 度斜上方) 移動後是否會進入左山丘內部
+ * * 對應到格子速度方向 (+Y, -Z) 的「來源點」是否落在固體內（山丘斜率 > 1 時可能發生）
+ *
+ * @param y Y 座標 (流向)
+ * @param z Z 座標 (法向)
+ *
+ * @return true 為 -45 度斜向邊界計算點，可套用 BFL 邊界條件
+ * @return false 非邊界計算點
+ *
+ * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
+ * @see IsRightHill_Boundary_DiagonalMinus135()
+ */
+bool IsLeftHill_Boundary_DiagonalMinus45(double y , double z){
+    // * 第一步先初步篩選範圍：左下角方形區域
+    if( y < 0.0 || y > HillHalfWidth || z < HillFunction(y) || z > 1.0 ){
+        return false; // ! 第一步篩選未通過
+    }else{
+        // * 移動後的位置
+        const double y_new = y - minSize;
+        const double z_new = z + minSize;
+        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
+        if( z_new <= HillFunction(y_new) ){
+            return true;
+        }else{
+            return false;
+        }
+    }
+}
+
+//12.-135度去向邊界計算點
+/**
+ * @brief 判斷是否為右山丘的 -135 度斜向物理空間邊界計算點
+ *
+ * * 判斷往 (+Y, +Z) 方向 (即 -135 度斜上方) 移動後是否會進入右山丘內部
+ * * 對應到格子速度方向 (-Y, -Z) 的「來源點」是否落在固體內（山丘斜率 > 1 時可能發生）
+ *
+ * @param y Y 座標 (流向)
+ * @param z Z 座標 (法向)
+ *
+ * @return true 為 -135 度斜向邊界計算點，可套用 BFL 邊界條件
+ * @return false 非邊界計算點
+ *
+ * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
+ * @see IsLeftHill_Boundary_DiagonalMinus45()
+ */
+bool IsRightHill_Boundary_DiagonalMinus135(double y , double z){
+    // * 第一步先初步篩選範圍：右下角方形區域
+    if( y < (LY - HillHalfWidth) || y > LY || z < HillFunction(y) || z > 1.0 ){
+        return false; // ! 第一步篩選未通過
+    }else{
+        // * 移動後的位置
+        const double y_new = y + minSize;
+        const double z_new = z + minSize;
+        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
+        if( z_new <= HillFunction(y_new) ){
+            return true;
+        }else{
+            return false;
+        }
+    }
+}
 
 
 

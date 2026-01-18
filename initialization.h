@@ -130,54 +130,16 @@ void BFLInitialization() {
     //此函數是為計算邊界計算點的q值以及編借計算點的預配置連乘權重一維連續記憶體
     //q
     //
-    
-
-
-
-    
-    double delta;
-    for( int k = 0; k < 2;      k++ ){
-    for( int j = 3; j < NYD6-3; j++ ){
-        //BFL initialization for F3, F7, and F8
-        if( BFLReqF3_h[k*NYD6+j] == 1 ){
-            delta = GetDeltaHorizontal(z_h[j*NZ6+k+3], y_h[j]-minSize, y_h[j], y_h[j]);
-            Q3_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
-            GetParameter_6th(XBFLParaF38_h, x_h[NX6/2]-delta, x_h, k*NYD6+j, NX6/2-3);  //X
-            GetParameter_6th(XBFLParaF37_h, x_h[NX6/2]+delta, x_h, k*NYD6+j, NX6/2-3);  //X
-            GetParameter_6th(YBFLParaF378_h, y_h[j]+delta, y_h, k*NYD6+j, j-3);     //Y
-            GetXiParameter(XiBFLParaF378_h, z_h[j*NZ6+k+3], y_h[j]+delta, xi_h, k*NYD6+j, k+3);
+    for(int j = 3 ; j <= NY604 ; j++){
+        for(int k = 3 ; k <= NZ6-3 ; k++){
+            //F1:(左丘)
+            
+            //F2:(右丘)
+            //F5:(左丘)
+            //F6:(右丘)
         }
-
-        //BFL initialization for F4, F9, and F10
-        if( BFLReqF4_h[k*NYD6+j] == 1){
-            delta = GetDeltaHorizontal(z_h[j*NZ6+k+3], y_h[j]+minSize, y_h[j], y_h[j]);
-            Q4_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
-            GetParameter_6th(XBFLParaF49_h,  x_h[NX6/2]+delta, x_h, k*NYD6+j, NX6/2-3); //X
-            GetParameter_6th(XBFLParaF410_h, x_h[NX6/2]-delta, x_h, k*NYD6+j, NX6/2-3); //X
-            GetParameter_6th(YBFLParaF4910_h, y_h[j]-delta, y_h, k*NYD6+j, j-3);    //Y
-            GetXiParameter(XiBFLParaF4910_h, z_h[j*NZ6+k+3], y_h[j]-delta, xi_h, k*NYD6+j, k+3);
-        }
-
-        //BFL initialization for F15
-        if( BFLReqF15_h[k*NYD6+j] == 1 ){
-            delta = GetDelta45Degree(z_h[j*NZ6+k+3], y_h[j], y_h[j], y_h[j]-minSize);
-            Q15_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
-            GetParameter_6th(YBFLParaF15_h, y_h[j]+delta, y_h, k*NYD6+j, j-3);
-            GetXiParameter(XiBFLParaF15_h, z_h[j*NZ6+k+3]+delta, y_h[j]+delta, xi_h, k*NYD6+j, k+3);
-        }
-
-        //BFL initialization for F16
-        if( BFLReqF16_h[k*NYD6+j] == 1 ){
-            delta = GetDelta45Degree(z_h[j*NZ6+k+3], y_h[j], y_h[j], y_h[j]+minSize);
-            Q16_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
-            GetParameter_6th(YBFLParaF16_h, y_h[j]-delta, y_h, k*NYD6+j, j-3);
-            GetXiParameter(XiBFLParaF16_h, z_h[j*NZ6+k+3]+delta, y_h[j]-delta, xi_h, k*NYD6+j, k+3);
-        }
-    }}
+    }
 }
-
-
-
 
 
 

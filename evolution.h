@@ -195,6 +195,8 @@ void periodicSW(
         for(int i = 0 ; i <= 2 ; i++){
             //右邊左側buffer layer
             int idx_left = (i+NY6-6)*NZ6 + k ;
+            int buffer_right = i*NZ6 + k ;\
+            f0_new[buffer_right] 
         }
         //上邊界 to 下邊界
         int idx_top = (NY6-4)*NZ6 + k ;

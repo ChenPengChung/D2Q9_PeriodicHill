@@ -479,7 +479,7 @@ double Left_q_DiagonalMinus45(double y , double z){
     return fabs(y - y_target) / minSize ;
 }
 
-//18
+//18.
 /**
  * @brief 計算右山丘 -135 度斜向的 BFL 邊界條件 q 值
  * * 使用二分法求解 -135 度斜線與山丘曲面的交點，計算無因次距離 q

@@ -79,9 +79,7 @@ void GetXiParameter(
     double L = LZ - HillFunction(pos_y) - minSize;
     //每一個y位置而言每一個計算間都不一樣 
     double pos_xi = LXi * (pos_z - (HillFunction(pos_y)+minSize/2.0)) / L;
-    double a = GetNonuniParameter();
-    //double pos_xi = atanh((pos_z-HillFunction(pos_y)-minSize/2.0-L/2.0)/((L/2.0)/a))/log((1.0+a)/(1.0-a))*2.0;
-
+    //在Lagrange內插過程中，本應該是無因次化參數的參與，在這邊曲線座標系的處理，不再使用絕對座標
     if( k >= 3 && k <= 6 ){
         GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, 3 );
     } else if ( k >= NZ6-7 && k <= NZ6-4 ) {
@@ -89,6 +87,14 @@ void GetXiParameter(
     } else {
         GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, k-3 );
     }    
+}
+
+
+void GetIntrplParameter_Y() {
+    for( int i = 3; i < NY6-3; i++ ){
+        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );
+        GetParameter_6th( YPara2_h, y_h[i]+minSize, y_h, i, i-3 );
+    }
 }
 
 

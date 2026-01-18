@@ -127,7 +127,7 @@ void GetIntrplParameter_Xi() {
 }
 
 void BFLInitialization() {
-    //此函數是為計算邊界計算點的q
+    //此函數是為計算邊界計算點的q值以及編借計算點的預配置連乘權重一維連續記憶體
 
     double delta;
     for( int k = 0; k < 2;      k++ ){

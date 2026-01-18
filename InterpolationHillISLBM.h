@@ -43,7 +43,7 @@
     idx = j*nface + k_c ;    \
     F4_in = Intrpl7( f[idx], xi_0[idx_xi], f[idx+1], xi_1[idx_xi], f[idx+2], xi_2[idx_xi], f[idx+3], xi_3[idx_xi], f[idx+4], xi_4[idx_xi], f[idx+5], xi_5[idx_xi], f[idx+6], xi_6[idx_xi] );
 //如下定義為對應D3Q19模型的F15,16,17,18對於D2Q9模型則對應到F5,F6,F7,F8
-#define Y_XI_Intrpl7(f, F_in, i, j, k, i_c, j_c, k_c, idx_x, idx_y, idx_xi, y_0, y_1, y_2, y_3, y_4, y_5, y_6, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define Y_XI_Intrpl7(f, F_in, j, k,  j_c, k_c, idx_y, idx_xi, y_0, y_1, y_2, y_3, y_4, y_5, y_6, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
     idx = j_c*nface + k_c ;  \
     F_in = Intrpl7(    /*//idx_x , idx_y , idx_xi作為權重陣列的第二編號*/\
         Intrpl7( f[idx],   y_0[idx_y], f[idx+nface],   y_1[idx_y], f[idx+2*nface],   y_2[idx_y], f[idx+3*nface],   y_3[idx_y], f[idx+4*nface],   y_4[idx_y], f[idx+5*nface],   y_5[idx_y], f[idx+6*nface],   y_6[idx_y] ), xi_0[idx_xi],   \

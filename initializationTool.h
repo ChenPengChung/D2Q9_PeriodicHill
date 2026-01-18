@@ -329,8 +329,6 @@ bool IsRightHill_Boundary_DiagonalMinus135(double y , double z){
     }
 }
 
-
-
 //13.
 /**
  * @brief 計算左山丘 +y 方向的 BFL 邊界條件 q 值
@@ -468,11 +466,11 @@ double Left_q_DiagonalMinus45(double y , double z){
         z_middle = -y_middle + (z+y) ; // -45度射線：z = -y + (z0+y0)
         Length_z = fabs(z_middle - HillFunction(y_middle));
         if(HillFunction(y_middle) > z_middle){
+            //將y_middle往左移動（左丘：y越小，HillFunction越大）
+            y_temp[1] = y_middle;
+        }else{
             //將y_middle往右移動
             y_temp[0] = y_middle;
-        }else{
-            //將y_middle往左移動
-            y_temp[1] = y_middle;
         }
     }while(Length_z >= 1e-12) ;
     y_target = y_middle ;
@@ -505,11 +503,11 @@ double Right_q_DiagonalMinus135(double y , double z){
         z_middle = y_middle + (z-y) ; // -135度射線：z = y + (z0-y0)
         Length_z = fabs(z_middle - HillFunction(y_middle));
         if(HillFunction(y_middle) > z_middle){
+            //將y_middle往右移動（右丘：y越大，HillFunction越大）
+            y_temp[0] = y_middle;
+        }else{
             //將y_middle往左移動
             y_temp[1] = y_middle;
-        }else{
-            //將y_middle往右移動
-            y_temp[0] = y_middle;
         }
     }while(Length_z >= 1e-12) ;
     y_target = y_middle ;

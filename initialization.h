@@ -137,7 +137,7 @@ void BFLInitialization() {
 
             //F1 (+Y方向): 左丘邊界
             // 當粒子從 -Y 方向來，可能撞到左丘
-            if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
+            if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F1的邊界計算點 
                 double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
                 double delta1 = minSize * (1.0 - 2.0*q1);
                 // BFL 反彈點在 +Y 方向: y + delta, z 不變
@@ -148,23 +148,23 @@ void BFLInitialization() {
 
             //F3 (-Y方向): 右丘邊界
             // 當粒子從 +Y 方向來，可能撞到右丘
-            if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){
+            if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點 
                 double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
                 double delta3 = minSize * (1.0 - 2.0*q3);
                 // BFL 反彈點在 -Y 方向: y - delta, z 不變
-                GetParameter_6th(YBFLParaF3_h, y_global[j]-delta3, y_global, j*NZ6+k, j-3);
-                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]-delta3, xi_h, j*NZ6+k, k);
+                GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j*NZ6+k, j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
+                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3, xi_h, j*NZ6+k, k);
                 Q3_h[j*NZ6+k] = q3;
             }
 
             //F5 (+Y+Z方向, 45度): 左丘邊界
             // 當粒子從 (-Y,-Z) 方向來，可能撞到左丘
-            if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){
+            if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
                 double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
                 double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
                 // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
-                GetParameter_6th(YBFLParaF5_h, y_global[j]+delta5, y_global, j*NZ6+k, j-3);
-                GetXiParameter(XiBFLParaF5_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, xi_h, j*NZ6+k, k);
+                GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j*NZ6+k, j-3);
+                GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, xi_h, j*NZ6+k, k);
                 Q5_h[j*NZ6+k] = q5;
             }
 

@@ -43,8 +43,8 @@ void stream_collide(
     //宏觀參數
     double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
     //BFL邊界條件無因次化距離q
-    double *Q3_d,        double*Q4_d,         double *Q15_d,       double*Q16_d)    
-    {
+    double *Q3_h,        double*Q4_h,         double *Q15_h,       double*Q16_h){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
+    //1.函數內直接開始執行
 
 }
 

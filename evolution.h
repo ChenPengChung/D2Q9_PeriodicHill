@@ -52,20 +52,21 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
         int idx ; 
         //宣告物理空間計算點的碰撞前插值後一般態分佈函數
         double F0_in,  F1_in,  F2_in,  F3_in,  F4_in,  F5_in,  F6_in,  F7_in,  F8_in ;   
-        //MRT Variables 
-        double m0,m1,m2,m3,m4,m5,m6,m7,m8;
-	    double s0,s1,s2,s3,s4,s5,s6,s7,s8;
-	    double meq0,meq1,meq2,meq3,meq4,meq5,meq6,meq7,meq8;
+        //MRT Variables
+        double m0, m1, m2, m3, m4, m5, m6, m7, m8;
+        double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;
+
         //xi方向預配置連乘權重一維連續記憶體的內插成員起始編號
         //也是xi_h[NZ6]在Z方向有設立bufferlayer沒有使用的證據
         int cell_z = k-3;
         if( k <= 6 ) cell_z = 3;
         if( k >= NZ6-7 ) cell_z = NZ6-10;
-        // Matrix //
+
+        // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
         Matrix;
-        Inverse_Matrix;
+        Matrix_Inverse;
         Relaxation; 
-        
+        //1.
 
 
 

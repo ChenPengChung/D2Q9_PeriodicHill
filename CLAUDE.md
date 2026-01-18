@@ -882,3 +882,118 @@ delta = minSize * (1.0 - 2.0*q)
 | F6 | (-1, +1) | 1/36 |
 | F7 | (-1, -1) | 1/36 |
 | F8 | (+1, -1) | 1/36 |
+
+---
+
+## 2026-01-18 MRT 矩陣巨集使用方式
+
+### 巨集定義位置
+
+檔案：`MRT_Matrix.h`
+
+### 三個主要巨集
+
+| 巨集名稱 | 展開後宣告 | 用途 |
+|---------|-----------|------|
+| `Matrix` | `double M[9][9] = {...}` | 分佈函數 → 矩空間變換矩陣 |
+| `Matrix_Inverse` | `double M_I[9][9] = {...}` | 矩空間 → 分佈函數逆變換矩陣 |
+| `Relaxation` | `double s0=0; ... double s8=omega_7;` | 鬆弛參數（對角矩陣元素） |
+
+### evolution.h 中的使用方式
+
+檔案：`evolution.h:64-68`
+
+```cpp
+// MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
+Matrix;
+Matrix_Inverse;
+Relaxation;
+```
+
+**注意**：
+- 巨集已包含變數宣告，**不需要**預先宣告 `s0~s8`
+- 展開後即可直接使用 `M[i][j]`、`M_I[i][j]`、`s0~s8`
+
+### 錯誤示範（會導致重複宣告）
+
+```cpp
+// ❌ 錯誤：s0~s8 會被重複宣告
+double s0, s1, s2, s3, s4, s5, s6, s7, s8;  // 手動宣告
+Relaxation;  // 巨集內又宣告一次 → 編譯錯誤
+```
+
+### 正確示範
+
+```cpp
+// ✅ 正確：直接使用巨集
+Matrix;           // → double M[9][9] = {...};
+Matrix_Inverse;   // → double M_I[9][9] = {...};
+Relaxation;       // → double s0=0; double s1=omega_2; ... double s8=omega_7;
+
+// 現在可以直接使用 M, M_I, s0~s8
+```
+
+### 常見錯誤：巨集名稱拼錯
+
+| 錯誤寫法 | 正確寫法 |
+|---------|---------|
+| `Inverse_Matrix;` | `Matrix_Inverse;` |
+| `Relaxtion;` | `Relaxation;` |
+
+### 鬆弛參數物理意義
+
+```
+s0 = 0        // 密度守恆（不鬆弛）
+s1 = omega_2  // 能量鬆弛
+s2 = 1.0      // free parameter
+s3 = 0        // Y動量守恆（不鬆弛）
+s4 = 1.0      // free parameter
+s5 = 0        // Z動量守恆（不鬆弛）
+s6 = 1.0      // free parameter
+s7 = omega_7  // 剪切應力鬆弛（與黏滯係數相關）
+s8 = omega_7  // 剪切應力鬆弛（與黏滯係數相關）
+```
+
+其中 `omega_2` 和 `omega_7` 定義在 `variables.h:36-37`：
+
+```cpp
+#define omega_2  1/(niu/9.0 + 0.5)
+#define omega_7  1/(niu/3.0 + 0.5)
+```
+
+### MRT 碰撞流程（搭配 MRT_Process.h）
+
+```cpp
+// 1. 宣告矩陣與參數
+Matrix;
+Matrix_Inverse;
+Relaxation;
+
+// 2. 計算矩 m = M * f （使用 m_vector 巨集）
+m_vector;  // → m0, m1, ..., m8
+
+// 3. 計算平衡態矩 meq = M * feq （使用 meq 巨集）
+meq;  // → meq0, meq1, ..., meq8
+
+// 4. 碰撞：f = f - M^(-1) * S * (m - meq) （使用 collision 巨集）
+collision;  // → F0_in, F1_in, ..., F8_in 更新
+```
+
+### CUDA Constant Memory 版本（可選）
+
+如果要在 CUDA kernel 中使用，可以啟用 constant memory 版本以提升效能：
+
+```cpp
+// 在 main.cu 開頭
+#define USE_CUDA_CONSTANT
+#include "MRT_Matrix.h"
+
+// 初始化
+initRelaxationToGPU();  // 將鬆弛參數傳到 GPU
+
+// 在 kernel 中直接使用
+__global__ void kernel() {
+    // 使用 d_M[i][j], d_M_I[i][j], d_S[i]
+    // 從 constant memory 讀取，不需要每次重新建立陣列
+}
+```

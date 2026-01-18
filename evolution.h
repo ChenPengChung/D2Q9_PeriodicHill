@@ -56,7 +56,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
         double m0,m1,m2,m3,m4,m5,m6,m7,m8;
 	    double s0,s1,s2,s3,s4,s5,s6,s7,s8;
 	    double meq0,meq1,meq2,meq3,meq4,meq5,meq6,meq7,meq8;
-        //xi方向預配置連乘權重一維連續記憶體
+        //xi方向預配置連乘權重一維連續記憶體的內插成員起始編號
         int cell_z = k-3;
         if( k <= 6 ) cell_z = 3;
         if( k >= NZ6-7 ) cell_z = NZ6-10;

@@ -5,7 +5,7 @@
 #include "initialization.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
-#include "variables.h"：
+#include "variables.h"
 //1.物理空間計算點的平均密度場的時變量最小值
 double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
                   double f1_old, double f2_old, double f3_old, double f4_old, double f5_old, double f6_old, double f7_old, double f8_old){
@@ -53,8 +53,8 @@ void stream_collide(
     Relaxation; 
     int nface = NZ6 ;
     //1.函數內直接開始執行雙重for迴圈
-for(int j = 3 ; j <= NZ6-4 ; j++){
-    for(int k = 3 ; k <= NZ6-4 ; k++){
+for(int j = 3 ; j < NY6-3 ; j++){
+    for(int k = 3 ; k < NZ6-3 ; k++){
         int idx_xi = j *NZ6 + k ;
         int idx ; //出現在 interpolationHillISLBM.h 巨集定義內的中間變數idx
          
@@ -105,7 +105,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
                 XiBFLF3_0, XiBFLF3_1, XiBFLF3_2, XiBFLF3_3, XiBFLF3_4, XiBFLF3_5, XiBFLF3_6);
             }
             if(q1>0.5){//做線性內插
-                F1_in = (1/2*q1)*f3_old[idx_xi] + ((2*q1-1)/2*q1)*f1_old[idx_xi];
+                F1_in = (1.0/(2.0*q1))*f3_old[idx_xi] + ((2.0*q1-1.0)/(2.0*q1))*f1_old[idx_xi];
             }
         }
         //右丘邊界，更新F3
@@ -118,7 +118,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
                 XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);
             }
             if(q3>0.5){
-                F3_in = (1/2*q3)*f1_old[idx_xi] + ((2*q3-1)/2*q3)*f3_old[idx_xi];
+                F3_in = (1.0/(2.0*q3))*f1_old[idx_xi] + ((2.0*q3-1.0)/(2.0*q3))*f3_old[idx_xi];
             }
         }
         //左丘邊界，更新F5
@@ -131,7 +131,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
                 XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);
             }
             if(q5>0.5){
-                F5_in = (1/2*q5)*f7_old[idx_xi] + ((2*q5-1)/2*q5)*f5_old[idx_xi];
+                F5_in = (1.0/(2.0*q5))*f7_old[idx_xi] + ((2.0*q5-1.0)/(2.0*q5))*f5_old[idx_xi];
             }
         }
         //右丘邊界，更新F6
@@ -144,7 +144,7 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
                 XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);
             }
             if(q6>0.5){
-                F6_in = (1/2*q6)*f8_old[idx_xi] + ((2*q6-1)/2*q6)*f6_old[idx_xi];
+                F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
             }
         }
         //3.質量修正

@@ -35,11 +35,11 @@
         Intrpl7( f[idx+6*nface], xi_0[idx_xi], f[idx+1+6*nface], xi_1[idx_xi], f[idx+2+6*nface], xi_2[idx_xi], f[idx+3+6*nface], xi_3[idx_xi], f[idx+4+6*nface], xi_4[idx_xi], f[idx+5+6*nface], xi_5[idx_xi], f[idx+6+6*nface], xi_6[idx_xi] ), y_6[idx_y]    \
     );
 //如下定義為對應D3Q19模型的F5
-#define F2_Intrpl7(f, i, j, k, i_c, j_c, k_c, idx_x, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define F2_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
     idx = j*nface + k_c ;    \
     F2_in = Intrpl7( f[idx], xi_0[idx_xi], f[idx+1], xi_1[idx_xi], f[idx+2], xi_2[idx_xi], f[idx+3], xi_3[idx_xi], f[idx+4], xi_4[idx_xi], f[idx+5], xi_5[idx_xi], f[idx+6], xi_6[idx_xi] );
 //如下定義為對應D3Q19模型的F6
-#define F4_Intrpl7(f, i, j, k, i_c, j_c, k_c, idx_x, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define F4_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
     idx = j*nface + k_c ;    \
     F4_in = Intrpl7( f[idx], xi_0[idx_xi], f[idx+1], xi_1[idx_xi], f[idx+2], xi_2[idx_xi], f[idx+3], xi_3[idx_xi], f[idx+4], xi_4[idx_xi], f[idx+5], xi_5[idx_xi], f[idx+6], xi_6[idx_xi] );
 //如下定義為對應D3Q19模型的F15,16,17,18對於D2Q9模型則對應到F5,F6,F7,F8

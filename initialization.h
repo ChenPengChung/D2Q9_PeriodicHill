@@ -137,7 +137,8 @@ void BFLInitialization() {
             double delta1 = minSize * (1-2*q1) ; 
             if(!IsLeftHill_Boundary_yPlus(y[j] ,z_global[j*NZ6+k])){
             //ParameterforF1 at direction y and z 
-            
+            GetPartameter_65h
+            Get
             }
             //F2:(右丘)
             double q2 = Right_q_yMinus(y[j] ,z_global[j*NZ6+k]);

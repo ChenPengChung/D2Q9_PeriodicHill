@@ -157,7 +157,7 @@ void BFLInitialization() {
                 Q3_h[j*NZ6+k] = q3;
             }
 
-            //F5 (+Y+Z方向, 45度): 左丘邊界
+            //更新F5 (+Y+Z方向, 45度): 左丘邊界
             // 當粒子從 (-Y,-Z) 方向來，可能撞到左丘
             if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
                 double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
@@ -168,14 +168,14 @@ void BFLInitialization() {
                 Q5_h[j*NZ6+k] = q5;
             }
 
-            //F6 (-Y-Z方向, 135度): 右丘邊界
-            // 當粒子從 (+Y,+Z) 方向來，可能撞到右丘
+            //更新F6 (-Y+Z方向, 135度): 右丘邊界
+            // 當粒子從 (+Y,-Z) 方向來，可能撞到右丘
             if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
                 double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
                 double delta6 = minSize * (1.0 - 2.0*q6) / sqrt(2.0);
-                // BFL 反彈點在 (-Y,-Z) 方向: y - delta, z - delta
+                // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
                 GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j*NZ6+k, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
-                GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]-delta6, y_global[j]-delta6, xi_h, j*NZ6+k, k);
+                GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6, xi_h, j*NZ6+k, k);
                 Q6_h[j*NZ6+k] = q6;
             }
         }

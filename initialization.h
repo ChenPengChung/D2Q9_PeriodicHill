@@ -126,7 +126,7 @@ void GetIntrplParameter_Xi() {
     }}
 }
 
-void BFLInitialization() {
+void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
     //此函數是為計算邊界計算點的q值以及邊界計算點的預配置連乘權重一維連續記憶體
     //q: 計算點到壁面的無因次距離
     //delta: BFL 反彈點相對於計算點的偏移量

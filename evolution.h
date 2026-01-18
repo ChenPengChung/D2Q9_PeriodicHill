@@ -189,9 +189,9 @@ void periodicSW(
     double* f0_new, double* f1_new, double* f2_new, double* f3_new, double* f4_new, double* f5_new, double* f6_new, double* f7_new, double* f8_new
     ,double* v, double* w, double* rho_d
 ){//SW:Stream-Wise
-    //目的，複製 buffer Layer 
-    //新值的更新
-    for(int k = 0 ; k < NZ6 ; k++){
+    //目的：複製 Y 方向的 buffer Layer，實現週期性邊界
+    //只複製 Z 方向的有效計算區域 (k=3 ~ NZ6-4)
+    for(int k = 3 ; k < NZ6-3 ; k++){
         for(int i = 0 ; i <= 2 ; i++){
             //右邊左側buffer layer
             int idx_right = (i+NY6-6)*NZ6 + k ;

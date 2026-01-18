@@ -164,7 +164,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
         const double F7_eq  = (1./36.) *rho_s*(1.0+3.0*(-v1 -w1) +4.5*(-v1 -w1)*(-v1 -w1)-1.5*udot);
         const double F8_eq  = (1./36.) *rho_s*(1.0+3.0*( v1 -w1) +4.5*( v1 -w1)*( v1 -w1)-1.5*udot);
         //5.MRT Collision Process
-
+        m_matrix;
+        meq;
+        collision;
+        
 }}}
     
 #endif

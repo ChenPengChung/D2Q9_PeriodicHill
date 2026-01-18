@@ -164,10 +164,26 @@ for(int j = 3 ; j < NY6-3 ; j++){
         const double F7_eq  = (1./36.) *rho_s*(1.0+3.0*(-v1 -w1) +4.5*(-v1 -w1)*(-v1 -w1)-1.5*udot);
         const double F8_eq  = (1./36.) *rho_s*(1.0+3.0*( v1 -w1) +4.5*( v1 -w1)*( v1 -w1)-1.5*udot);
         //5.MRT Collision Process
-        m_matrix;
+        m_vector;
         meq;
         collision;
-        
+
+        //6.在此時間步更新物理間計算點的碰撞後插值後一般態分佈函數
+        f0_new[idx_xi] = F0_in;
+        f1_new[idx_xi] = F1_in;
+        f2_new[idx_xi] = F2_in;
+        f3_new[idx_xi] = F3_in;
+        f4_new[idx_xi] = F4_in;
+        f5_new[idx_xi] = F5_in;
+        f6_new[idx_xi] = F6_in;
+        f7_new[idx_xi] = F7_in;
+        f8_new[idx_xi] = F8_in;
+
+        //7.更新宏觀量
+        rho_d[idx_xi] = rho_s;
+        v[idx_xi] = v1;
+        w[idx_xi] = w1;
 }}}
-    
+//y方向週期邊界條件 
+void 
 #endif

@@ -829,6 +829,36 @@ delta = minSize * (1.0 - 2.0*q)
 | `XiBFLParaF*_h[7]` | BFL 用的 Xi 方向插值權重 |
 | `Q*_h[]` | 各方向的 BFL q 值（計算點到壁面距離）|
 
+---
+
+## 2026-01-18 未初始化清單（主程式撰寫時要統整）
+
+以下是「在目前程式流程中，不一定會被寫入」的資料區域；若後續程式會讀到它們，需在配置/初始化階段做 `memset`、填 0、或填 `NAN`/sentinel。
+
+### 網格/座標
+
+- `xi_h` 的 buffer 區：`initialization.h:58` 只寫 `k=3..NZ6-4` → `xi_h[0..2]` 與 `xi_h[NZ6-3..NZ6-1]` 未初始化。
+- `z_global` 的 buffer 區：`initialization.h:67` 只寫 `k=3..NZ6-4`，另外只補 `k=2` 與 `k=NZ6-3`（`initialization.h:71-72`）→ `k=0,1,NZ6-2,NZ6-1` 未初始化（每個 `j` 都一樣）。
+- `Force[1]`：`InitialUsingDftFunc()` 只賦值 `Force[0]`（`initialization.h:30`）→ 若你把 `Force` 當成 `(Fy,Fz)`，則 `Force[1]` 需要明確初始化。
+
+### 插值權重（非 BFL）
+
+- `YPara0_h[*][i]`、`YPara2_h[*][i]`：`GetIntrplParameter_Y()` 只算 `i=3..NY6-4`（`initialization.h:92-97`）→ buffer `i<=2` 與 `i>=NY6-3` 未初始化。
+- `XiParaF1_h..XiParaF8_h`：`GetIntrplParameter_Xi()` 只算 `j=3..NYD6-4`、`k=3..NZ6-4`（`initialization.h:100-127`）→ 任何在這個範圍外的 `(j,k)` 權重未初始化。
+
+### BFL 權重與 q 值
+
+- `Q1_h/Q3_h/Q5_h/Q6_h`：只在對應 `Is*Boundary*()` 成立時才寫入（`initialization.h:140-180`）→ 非邊界點位置未初始化。
+- `YBFLParaF3_h/YBFLParaF1_h/YBFLParaF7_h/YBFLParaF8_h` 與 `XiBFLParaF3_h/XiBFLParaF1_h/XiBFLParaF7_h/XiBFLParaF8_h`：同上，只在邊界點填權重 → 非邊界點位置未初始化。
+
+### 目前在 repo 內「找不到宣告」的符號（只存在於筆記，尚未在可編譯的程式檔出現）
+
+`initialization.h` 直接使用但在程式碼裡尚未搜尋到宣告（你說「假設已宣告」的那批）：
+- 流場/分佈：`rho[]`, `v[]`, `w[]`, `f[9][]`, `Force[]`
+- 網格座標：`y_global[]`, `z_global[]`, `xi_h[]`, 以及你在權重生成時用的 `y_h[]`, `z_h[]`
+- 一般插值權重：`YPara0_h`, `YPara2_h`, `XiParaF1_h..XiParaF8_h`
+- BFL：`Q1_h`, `Q3_h`, `Q5_h`, `Q6_h`, `YBFLParaF3_h/YBFLParaF1_h/YBFLParaF7_h/YBFLParaF8_h`, `XiBFLParaF3_h/XiBFLParaF1_h/XiBFLParaF7_h/XiBFLParaF8_h`
+
 ### D2Q9 速度方向定義
 
 ```

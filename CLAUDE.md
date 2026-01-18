@@ -481,3 +481,188 @@ void GetParameterXi(double** XiPara , double pos_y , double pos_z , double* Pos_
 仍然會有誤差，但主要是「插值截斷誤差」（跟網格解析度/階數/函數光滑度有關），不是因為權重被錯誤共用。
 
 如果你想做更「直角物理空間」的做法（固定物理 `z` 在不同 `y` 上取值），那就需要對每個 `y` stencil 點各自算 `xi(y_j, z_dep)`，讓每一個 `y_j` 都用**不同的 `xi` 權重**做內層插值；那會變成非張量積（或更昂貴的）插值流程，成本與實作複雜度都會明顯上升。
+
+### `xi_h[0..2]`（以及尾端 buffer）未初始化是否會有問題？
+
+在原作者的 `periodic hill_6thIBLBM/50hill_4GPU` 中，`xi_h` 的初始化刻意只做「非 buffer」區間：
+- `periodic hill_6thIBLBM/50hill_4GPU/initialization.h:130`～`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:136`
+  - `for( int k = bfr; k < NZ6-bfr; k++ )`，其中 `bfr = 3`
+  - 所以只會算 `k = 3 .. NZ6-4`
+  - `k = 0,1,2` 與 `k = NZ6-3, NZ6-2, NZ6-1` 都不會被賦值（屬於 buffer/ghost layers）
+
+對應程式碼（`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:110` 內的 `GenerateMesh_Z()`）：
+
+```cpp
+int bfr = 3;
+...
+for( int k = bfr; k < NZ6-bfr; k++ ){
+    xi_h[k] = tanhFunction( LXi, minSize, a, (k-3), (NZ6-7) ) - minSize/2.0;
+}
+```
+
+**對求解本身通常不會有問題**，原因是後續插值權重的預配置與 kernel 計算也同樣跳過 buffer 範圍：
+- `GetIntrplParameter_Xi()` 只對 `k = 3 .. NZ6-4` 預先計算權重  
+  - `periodic hill_6thIBLBM/50hill_4GPU/initialization.h:231`～`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:241`
+- CUDA kernel 直接排除 `k <= 2` 與 `k >= NZ6-3` 的 cell（不會用到 buffer 位置的 `idx_xi = j*NZ6 + k`）  
+  - `periodic hill_6thIBLBM/50hill_4GPU/evolution.h:80`（`if( ... k <= 2 || k >= NZ6-3 ) return;`）
+
+對應程式碼（預配置只算 interior）：
+
+```cpp
+for( int j = 3; j < NYD6-3; j++ ){
+for( int k = 3; k < NZ6-3;  k++ ){
+    GetXiParameter( XiParaF3_h, z_h[j*NZ6+k], y_h[j]-minSize, xi_h, j*NZ6+k, k );
+    ...
+}}
+```
+
+對應程式碼（kernel 直接跳過 buffer）：
+
+```cpp
+if( i <= 2 || i >= NX6-3 || k <= 2 || k >= NZ6-3 ) return;
+```
+
+而且就算是在靠近下壁的 `k = 3..6`，權重也會用固定 stencil 起點 `n=3`，因此完全不需要碰到 `xi_h[0..2]`：
+- `periodic hill_6thIBLBM/50hill_4GPU/initialization.h:192`～`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:198`
+
+對應程式碼（靠近邊界固定用 `n=3`，所以用到的是 `xi_h[3..9]`）：
+
+```cpp
+if( k >= 3 && k <= 6 ){
+    GetParameter_6th( XiPara_h, pos_xi, Pos_xi, IdxToStore, 3 );
+}
+```
+
+**但有一個「容易誤會」的副作用**：程式會把整個 `xi_h[0..NZ6-1]` 都輸出/拷貝，包含未初始化的 buffer 值：
+- 輸出 `meshXi.DAT` 會把 `xi_h[0..NZ6-1]` 全部寫出來  
+  - `periodic hill_6thIBLBM/50hill_4GPU/initialization.h:170`～`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:175`
+- `cudaMemcpy(xi_d, xi_h, NZ6*sizeof(double), ...)` 也會把未初始化的 buffer 一起拷到 GPU  
+  - `periodic hill_6thIBLBM/50hill_4GPU/initialization.h:178`
+
+對應程式碼（輸出/拷貝包含 buffer）：
+
+```cpp
+for( int k = 0; k < NZ6; k++ ){
+    fprintf( meshXi, "%.15lf\n", xi_h[k] );
+}
+...
+CHECK_CUDA( cudaMemcpy(xi_d, xi_h, NZ6*sizeof(double), cudaMemcpyHostToDevice) );
+```
+
+因此：
+- **模擬計算面**：通常安全（因為 buffer 不會被用到）。
+- **後處理/除錯面**：`meshXi.DAT` 的前 3 個與最後 3 個值可能是隨機/垃圾值，容易造成誤解。
+
+建議（非必要，但能避免踩雷）：
+- 在輸出 `meshXi.DAT` 時只輸出 `k=3..NZ6-4`；或
+- 明確把 `xi_h[0..2]`、`xi_h[NZ6-3..NZ6-1]` 設成有意義的值（例如複製邊界、或設成 `NAN` 讓除錯一眼看出來）。
+
+### 為什麼 `XiParameter*_d` 不會越界、而 buffer 區也不會被用到？
+
+雖然 `XiParaF*_d[i]` 的配置大小是 `NYD6*NZ6`（每個點一組權重），但程式在「產生」與「使用」兩個階段都把 buffer 排除掉：
+- **產生階段**：只填 `k = 3 .. NZ6-4`（`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:231`～`periodic hill_6thIBLBM/50hill_4GPU/initialization.h:241`）
+- **使用階段**：kernel 直接 `return` 掉 `k <= 2` 與 `k >= NZ6-3`（`periodic hill_6thIBLBM/50hill_4GPU/evolution.h:80`）
+
+所以像你提到的最靠近壁面的有效點（例如 `k=3,4,5`，對應 `idx_xi = NZ6*j + 3/4/5`）：
+- **不會越界**：`idx_xi` 仍在 `0 .. NYD6*NZ6-1` 範圍內。
+- **會被使用**：因為 `k=3,4,5` 都不在 `k<=2` 的排除範圍內。
+- **不依賴 `xi_h[0..2]`**：權重 stencil 會從 `n=3` 開始取（避免碰到 buffer 的 `xi_h[0..2]`）。
+
+---
+
+## 2026-01-18 stream_collide CUDA Kernel 呼叫機制
+
+### stream_collide 不是 for 迴圈，而是 CUDA kernel
+
+`stream_collide` 和 `stream_collide_Buffer` 是 **CUDA `__global__` kernel**，不使用傳統 CPU 的 for 迴圈。它們的「迴圈」是透過 **CUDA grid/block 配置**來實現平行計算。
+
+### Grid/Block 配置
+
+檔案：`periodic hill_6thIBLBM/50hill_4GPU/evolution.h:785`～`793`
+
+```cpp
+// stream_collide 用這組（主要計算區域）
+dim3 griddim(  NX6/NT+1, NYD6, NZ6);
+dim3 blockdim( NT, 1, 1);
+
+// stream_collide_Buffer 用這組（Y方向邊界 buffer 區）
+dim3 griddimBuf(NX6/NT+1, 1, NZ6);
+dim3 blockdimBuf(NT, 4, 1);
+```
+
+### Kernel 呼叫位置
+
+檔案：`periodic hill_6thIBLBM/50hill_4GPU/evolution.h`
+
+```cpp
+// evolution.h:795 - 處理 j=3 的 buffer 區
+stream_collide_Buffer<<<griddimBuf, blockdimBuf, 0, stream1>>>(
+    f_old[0], f_old[1], ..., f_old[18],
+    f_new[0], f_new[1], ..., f_new[18],
+    XPara0_d[0..6], XPara2_d[0..6],
+    YPara0_d[0..6], YPara2_d[0..6],
+    XiParaF3_d[0..6], XiParaF4_d[0..6], ...
+    u, v, w, rho_d, Force_d, 3, ...  // 注意最後參數 3 表示 j=3
+);
+
+// evolution.h:823 - 處理 j=NYD6-7 的 buffer 區
+stream_collide_Buffer<<<griddimBuf, blockdimBuf, 0, stream1>>>(
+    ...
+    u, v, w, rho_d, Force_d, NYD6-7, ...  // 注意最後參數 NYD6-7
+);
+
+// evolution.h:859 - 處理主要計算區域（interior）
+stream_collide<<<griddim, blockdim, 0, stream0>>>(
+    f_old[0], f_old[1], ..., f_old[18],
+    f_new[0], f_new[1], ..., f_new[18],
+    XPara0_d[0..6], XPara2_d[0..6],
+    YPara0_d[0..6], YPara2_d[0..6],
+    XiParaF3_d[0..6], XiParaF4_d[0..6], ...
+    u, v, w, rho_d, Force_d, ...
+);
+```
+
+### Kernel 內部的索引計算
+
+在 kernel 內部，會用 `blockIdx`/`threadIdx` 計算出對應的 `(i, j, k)` 索引：
+
+檔案：`periodic hill_6thIBLBM/50hill_4GPU/evolution.h:80` 附近
+
+```cpp
+int i = blockIdx.x * blockDim.x + threadIdx.x;  // X 方向
+int j = blockIdx.y;                              // Y 方向
+int k = blockIdx.z;                              // Z 方向
+
+// 跳過 buffer 區域
+if( i <= 2 || i >= NX6-3 || k <= 2 || k >= NZ6-3 ) return;
+```
+
+### CUDA kernel 等效於 CPU 三層 for 迴圈
+
+上述 CUDA 配置等同於 CPU 上的三層 for 迴圈：
+
+```cpp
+// CPU 等效寫法（僅供理解，實際是 GPU 平行執行）
+for(int i = 3; i < NX6-3; i++)      // X 方向（由 griddim.x * blockdim.x 展開）
+for(int j = 0; j < NYD6; j++)        // Y 方向（由 griddim.y 展開）
+for(int k = 3; k < NZ6-3; k++)       // Z 方向（由 griddim.z 展開）
+{
+    // stream + collide 計算邏輯
+}
+```
+
+### 為什麼需要分開處理 Buffer 區？
+
+`stream_collide_Buffer` 專門處理 Y 方向邊界（`j=3` 和 `j=NYD6-7`），原因：
+1. 這些位置需要特殊的週期性邊界條件處理
+2. 分開處理可以使用不同的 stream（`stream1`），與主計算（`stream0`）平行執行
+3. `blockdimBuf` 的 `y=4` 表示一次處理 4 列（`j=3,4,5,6` 或 `j=NYD6-7, NYD6-6, NYD6-5, NYD6-4`）
+
+### 執行順序
+
+1. `stream_collide_Buffer`（j=3）在 `stream1` 上啟動
+2. `stream_collide_Buffer`（j=NYD6-7）在 `stream1` 上排隊
+3. `AccumulateUbulk` 在 `stream1` 上計算平均速度
+4. `stream_collide`（主計算區）在 `stream0` 上啟動
+
+由於使用不同的 CUDA stream，Buffer 處理與主計算可以部分重疊執行。

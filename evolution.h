@@ -187,47 +187,43 @@ for(int j = 3 ; j < NY6-3 ; j++){
 //y方向週期邊界條件 
 void periodicSW(
     double* f0_new, double* f1_new, double* f2_new, double* f3_new, double* f4_new, double* f5_new, double* f6_new, double* f7_new, double* f8_new
-    double* v, double* w, double* rho_d
+    ,double* v, double* w, double* rho_d
 ){//SW:Stream-Wise
     //目的，複製 buffer Layer 
     //新值的更新
     for(int k = 0 ; k < NZ6 ; k++){
         for(int i = 0 ; i <= 2 ; i++){
             //右邊左側buffer layer
-            int idx_left = (i+NY6-6)*NZ6 + k ;
-            int buffer_right = i*NZ6 + k ;\
-            f0_new[buffer_right] 
+            int idx_right = (i+NY6-6)*NZ6 + k ;
+            int buffer_left = i*NZ6 + k ;
+            f0_new[buffer_left] = f0_new[idx_right] ;
+            f1_new[buffer_left] = f1_new[idx_right] ;
+            f2_new[buffer_left] = f2_new[idx_right] ;
+            f3_new[buffer_left] = f3_new[idx_right] ;
+            f4_new[buffer_left] = f4_new[idx_right] ;
+            f5_new[buffer_left] = f5_new[idx_right] ;
+            f6_new[buffer_left] = f6_new[idx_right] ;
+            f7_new[buffer_left] = f7_new[idx_right] ;
+            f8_new[buffer_left] = f8_new[idx_right] ;
+            v[buffer_left] = v[idx_right] ;
+            w[buffer_left] = w[idx_right] ;
+            rho_d[buffer_left] = rho_d[idx_right] ;
+            //左邊右側buffer layer
+            int idx_left = (i+3)*NZ6 + k ;
+            int buffer_right = (i+NY6-3)*NZ6 + k ;
+            f0_new[buffer_right] = f0_new[idx_left] ;
+            f1_new[buffer_right] = f1_new[idx_left] ;
+            f2_new[buffer_right] = f2_new[idx_left] ;
+            f3_new[buffer_right] = f3_new[idx_left] ;
+            f4_new[buffer_right] = f4_new[idx_left] ;
+            f5_new[buffer_right] = f5_new[idx_left] ;
+            f6_new[buffer_right] = f6_new[idx_left] ;
+            f7_new[buffer_right] = f7_new[idx_left] ;
+            f8_new[buffer_right] = f8_new[idx_left] ;
+            v[buffer_right] = v[idx_left] ;
+            w[buffer_right] = w[idx_left] ;
+            rho_d[buffer_right] = rho_d[idx_left] ;
         }
-        //上邊界 to 下邊界
-        int idx_top = (NY6-4)*NZ6 + k ;
-        int idx_bottom = 3*NZ6 + k ;
-        f0_new[idx_bottom] = f0_new[idx_top];
-        f1_new[idx_bottom] = f1_new[idx_top];
-        f2_new[idx_bottom] = f2_new[idx_top];
-        f3_new[idx_bottom] = f3_new[idx_top];
-        f4_new[idx_bottom] = f4_new[idx_top];
-        f5_new[idx_bottom] = f5_new[idx_top];
-        f6_new[idx_bottom] = f6_new[idx_top];
-        f7_new[idx_bottom] = f7_new[idx_top];
-        f8_new[idx_bottom] = f8_new[idx_top];
-        v[idx_bottom] = v[idx_top];
-        w[idx_bottom] = w[idx_top];
-        rho_d[idx_bottom] = rho_d[idx_top];
-        //下邊界 to 上邊界
-        idx_top = 3*NZ6 + k ;
-        idx_bottom = (NY6-4)*NZ6 + k ;
-        f0_new[idx_bottom] = f0_new[idx_top];
-        f1_new[idx_bottom] = f1_new[idx_top];
-        f2_new[idx_bottom] = f2_new[idx_top];
-        f3_new[idx_bottom] = f3_new[idx_top];
-        f4_new[idx_bottom] = f4_new[idx_top];
-        f5_new[idx_bottom] = f5_new[idx_top];
-        f6_new[idx_bottom] = f6_new[idx_top];
-        f7_new[idx_bottom] = f7_new[idx_top];
-        f8_new[idx_bottom] = f8_new[idx_top];
-        v[idx_bottom] = v[idx_top];
-        w[idx_bottom] = w[idx_top];
-        rho_d[idx_bottom] = rho_d[idx_top];
     }
 }
 #endif

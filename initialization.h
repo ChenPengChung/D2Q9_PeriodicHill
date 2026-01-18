@@ -129,14 +129,17 @@ void GetIntrplParameter_Xi() {
 void BFLInitialization() {
     //此函數是為計算邊界計算點的q值以及編借計算點的預配置連乘權重一維連續記憶體
     //q
-    //
-    for(int j = 3 ; j <= NY604 ; j++){
+    //Parameter 
+    for(int j = 3 ; j <= NY6 ; j++){
         for(int k = 3 ; k <= NZ6-3 ; k++){
             //F1:(左丘)
-            
+            Left_q_Diagonal45(y[j] ,z_global[j*NZ6+k]);
             //F2:(右丘)
+            Right_q_Diagonal135(y[j] ,z_global[j*NZ6+k]);
             //F5:(左丘)
+            Left_q_DiagonalMinus45(y[j] ,z_global[j*NZ6+k]);
             //F6:(右丘)
+            Right_q_DiagonalMinus135(y[j] ,z_global[j*NZ6+k]);
         }
     }
 }

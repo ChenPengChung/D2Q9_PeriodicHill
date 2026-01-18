@@ -670,3 +670,185 @@ for(int k = 3; k < NZ6-3; k++)       // Z 方向（由 griddim.z 展開）
 4. `stream_collide`（主計算區）在 `stream0` 上啟動
 
 由於使用不同的 CUDA stream，Buffer 處理與主計算可以部分重疊執行。
+
+---
+
+## 2026-01-18 BFL 邊界條件初始化筆記
+
+### BFL 邊界處理的核心概念
+
+**反彈方向（離開壁面的方向）才需要做邊界處理**，不是入射方向。
+
+當粒子撞到壁面後會反彈：
+- **入射方向**：粒子**進入**壁面的方向
+- **反彈方向**：粒子**離開**壁面的方向 → **這個才需要 BFL 處理**
+
+### 邊界判斷函數的設計邏輯
+
+邊界判斷函數檢測的是：「從這個計算點往**入射方向**移動，會不會撞到壁面？」
+- 如果會撞到 → 這個點是**反彈方向**的邊界計算點
+- 該**反彈方向**的分佈函數需要用 BFL 更新
+
+### D2Q9 方向與邊界處理對應關係
+
+| 邊界判斷函數 | 入射方向（撞牆） | 反彈方向（離開） | 需要更新 | 用誰的值來插值 |
+|-------------|-----------------|-----------------|---------|---------------|
+| `IsLeftHill_Boundary_yPlus` | F3 (-Y) 撞左丘 | **F1 (+Y)** | F1 | F3 |
+| `IsRightHill_Boundary_yMinus` | F1 (+Y) 撞右丘 | **F3 (-Y)** | F3 | F1 |
+| `IsLeftHill_Boundary_Diagonal45` | F7 (-Y,-Z) 撞左丘 | **F5 (+Y,+Z)** | F5 | F7 |
+| `IsRightHill_Boundary_Diagonal135` | F8 (+Y,-Z) 撞右丘 | **F6 (-Y,+Z)** | F6 | F8 |
+
+### BFLInitialization 函數結構
+
+檔案：`initialization.h:129`
+
+```cpp
+void BFLInitialization() {
+    for(int j = 3; j < NY6-3; j++){
+        for(int k = 3; k < NZ6-3; k++){
+
+            // F1 的邊界處理：F3 入射撞左丘 → F1 反彈離開
+            if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
+                double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
+                double delta1 = minSize * (1.0 - 2.0*q1);
+                // BFL 反彈點在 +Y 方向: y + delta, z 不變
+                GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, ...);  // 用 F3 插值
+                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1, ...);
+                Q1_h[j*NZ6+k] = q1;
+            }
+
+            // F3 的邊界處理：F1 入射撞右丘 → F3 反彈離開
+            if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){
+                double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
+                double delta3 = minSize * (1.0 - 2.0*q3);
+                // BFL 反彈點在 -Y 方向: y - delta, z 不變
+                GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, ...);  // 用 F1 插值
+                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3, ...);
+                Q3_h[j*NZ6+k] = q3;
+            }
+
+            // F5 的邊界處理：F7 入射撞左丘 → F5 反彈離開
+            if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){
+                double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
+                double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
+                // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
+                GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, ...);  // 用 F7 插值
+                GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, ...);
+                Q5_h[j*NZ6+k] = q5;
+            }
+
+            // F6 的邊界處理：F8 入射撞右丘 → F6 反彈離開
+            if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){
+                double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
+                double delta6 = minSize * (1.0 - 2.0*q6) / sqrt(2.0);
+                // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
+                GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, ...);  // 用 F8 插值
+                GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6, ...);
+                Q6_h[j*NZ6+k] = q6;
+            }
+        }
+    }
+}
+```
+
+### delta 的計算
+
+**delta** 是 BFL 反彈點相對於計算點的偏移量：
+
+```cpp
+delta = minSize * (1.0 - 2.0*q)
+```
+
+其中 `q` 是計算點到壁面的無因次距離（`0 < q < 1`）。
+
+- 當 `q = 0`（計算點在壁面上）：`delta = minSize`
+- 當 `q = 0.5`（計算點在中間）：`delta = 0`
+- 當 `q = 1`（計算點離壁面一格）：`delta = -minSize`
+
+對於斜向（45°/135°），delta 需要除以 `sqrt(2.0)` 因為移動距離是斜向的。
+
+### 權重陣列命名規則
+
+`YBFLParaF3_h` 和 `XiBFLParaF3_h` 的命名意義：
+- **F3** 代表這個權重陣列是用來**插值 F3 分佈函數**的
+- 插值結果會用來**更新 F1**（F3 的反方向）
+
+同理：
+- `YBFLParaF1_h` → 插值 F1，更新 F3
+- `YBFLParaF7_h` → 插值 F7，更新 F5
+- `YBFLParaF8_h` → 插值 F8，更新 F6
+
+---
+
+## 重要程式碼索引
+
+### initializationTool.h - 初始化工具函數
+
+| 編號 | 函數名稱 | 行號 | 功能說明 |
+|------|---------|------|----------|
+| 1 | `HillFunction_Inverse_Left()` | 29-43 | 左半丘反函數（二分法） |
+| 2 | `HillFunction_Inverse_Right()` | 55-68 | 右半丘反函數（二分法） |
+| 3 | `tanhFunction` | 82-85 | 雙曲正切非均勻網格座標轉換巨集 |
+| 4 | `GetNonuniParameter()` | 96-117 | 計算非均勻網格伸縮參數 a |
+| 5 | `Lagrange_6th()` | 135-138 | 六階 Lagrange 插值基底函數 |
+| 6 | `GetParameter_6th()` | 151-159 | 產生六階 Lagrange 插值預配置權重 |
+| 7 | `IsLeftHill_Boundary_yPlus()` | 174-185 | 判斷 F1 (+Y) 邊界計算點 |
+| 8 | `IsRightHill_Boundary_yMinus()` | 198-209 | 判斷 F3 (-Y) 邊界計算點 |
+| 9 | `IsLeftHill_Boundary_Diagonal45()` | 222-237 | 判斷 F5 (+Y,+Z) 邊界計算點 |
+| 10 | `IsRightHill_Boundary_Diagonal135()` | 250-265 | 判斷 F6 (-Y,+Z) 邊界計算點 |
+| 11 | `IsLeftHill_Boundary_DiagonalMinus45()` | 282-297 | 判斷 F8 邊界（斜率>1時用） |
+| 12 | `IsRightHill_Boundary_DiagonalMinus135()` | 315-330 | 判斷 F7 邊界（斜率>1時用） |
+| 13 | `Left_q_yPlus()` | 342-348 | 計算左丘 +Y 方向 q 值 |
+| 14 | `Right_q_yMinus()` | 360-366 | 計算右丘 -Y 方向 q 值 |
+| 15 | `Left_q_Diagonal45()` | 378-404 | 計算左丘 45° 方向 q 值 |
+| 16 | `Right_q_Diagonal135()` | 416-441 | 計算右丘 135° 方向 q 值 |
+| 17 | `Left_q_DiagonalMinus45()` | 453-478 | 計算左丘 -45° 方向 q 值 |
+| 18 | `Right_q_DiagonalMinus135()` | 490-515 | 計算右丘 -135° 方向 q 值 |
+
+### initialization.h - 初始化主函數
+
+| 函數名稱 | 行號 | 功能說明 |
+|---------|------|----------|
+| `InitialUsingDftFunc()` | 7-31 | 初始化分佈函數與外力項 |
+| `GenerateMesh_Y()` | 34-47 | 建立 Y 方向均勻網格 |
+| `GenerateMesh_Z()` | 49-74 | 建立 Z 方向非均勻網格（含山丘） |
+| `GetXiParameter()` | 75-90 | 計算 Xi 方向插值權重 |
+| `GetIntrplParameter_Y()` | 92-97 | 預配置 Y 方向插值權重 |
+| `GetIntrplParameter_Xi()` | 100-127 | 預配置 Xi 方向插值權重（所有 F1-F8） |
+| `BFLInitialization()` | 129-183 | BFL 邊界條件初始化（權重與 q 值） |
+
+### 關鍵變數對照表
+
+| 變數名稱 | 用途 |
+|---------|------|
+| `y_global[NY6]` | Y 方向物理座標陣列 |
+| `z_global[NY6*NZ6]` | Z 方向物理座標陣列（2D flatten） |
+| `xi_h[NZ6]` | 無因次化 Z 座標（不含山丘影響） |
+| `XiParaF*_h[7]` | F* 方向的 Xi 插值權重（7點） |
+| `YBFLParaF*_h[7]` | BFL 用的 Y 方向插值權重 |
+| `XiBFLParaF*_h[7]` | BFL 用的 Xi 方向插值權重 |
+| `Q*_h[]` | 各方向的 BFL q 值（計算點到壁面距離）|
+
+### D2Q9 速度方向定義
+
+```
+     F6(-1,+1)  F2(0,+1)  F5(+1,+1)
+              \    |    /
+               \   |   /
+     F3(-1,0) ←― F0 ―→ F1(+1,0)
+               /   |   \
+              /    |    \
+     F7(-1,-1)  F4(0,-1)  F8(+1,-1)
+```
+
+| 方向 | 速度向量 (ey, ez) | 權重 |
+|------|------------------|------|
+| F0 | (0, 0) | 4/9 |
+| F1 | (+1, 0) | 1/9 |
+| F2 | (0, +1) | 1/9 |
+| F3 | (-1, 0) | 1/9 |
+| F4 | (0, -1) | 1/9 |
+| F5 | (+1, +1) | 1/36 |
+| F6 | (-1, +1) | 1/36 |
+| F7 | (-1, -1) | 1/36 |
+| F8 | (+1, -1) | 1/36 |

@@ -61,7 +61,11 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
         int cell_z = k-3;
         if( k <= 6 ) cell_z = 3;
         if( k >= NZ6-7 ) cell_z = NZ6-10;
-    
+        // Matrix //
+        Matrix;
+        Inverse_Matrix;
+        Relaxation; 
+        
 
 
 

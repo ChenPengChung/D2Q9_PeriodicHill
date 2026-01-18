@@ -102,15 +102,79 @@ void GetIntrplParameter_Xi() {
         for( int k = 3; k < NZ6-3;  k++ ){
             //為什麼需要二維記憶體配置，因為在y_z平面上，
             //每一個物理空間計算點的相應非物理空間計算點的Z方向預配置連乘權重一維連續記憶體都不一樣
-            //，會受到座標比例影響內插計算結果。 
-            GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF1_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF2_h,  z_h[j*NZ6+k]+minSize, y_h[j],         xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF7_h, z_h[j*NZ6+k]-minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF6_h, z_h[j*NZ6+k]-minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF8_h, z_h[j*NZ6+k]+minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
-            GetXiParameter( XiParaF5_h, z_h[j*NZ6+k]+minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            //，會受到座標比例影響內插計算結果。
+            //
+            // D2Q9 速度方向: F1(+Y), F2(+Z), F3(-Y), F4(-Z), F5(+Y+Z), F6(-Y+Z), F7(-Y-Z), F8(+Y-Z)
+            // Streaming: f_i(x,t+dt) = f_i(x - e_i*dt, t) → 從 (y - ey*Δ, z - ez*Δ) 位置取值
+            //
+            // F1 (+Y,0): 從 (y-Δ, z) 來
+            GetXiParameter( XiParaF1_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            // F2 (0,+Z): 從 (y, z-Δ) 來
+            GetXiParameter( XiParaF2_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            // F3 (-Y,0): 從 (y+Δ, z) 來
+            GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            // F4 (0,-Z): 從 (y, z+Δ) 來
+            GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k]+minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
+            GetXiParameter( XiParaF5_h,  z_h[j*NZ6+k]-minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
+            GetXiParameter( XiParaF6_h,  z_h[j*NZ6+k]-minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
+            GetXiParameter( XiParaF7_h,  z_h[j*NZ6+k]+minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
+            GetXiParameter( XiParaF8_h,  z_h[j*NZ6+k]+minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+    }}
+}
+
+void BFLInitialization() {
+    size_t nBytes;
+
+    for( int k = 0; k < 2;      k++ ){
+    for( int j = 3; j < NYD6-3; j++ ){
+        BFLReqF3_h[k*NYD6+j]  = IsBFLBCNeeded(y_h[j]-minSize, z_h[j*NZ6+k+3]);
+        BFLReqF4_h[k*NYD6+j]  = IsBFLBCNeeded(y_h[j]+minSize, z_h[j*NZ6+k+3]);
+        BFLReqF15_h[k*NYD6+j] = IsBFLBCNeeded(y_h[j]-minSize, z_h[j*NZ6+k+3]-minSize);
+        BFLReqF16_h[k*NYD6+j] = IsBFLBCNeeded(y_h[j]+minSize, z_h[j*NZ6+k+3]-minSize);
+    }}
+
+    double delta;
+    for( int k = 0; k < 2;      k++ ){
+    for( int j = 3; j < NYD6-3; j++ ){
+        //BFL initialization for F3, F7, and F8
+        if( BFLReqF3_h[k*NYD6+j] == 1 ){
+            delta = GetDeltaHorizontal(z_h[j*NZ6+k+3], y_h[j]-minSize, y_h[j], y_h[j]);
+            Q3_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
+            GetParameter_6th(XBFLParaF38_h, x_h[NX6/2]-delta, x_h, k*NYD6+j, NX6/2-3);  //X
+            GetParameter_6th(XBFLParaF37_h, x_h[NX6/2]+delta, x_h, k*NYD6+j, NX6/2-3);  //X
+            GetParameter_6th(YBFLParaF378_h, y_h[j]+delta, y_h, k*NYD6+j, j-3);     //Y
+            GetXiParameter(XiBFLParaF378_h, z_h[j*NZ6+k+3], y_h[j]+delta, xi_h, k*NYD6+j, k+3);
+        }
+
+        //BFL initialization for F4, F9, and F10
+        if( BFLReqF4_h[k*NYD6+j] == 1){
+            delta = GetDeltaHorizontal(z_h[j*NZ6+k+3], y_h[j]+minSize, y_h[j], y_h[j]);
+            Q4_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
+            GetParameter_6th(XBFLParaF49_h,  x_h[NX6/2]+delta, x_h, k*NYD6+j, NX6/2-3); //X
+            GetParameter_6th(XBFLParaF410_h, x_h[NX6/2]-delta, x_h, k*NYD6+j, NX6/2-3); //X
+            GetParameter_6th(YBFLParaF4910_h, y_h[j]-delta, y_h, k*NYD6+j, j-3);    //Y
+            GetXiParameter(XiBFLParaF4910_h, z_h[j*NZ6+k+3], y_h[j]-delta, xi_h, k*NYD6+j, k+3);
+        }
+
+        //BFL initialization for F15
+        if( BFLReqF15_h[k*NYD6+j] == 1 ){
+            delta = GetDelta45Degree(z_h[j*NZ6+k+3], y_h[j], y_h[j], y_h[j]-minSize);
+            Q15_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
+            GetParameter_6th(YBFLParaF15_h, y_h[j]+delta, y_h, k*NYD6+j, j-3);
+            GetXiParameter(XiBFLParaF15_h, z_h[j*NZ6+k+3]+delta, y_h[j]+delta, xi_h, k*NYD6+j, k+3);
+        }
+
+        //BFL initialization for F16
+        if( BFLReqF16_h[k*NYD6+j] == 1 ){
+            delta = GetDelta45Degree(z_h[j*NZ6+k+3], y_h[j], y_h[j], y_h[j]+minSize);
+            Q16_h[k*NYD6+j]=(minSize-delta)/2.0/minSize;
+            GetParameter_6th(YBFLParaF16_h, y_h[j]-delta, y_h, k*NYD6+j, j-3);
+            GetXiParameter(XiBFLParaF16_h, z_h[j*NZ6+k+3]+delta, y_h[j]-delta, xi_h, k*NYD6+j, k+3);
+        }
     }}
 }
 

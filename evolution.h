@@ -66,7 +66,10 @@ for(int j = 3 ; j <= NZ6-4 ; j++){
         Matrix;
         Matrix_Inverse;
         Relaxation; 
-        //1.
+        //1.Interpolation and Streaming 
+        F0_Intrpl7(f0_old, j, k);
+
+
 
 
 

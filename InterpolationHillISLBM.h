@@ -8,7 +8,7 @@
 //定義F0_in的計算公式
 //在此，F0_in為物理空間計算點的碰撞前插值後一般態分佈函數
 #define F0_Intrpl7(f,j,k) \
-    idx = j * nface + k ; \
+    idx = j * NZ + k ; \
     F0_in = f[idx] ; /*輸入指標變數使用指標變數相對應之一維連續陣列*/
 //如下定義對應D3Q19模型的F3 
 #define F1_Intrpl7(f,j,k,j_c,k_c,idx_y,idx_xi,y_0,y_1,y_2,y_3,y_4,y_5,y_6,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6)\

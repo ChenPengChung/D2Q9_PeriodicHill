@@ -89,10 +89,9 @@ void GetXiParameter(
     }    
 }
 
-
 void GetIntrplParameter_Y() {
     for( int i = 3; i < NY6-3; i++ ){
-        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );
+        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );//使用在F1，y方向連乘權重一為
         GetParameter_6th( YPara2_h, y_h[i]+minSize, y_h, i, i-3 );
     }
 }

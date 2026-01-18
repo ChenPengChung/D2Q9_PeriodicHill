@@ -44,7 +44,13 @@ void stream_collide(
     double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
     //BFL邊界條件無因次化距離q
     double *Q3_h,        double*Q4_h,         double *Q15_h,       double*Q16_h){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
-    //1.函數內直接開始執行
+    
+    //1.函數內直接開始執行雙重for迴圈
+    for(int j = 3 ; j <= NZ6-4 ; j++){
+        for(int k = 3 ; k <= NZ6-4 ; k++){
+            
+        }
+    }
 
 }
 

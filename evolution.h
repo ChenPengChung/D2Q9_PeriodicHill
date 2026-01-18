@@ -48,7 +48,9 @@ void stream_collide(
     //1.函數內直接開始執行雙重for迴圈
     for(int j = 3 ; j <= NZ6-4 ; j++){
         for(int k = 3 ; k <= NZ6-4 ; k++){
-            
+            int idx_xi = j *NZ6 + k ;
+            int idx ; 
+            int 
         }
     }
 

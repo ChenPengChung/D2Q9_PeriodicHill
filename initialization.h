@@ -91,14 +91,14 @@ void GetXiParameter(
 
 void GetIntrplParameter_Y() {
     for( int i = 3; i < NY6-3; i++ ){
-        GetParameter_6th( YPara0_h, y_h[i]-minSize, y_h, i, i-3 );//使用在F1，作為y方向預配置連乘權重一維連續記憶體 
-        GetParameter_6th( YPara2_h, y_h[i]+minSize, y_h, i, i-3 );//使用在F3，作為y方向預配置連乘權重一維連續記憶體 
+        GetParameter_6th( YPara0_h, y_global[i]-minSize, y_global, i, i-3 );//使用在F1，作為y方向預配置連乘權重一維連續記憶體 
+        GetParameter_6th( YPara2_h, y_global[i]+minSize, y_global, i, i-3 );//使用在F3，作為y方向預配置連乘權重一維連續記憶體 
     }
 }
 
 
 void GetIntrplParameter_Xi() {
-    for( int j = 3; j < NYD6-3; j++ ){
+    for( int j = 3; j < NY6-3; j++ ){
         for( int k = 3; k < NZ6-3;  k++ ){
             //為什麼需要二維記憶體配置，因為在y_z平面上，
             //每一個物理空間計算點的相應非物理空間計算點的Z方向預配置連乘權重一維連續記憶體都不一樣
@@ -108,21 +108,21 @@ void GetIntrplParameter_Xi() {
             // Streaming: f_i(x,t+dt) = f_i(x - e_i*dt, t) → 從 (y - ey*Δ, z - ez*Δ) 位置取值
             //
             // F1 (+Y,0): 從 (y-Δ, z) 來
-            GetXiParameter( XiParaF1_h,  z_h[j*NZ6+k],         y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, xi_h, j*NZ6+k, k );
             // F2 (0,+Z): 從 (y, z-Δ) 來
-            GetXiParameter( XiParaF2_h,  z_h[j*NZ6+k]-minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize, y_global[j],         xi_h, j*NZ6+k, k );
             // F3 (-Y,0): 從 (y+Δ, z) 來
-            GetXiParameter( XiParaF3_h,  z_h[j*NZ6+k],         y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, xi_h, j*NZ6+k, k );
             // F4 (0,-Z): 從 (y, z+Δ) 來
-            GetXiParameter( XiParaF4_h,  z_h[j*NZ6+k]+minSize, y_h[j],         xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         xi_h, j*NZ6+k, k );
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
-            GetXiParameter( XiParaF5_h,  z_h[j*NZ6+k]-minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k );
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
-            GetXiParameter( XiParaF6_h,  z_h[j*NZ6+k]-minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k );
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
-            GetXiParameter( XiParaF7_h,  z_h[j*NZ6+k]+minSize, y_h[j]+minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k );
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
-            GetXiParameter( XiParaF8_h,  z_h[j*NZ6+k]+minSize, y_h[j]-minSize, xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k );
     }}
 }
 

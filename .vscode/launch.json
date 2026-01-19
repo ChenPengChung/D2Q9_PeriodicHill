@@ -35,7 +35,7 @@
       "environment": [
         { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-      "externalConsole": false,
+      "externalConsole": true,
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe"
     }

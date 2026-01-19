@@ -2,25 +2,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "MSYS2 (UCRT64) - Build & Debug Active CPP",
+      "name": "MinGW (Strawberry) - Build & Debug Active CPP",
       "type": "cppdbg",
       "request": "launch",
-
       "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
-
       "environment": [
-        { "name": "PATH", "value": "C:\\msys64\\ucrt64\\bin;${env:PATH}" }
+        { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-
       "externalConsole": true,
-
       "MIMode": "gdb",
-      "miDebuggerPath": "C:\\msys64\\ucrt64\\bin\\gdb.exe",
-
-      "preLaunchTask": "MSYS2: build active file",
+      "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe",
+      "preLaunchTask": "Build with MinGW g++",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -29,25 +24,20 @@
         }
       ]
     },
-
     {
-      "name": "MSYS2 (UCRT64) - Run Active EXE (No Build)",
+      "name": "MinGW (Strawberry) - Run Active EXE (No Build)",
       "type": "cppdbg",
       "request": "launch",
-
       "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
-
       "environment": [
-        { "name": "PATH", "value": "C:\\msys64\\ucrt64\\bin;${env:PATH}" }
+        { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-
       "externalConsole": true,
-
       "MIMode": "gdb",
-      "miDebuggerPath": "C:\\msys64\\ucrt64\\bin\\gdb.exe"
+      "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe"
     }
   ]
 }

@@ -42,7 +42,12 @@
       "Bash(powershell.exe -Command \"Start-Process -FilePath ''.\\\\hill.exe'' -NoNewWindow -Wait -RedirectStandardOutput ''output.txt'' -RedirectStandardError ''error.txt'' & timeout /t 2 & Stop-Process -Name ''hill'' -ErrorAction SilentlyContinue; Get-Content ''output.txt'' -TotalCount 50; Remove-Item ''output.txt'',''error.txt'' -ErrorAction SilentlyContinue\")",
       "Bash(echo:*)",
       "Bash(powershell.exe -Command '$env:Path -split \"\";\"\" | Select-String -Pattern \"\"msys64|Strawberry\"\"')",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Name main -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 34900,122696,153324 -Force\")",
+      "Bash(del \"E:\\\\D2Q9_PeriodicHill\\\\main.exe\")",
+      "Bash(cmd //c del /F \"E:\\\\D2Q9_PeriodicHill\\\\main.exe\")"
     ]
   }
 }

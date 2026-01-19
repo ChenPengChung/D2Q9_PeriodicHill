@@ -15,7 +15,7 @@
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
 //CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小
 //所以最小物理大小的CFL才是晶格大小，為minSize
-#define     CFL                 0.3
+#define     CFL                 0.2
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
 //非均勻網格之判斷式
 //1 : Yes,  0 : No
@@ -24,14 +24,14 @@
 //定義無因次化長度上限
 #define LXi (10.0)
 //雷諾數
-#define Re 50 
+#define Re 5 
 //模擬迴圈上限值
 #define loop 1000000
 /**********Secondary Parameter********************/
 #define dt (minSize) 
 #define cs (1.0/1.732050807568877)
 //Parameters of periodic hills
-#define     tau          0.6833
+#define     tau          0.8
 #define     niu         ((tau-0.5)/3.0*dt)
 #define     omega_2     1/(niu/9.0 + 0.5) 
 #define     omega_7     1/(niu/3.0 + 0.5)

@@ -1,21 +1,22 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "MSYS2-UCRT64",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/opt/homebrew/Cellar/gcc/15.2.0/include/c++/15",
-                "/opt/homebrew/Cellar/gcc/15.2.0/include/c++/15/aarch64-apple-darwin24",
-                "/opt/homebrew/Cellar/gcc/15.2.0/lib/gcc/current/gcc/aarch64-apple-darwin24/15/include",
-                "/opt/homebrew/include"
+                "${workspaceFolder}/**"
             ],
             "defines": [
-                "_OPENMP"
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
             ],
-            "compilerPath": "/opt/homebrew/bin/g++-15",
+            "compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-gcc-arm64"
+            "intelliSenseMode": "windows-gcc-x64",
+            "compilerArgs": [
+                "-fopenmp"
+            ]
         }
     ],
     "version": 4

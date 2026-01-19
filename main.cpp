@@ -1,36 +1,34 @@
 //=============================================================================
 // main.cpp - D2Q9 Periodic Hill LBM 模擬主程式
-//
 // 編譯：g++ -O3 -o hill main.cpp -lm
 // 執行：./hill
 //=============================================================================
-
 #include <iostream>
 #include <fstream>
-#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <vector>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 using namespace std;
-
 //=============================================================================
 // [區塊 1] 引入參數定義（不依賴全域變數的標頭檔）
 //=============================================================================
 #include "variables.h"
 #include "model.h"
-
+#include "paraviewOutput.h"
 //=============================================================================
 // [區塊 2] 全域變數宣告
 // 注意：必須在 #include "initialization.h" 之前宣告
 //=============================================================================
-
 //-----------------------------------------------------------------------------
 // 2.1 流場宏觀量
 //-----------------------------------------------------------------------------
 double rho[NY6 * NZ6];           // 密度場
 double v[NY6 * NZ6];             // Y方向速度（主流場方向）
 double w[NY6 * NZ6];             // Z方向速度（垂直壁面方向）
-
 //-----------------------------------------------------------------------------
 // 2.2 分佈函數 (D2Q9)
 // 使用雙緩衝區：f_old 讀取, f_new 寫入，每步交換
@@ -38,41 +36,36 @@ double w[NY6 * NZ6];             // Z方向速度（垂直壁面方向）
 double f[9][NY6 * NZ6];          // 初始化用（InitialUsingDftFunc 使用）
 double f_old[9][NY6 * NZ6];      // 上一時間步的分佈函數
 double f_new[9][NY6 * NZ6];      // 當前時間步的分佈函數
-
 //-----------------------------------------------------------------------------
 // 2.3 外力項與質量修正
 //-----------------------------------------------------------------------------
 double Force[2];                 // 外力項 [0]=Fy, [1]=Fz
 double rho_modify[1] = {0.0};    // 質量修正項
-
 //-----------------------------------------------------------------------------
 // 2.4 座標陣列
 //-----------------------------------------------------------------------------
 double y_global[NY6];            // Y方向物理座標
-double z_global[NY6 * NZ6];      // Z方向物理座標（2D展開，隨y變化）
+double z_global[NY6 * NZ6];      // (含山丘)離散化全域Z座標
 double xi_h[NZ6];                // 無因次化Z座標
-
 //-----------------------------------------------------------------------------
 // 2.5 Y方向插值權重 (6階Lagrange = 7點)
 // YPara0: 用於 F1, F5, F8 (從 y-minSize 位置插值)
 // YPara2: 用於 F3, F6, F7 (從 y+minSize 位置插值)
 //-----------------------------------------------------------------------------
-double YPara0_h[7][NY6];
-double YPara2_h[7][NY6];
-
+double* YPara0_h[7];
+double* YPara2_h[7];
 //-----------------------------------------------------------------------------
 // 2.6 Xi方向插值權重 (每個速度方向各一組)
 // 維度: [7個權重][NY6*NZ6個計算點]
 //-----------------------------------------------------------------------------
-double XiParaF1_h[7][NY6 * NZ6];
-double XiParaF2_h[7][NY6 * NZ6];
-double XiParaF3_h[7][NY6 * NZ6];
-double XiParaF4_h[7][NY6 * NZ6];
-double XiParaF5_h[7][NY6 * NZ6];
-double XiParaF6_h[7][NY6 * NZ6];
-double XiParaF7_h[7][NY6 * NZ6];
-double XiParaF8_h[7][NY6 * NZ6];
-
+double* XiParaF1_h[7];
+double* XiParaF2_h[7];
+double* XiParaF3_h[7];
+double* XiParaF4_h[7];
+double* XiParaF5_h[7];
+double* XiParaF6_h[7];
+double* XiParaF7_h[7];
+double* XiParaF8_h[7];
 //-----------------------------------------------------------------------------
 // 2.7 BFL邊界條件：Y方向插值權重
 // 命名規則：YBFLParaF*_h 中的 F* 表示「用來插值 F* 分佈函數」
@@ -81,19 +74,17 @@ double XiParaF8_h[7][NY6 * NZ6];
 // - YBFLParaF7: 插值 F7，用於更新 F5（左丘對角線）
 // - YBFLParaF8: 插值 F8，用於更新 F6（右丘對角線）
 //-----------------------------------------------------------------------------
-double YBFLParaF3_h[7][NY6 * NZ6];
-double YBFLParaF1_h[7][NY6 * NZ6];
-double YBFLParaF7_h[7][NY6 * NZ6];
-double YBFLParaF8_h[7][NY6 * NZ6];
-
+double* YBFLParaF3_h[7];
+double* YBFLParaF1_h[7];
+double* YBFLParaF7_h[7];
+double* YBFLParaF8_h[7];
 //-----------------------------------------------------------------------------
 // 2.8 BFL邊界條件：Xi方向插值權重
 //-----------------------------------------------------------------------------
-double XiBFLParaF3_h[7][NY6 * NZ6];
-double XiBFLParaF1_h[7][NY6 * NZ6];
-double XiBFLParaF7_h[7][NY6 * NZ6];
-double XiBFLParaF8_h[7][NY6 * NZ6];
-
+double* XiBFLParaF3_h[7];
+double* XiBFLParaF1_h[7];
+double* XiBFLParaF7_h[7];
+double* XiBFLParaF8_h[7];
 //-----------------------------------------------------------------------------
 // 2.9 BFL邊界條件：無因次化距離 q
 // q = 計算點到壁面的距離 / minSize
@@ -103,28 +94,30 @@ double Q1_h[NY6 * NZ6];          // F1 方向的 q 值（左丘 +Y）
 double Q3_h[NY6 * NZ6];          // F3 方向的 q 值（右丘 -Y）
 double Q5_h[NY6 * NZ6];          // F5 方向的 q 值（左丘 +Y+Z）
 double Q6_h[NY6 * NZ6];          // F6 方向的 q 值（右丘 -Y+Z）
-
 //-----------------------------------------------------------------------------
 // 2.10 外力修正用變數
 //-----------------------------------------------------------------------------
 double Ub_sum = 0.0;             // 累積的平均速度
 int force_update_count = 0;      // 累積的時間步數
 const int NDTFRC = 10000;        // 每多少步修正一次外力
-
+//-----------------------------------------------------------------------------
+// 2.11 輸出控制變數
+//-----------------------------------------------------------------------------
+const int outputInterval_VTK = 500;     // VTK 檔案輸出間隔（步數）
+const int outputInterval_Stats = 100;   // 終端統計輸出間隔（步數）
 //=============================================================================
 // [區塊 3] 引入依賴全域變數的標頭檔
 //=============================================================================
+#include "memoryAllocator.h"
 #include "initializationTool.h"
 #include "initialization.h"
 #include "interpolationHillISLBM.h"
 #include "MRT_Matrix.h"
 #include "MRT_Process.h"
 #include "evolution.h"
-
 //=============================================================================
 // [區塊 4] 輔助函數
 //=============================================================================
-
 //-----------------------------------------------------------------------------
 // 4.1 初始化所有陣列為零
 //-----------------------------------------------------------------------------
@@ -133,79 +126,26 @@ void initializeArrays() {
     memset(rho, 0, sizeof(rho));
     memset(v, 0, sizeof(v));
     memset(w, 0, sizeof(w));
-
     // 分佈函數
     memset(f, 0, sizeof(f));
     memset(f_old, 0, sizeof(f_old));
     memset(f_new, 0, sizeof(f_new));
-
     // 座標
     memset(y_global, 0, sizeof(y_global));
     memset(z_global, 0, sizeof(z_global));
     memset(xi_h, 0, sizeof(xi_h));
-
-    // 插值權重
-    memset(YPara0_h, 0, sizeof(YPara0_h));
-    memset(YPara2_h, 0, sizeof(YPara2_h));
-    memset(XiParaF1_h, 0, sizeof(XiParaF1_h));
-    memset(XiParaF2_h, 0, sizeof(XiParaF2_h));
-    memset(XiParaF3_h, 0, sizeof(XiParaF3_h));
-    memset(XiParaF4_h, 0, sizeof(XiParaF4_h));
-    memset(XiParaF5_h, 0, sizeof(XiParaF5_h));
-    memset(XiParaF6_h, 0, sizeof(XiParaF6_h));
-    memset(XiParaF7_h, 0, sizeof(XiParaF7_h));
-    memset(XiParaF8_h, 0, sizeof(XiParaF8_h));
-
-    // BFL 權重
-    memset(YBFLParaF3_h, 0, sizeof(YBFLParaF3_h));
-    memset(YBFLParaF1_h, 0, sizeof(YBFLParaF1_h));
-    memset(YBFLParaF7_h, 0, sizeof(YBFLParaF7_h));
-    memset(YBFLParaF8_h, 0, sizeof(YBFLParaF8_h));
-    memset(XiBFLParaF3_h, 0, sizeof(XiBFLParaF3_h));
-    memset(XiBFLParaF1_h, 0, sizeof(XiBFLParaF1_h));
-    memset(XiBFLParaF7_h, 0, sizeof(XiBFLParaF7_h));
-    memset(XiBFLParaF8_h, 0, sizeof(XiBFLParaF8_h));
-
     // BFL q 值
     memset(Q1_h, 0, sizeof(Q1_h));
     memset(Q3_h, 0, sizeof(Q3_h));
     memset(Q5_h, 0, sizeof(Q5_h));
     memset(Q6_h, 0, sizeof(Q6_h));
-
     // 外力
     Force[0] = 0.0;
     Force[1] = 0.0;
 }
 
 //-----------------------------------------------------------------------------
-// 4.2 輸出模擬參數
-//-----------------------------------------------------------------------------
-void printParameters() {
-    printf("==============================================\n");
-    printf("D2Q9 Periodic Hill LBM Simulation\n");
-    printf("==============================================\n");
-    printf("Physical Domain:\n");
-    printf("  LY = %.4f, LZ = %.4f\n", LY, LZ);
-    printf("Grid:\n");
-    printf("  NY = %d, NZ = %d\n", NY, NZ);
-    printf("  NY6 = %d, NZ6 = %d (with buffer)\n", NY6, NZ6);
-    printf("  Total cells = %d\n", NY6 * NZ6);
-    printf("LBM Parameters:\n");
-    printf("  Re = %d\n", Re);
-    printf("  tau = %.4f\n", tau);
-    printf("  niu = %.6e\n", niu);
-    printf("  Uref = %.6e\n", Uref);
-    printf("  dt = %.6e\n", dt);
-    printf("  minSize = %.6e\n", minSize);
-    printf("  CFL = %.2f\n", CFL);
-    printf("Simulation:\n");
-    printf("  Total steps = %d\n", loop);
-    printf("  Force update interval = %d\n", NDTFRC);
-    printf("==============================================\n\n");
-}
-
-//-----------------------------------------------------------------------------
-// 4.3 計算並輸出流場統計量
+// 4.2 計算並輸出流場統計量
 //-----------------------------------------------------------------------------
 void printStatistics(int step) {
     double rho_sum = 0.0, rho_min = 1e10, rho_max = -1e10;
@@ -225,17 +165,21 @@ void printStatistics(int step) {
             count++;
         }
     }
-
     double rho_avg = rho_sum / count;
     double v_avg = v_sum / count;
     double w_avg = w_sum / count;
-
-    printf("Step %6d: rho=[%.4f, %.4f, %.4f], v_avg=%.6e, v_max=%.6e, w_avg=%.6e\n",
-           step, rho_min, rho_avg, rho_max, v_avg, v_max, w_avg);
+    ostringstream oss;
+    oss << "Step " << setw(6) << step
+        << ": rho=[" << fixed << setprecision(4)
+        << rho_min << ", " << rho_avg << ", " << rho_max << "], "
+        << "v_avg=" << scientific << setprecision(6) << v_avg
+        << ", v_max=" << scientific << setprecision(6) << v_max
+        << ", w_avg=" << scientific << setprecision(6) << w_avg
+        << '\n';
+    cout << oss.str();
 }
-
 //-----------------------------------------------------------------------------
-// 4.4 交換 f_old 與 f_new
+// 4.3 交換 f_old 與 f_new
 //-----------------------------------------------------------------------------
 void swapDistributions() {
     for(int dir = 0; dir < 9; dir++) {
@@ -246,57 +190,55 @@ void swapDistributions() {
         }
     }
 }
-
 //=============================================================================
 // [區塊 5] 主程式
 //=============================================================================
 int main() {
-
     //-------------------------------------------------------------------------
     // 5.1 初始化階段
     //-------------------------------------------------------------------------
-    printf("Initializing...\n");
-
-    // 5.1.1 清零所有陣列
+    cout << "Initializing..." << endl ;
+    // 步驟 1：配置記憶體
+    AllocateAllWeightArrays();
+    // 步驟 2：驗證配置
+    VerifyMemoryAllocation();
+    // 步驟 3：印出記憶體佈局
+    PrintMemoryLayout();
+    //步驟 4 :清零所有陣列
     initializeArrays();
-
-    // 5.1.2 輸出參數
-    printParameters();
-
-    // 5.1.3 建立網格
-    printf("Generating mesh...\n");
+    //步驟 5 : 建立網格
+    cout << "Generating mesh..." << endl ;
     GenerateMesh_Y();
     GenerateMesh_Z();
-
-    // 5.1.4 預計算插值權重
-    printf("Computing interpolation weights...\n");
+    //步驟 ６ :預計算插值權重
+    cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();
     GetIntrplParameter_Xi();
-
-    // 5.1.5 BFL 邊界初始化
-    printf("Initializing BFL boundary...\n");
+    //步驟 ７ : BFL 邊界初始化
+    cout << "Initializing BFL boundary...." << endl ;
     BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
-
-    // 5.1.6 初始化流場與分佈函數
-    printf("Initializing flow field...\n");
+    //步驟 ８ : 初始化流場與分佈函數
+    cout << "Initializing flow field...." << endl ;
     InitialUsingDftFunc();
-
-    // 5.1.7 複製初始分佈函數到 f_old
+    //步驟 ９ : 複製初始分佈函數到 f_old
     for(int dir = 0; dir < 9; dir++) {
         for(int idx = 0; idx < NY6 * NZ6; idx++) {
             f_old[dir][idx] = f[dir][idx];
         }
-    }
-
-    printf("Initialization complete.\n\n");
-
+    }//f_old為上一個時間步所更新的碰撞後插值後一般態分佈函數 
+    cout << "Initialization complete.." << endl ;
+    // 步驟 10：一次性輸出（山丘幾何、ParaView 腳本）
+    cout << "生成輔助檔案..." << endl;
+    // 步驟 11：輸出山丘幾何（只需執行一次）
+    OutputHillGeometry("output/hill.vtk");
+    // 步驟 12:生成 ParaView 腳本（只需執行一次）
+    GenerateParaViewScript("output/visualize.py");
+    cout << "✓ 輔助檔案生成完成" << endl;
     //-------------------------------------------------------------------------
     // 5.2 時間迴圈
     //-------------------------------------------------------------------------
-    printf("Starting time loop...\n");
-
+    cout << "Starting time loop..." << endl ;
     for(int t = 0; t < loop; t++) {
-
         // 5.2.1 Stream + Collide
         stream_collide(
             // f_old (9個)
@@ -385,22 +327,24 @@ int main() {
         // 5.2.5 交換 f_old 與 f_new
         swapDistributions();
 
-        // 5.2.6 定期輸出統計量
-        if(t % 1000 == 0) {
+        //---------------------------------------------------------------------
+        // 5.2.6 輸出數據
+        //---------------------------------------------------------------------
+        // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
+        if(t % outputInterval_VTK == 0) {
+            cout << "\n=== 時間步 t = " << t << " ===" << endl;
+            cout << "輸出 VTK 檔案與統計資料..." << endl;
+            OutputFlowField(t, y_global, z_global, rho, v, w);
+        }
+        // 終端統計輸出（較小間隔，用於監控模擬進度）
+        else if(t % outputInterval_Stats == 0) {
             printStatistics(t);
         }
-
-        // 5.2.7 定期輸出流場（可選）
-        // if(t % 10000 == 0 && t > 0) {
-        //     outputVTK(t, v, w, rho);
-        // }
     }
-
     //-------------------------------------------------------------------------
     // 5.3 結束
     //-------------------------------------------------------------------------
-    printf("\nSimulation complete.\n");
+    cout << "Simulation complete." << endl ;
     printStatistics(loop);
-
     return 0;
 }

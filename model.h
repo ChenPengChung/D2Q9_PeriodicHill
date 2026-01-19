@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include "variables.h"
 using namespace std;
 //此篇為二維方向Y-Z方向之山坡模型

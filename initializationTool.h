@@ -13,6 +13,8 @@
 #include <cmath>
 #include "variables.h"
 #include "model.h"
+using namespace std;
+
 // * 半邊山丘寬度 (無因次化)
 #define HillHalfWidth (54.0/28.0) 
 
@@ -116,6 +118,7 @@ double GetNonuniParameter() {
     return a_mid;
 }
 
+
 //5.
 /**
  * @brief 六階 Lagrange 插值基底函數
@@ -135,7 +138,7 @@ double GetNonuniParameter() {
 double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
-}\
+}
 //6.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列

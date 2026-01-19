@@ -1,13 +1,15 @@
 #ifndef EVOLUTION_FILE
 #define EVOLUTION_FILE
-
 #include <cmath>
-#include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #include "interpolationHillISLBM.h"
 #include "initialization.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
 #include "variables.h"
+using namespace std ; 
+
 //1.物理空間計算點的平均密度場的時變量最小值
 double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
                   double f1_old, double f2_old, double f3_old, double f4_old, double f5_old, double f6_old, double f7_old, double f8_old){
@@ -96,7 +98,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         F8_in = f6_old[idx_xi];
         }
         //2.BFL curvlinear boundary treatment
-        //透過BFLInitialization已經寫入q值到矩陣當中。\
+        //透過BFLInitialization已經寫入q值到矩陣當中
         //左丘邊界，更新F1
         if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
             double q1 = Q1_h[idx_xi] ; 
@@ -266,14 +268,13 @@ void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
     double Ub_avg = (*Ub_sum_ptr) / (double)(num_cells * NDTFRC);
 
     // 2. 計算控制增益（低雷諾數時較大，高雷諾數時較小）
-    double beta = fmax(0.001, 3.0 / (double)Re);
+    double beta = std::fmax(0.001, 3.0 / (double)Re);
     //透過平均速度與參考速度修正外力項
     // 3. 調整外力（比例控制器）
     Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
 
     // 4. 輸出監控資訊
-    printf("Force Update: Ub_avg = %.6f, Uref = %.6f, Force = %.5e\n",
-           Ub_avg, Uref, Force[0]);
+    std::cout << "Force Update: Ub_avg ="<< Ub_avg << ", Uref =" << Uref << ", Force =" << Force[0] << std::endl ; 
 
     // 5. 重置累加器
     *Ub_sum_ptr = 0.0;

@@ -1,8 +1,11 @@
 #ifndef INITIALIZATION_FILE
 #define INITIALIZATION_FILE
 #include <iostream>
-using namespace std;
+#include <cstdlib>
+#include <cmath>
+#include "globalVariables.h"
 #include "initializationTool.h"
+using namespace std;
 
 void InitialUsingDftFunc() {
     //正規化離散粒子速度場
@@ -26,8 +29,9 @@ void InitialUsingDftFunc() {
                                                     3.0 *(e[dir][0] * v[index] + e[dir][1] * w[index])+          //1階項
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
-        //離散化宏觀外立場的初始化initilaoization of the discrete macroscopic force term 
+        //離散化宏觀外立場的初始化initilaoization of the discrete macroscopic force term
         Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
+        Force[1] = 0.0;  // Z 方向無外力
 }
 //建立Y(主流場方向)方向之均勻網格系統
 //計算y_global
@@ -73,7 +77,7 @@ void GenerateMesh_Z() {
     }
 }
 void GetXiParameter(
-    double *XiPara_h[7],    double pos_z,       double pos_y,
+    double** XiPara_h,    double pos_z,       double pos_y,
     double *Pos_xi,         int IdxToStore,     int k  ) //IdxToStore = now ; k = start 
 {
     double L = LZ - HillFunction(pos_y) - minSize;
@@ -141,7 +145,7 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
                 double delta1 = minSize * (1.0 - 2.0*q1);
                 // BFL 反彈點在 +Y 方向: y + delta, z 不變
-                GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j*NZ6+k, j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1 
+                GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1 
                 GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1, xi_h , j*NZ6+k, k);
                 Q1_h[j*NZ6+k] = q1;
             }
@@ -152,7 +156,7 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
                 double delta3 = minSize * (1.0 - 2.0*q3);
                 // BFL 反彈點在 -Y 方向: y - delta, z 不變
-                GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j*NZ6+k, j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
+                GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
                 GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3, xi_h, j*NZ6+k, k);
                 Q3_h[j*NZ6+k] = q3;
             }
@@ -163,7 +167,7 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
                 double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
                 // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
-                GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j*NZ6+k, j-3);
+                GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-3);
                 GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5, xi_h, j*NZ6+k, k);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
                 Q5_h[j*NZ6+k] = q5;
             }
@@ -172,9 +176,9 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
             // 當粒子從 (+Y,-Z) 方向來，可能撞到右丘
             if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
                 double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
-                double delta6 = minSize * (1.0 - 2.0*q6) / sqrt(2.0);
+                double delta6 = minSize * (1.0 - 2.0*q6) / std::sqrt(2.0);
                 // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
-                GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j*NZ6+k, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
+                GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
                 GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6, xi_h, j*NZ6+k, k);
                 Q6_h[j*NZ6+k] = q6;
             }

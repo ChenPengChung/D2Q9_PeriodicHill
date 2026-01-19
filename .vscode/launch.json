@@ -5,17 +5,17 @@
       "name": "MinGW (Strawberry) - Build & Debug Active CPP",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+      "program": "${workspaceFolder}\\main.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${fileDirname}",
+      "cwd": "${workspaceFolder}",
       "environment": [
         { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
       "externalConsole": true,
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe",
-      "preLaunchTask": "Build with MinGW g++",
+      "preLaunchTask": "Build main.exe (MinGW)",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -28,14 +28,14 @@
       "name": "MinGW (Strawberry) - Run Active EXE (No Build)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+      "program": "${workspaceFolder}\\main.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${fileDirname}",
+      "cwd": "${workspaceFolder}",
       "environment": [
         { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-      "externalConsole": true,
+      "externalConsole": false,
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe"
     }

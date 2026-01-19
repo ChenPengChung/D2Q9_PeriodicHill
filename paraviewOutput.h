@@ -34,7 +34,7 @@ void OutputVTK(
 
     std::ofstream file(filename.str());
     if(!file.is_open()) {
-        std::cerr << "錯誤：無法開啟檔案 " << filename.str() << std::endl;
+        std::cerr << "Wrong Can't open file " << filename.str() << std::endl;
         return;
     }
 
@@ -91,7 +91,7 @@ void OutputVTK(
     }
 
     file.close();
-    std::cout << "✓ VTK 輸出: " << filename.str() << std::endl;
+    std::cout << "congratulationn VTK Output: " << filename.str() << std::endl;
 }
 
 //=============================================================================

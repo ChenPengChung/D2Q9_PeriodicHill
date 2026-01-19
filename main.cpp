@@ -103,8 +103,8 @@ const int NDTFRC = 10000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
 // 2.11 輸出控制變數
 //-----------------------------------------------------------------------------
-const int outputInterval_VTK = 500;     // VTK 檔案輸出間隔（步數）
-const int outputInterval_Stats = 100;   // 終端統計輸出間隔（步數）
+const int outputInterval_VTK = 1000;     // VTK 檔案輸出間隔（步數）
+const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 //=============================================================================
 // [區塊 3] 引入依賴全域變數的標頭檔
 //=============================================================================
@@ -321,14 +321,15 @@ int main() {
         //---------------------------------------------------------------------
         // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
         if(t % outputInterval_VTK == 0) {
+            cout << "==================================================================" << endl ; 
             cout << "\n=== time step t = " << t << " ===" << endl;
             cout << "Output VTK file and Statics Data..." << endl;
             OutputVTK(t, y_global, z_global, rho, v, w);
         }
         // 終端統計輸出（較小間隔，用於監控模擬進度）
-        else if(t % outputInterval_Stats == 0) {
+        if(t % outputInterval_Stats == 0) {
             //每 outputInterval_Stats 步輸出一次平均密度
-            cout << "==================================================================" << endl ; 
+            cout << "++      ++     ++      ++      ++      ++    ++      ++     ++      ++" << endl ; 
             cout << "Time=" << t <<" ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << "Density Correction=" << rho_modify[0] << endl ;
             //printStatistics(t);
         }

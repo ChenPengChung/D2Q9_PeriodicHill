@@ -98,6 +98,8 @@ void stream_collide(
     Matrix_Inverse;
     Relaxation; 
     int nface = NZ6 ;
+    //計算密度修正量(各點相同)
+    ComputeMassCorrection( rho_d, rho_modify) ; //第一步:先更新密度場修正量(各點相同)(更新方法:與密度為1的場比較)
     //1.函數內直接開始執行雙重for迴圈
 for(int j = 3 ; j < NY6-3 ; j++){
     for(int k = 3 ; k < NZ6-3 ; k++){
@@ -194,7 +196,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             }
         }
         //3.質量修正
-        ComputeMassCorrection( rho_d, rho_modify) ; //第一步:先更新密度場修正量(各點相同)(更新方法:與密度為1的場比較)
+        
         F0_in = F0_in + rho_modify[0];
         //4.計算equilibirium distribution function 
         double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 

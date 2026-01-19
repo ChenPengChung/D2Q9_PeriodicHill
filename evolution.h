@@ -9,14 +9,56 @@
 #include "MRT_Matrix.h"
 #include "variables.h"
 using namespace std ; 
-
+//==========================================
 //1.物理空間計算點的平均密度場的時變量最小值
+//==========================================
 double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
                   double f1_old, double f2_old, double f3_old, double f4_old, double f5_old, double f6_old, double f7_old, double f8_old){
     double rho_local;
     rho_local = F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in
                 - (f1_old + f2_old + f3_old + f4_old + f5_old + f6_old + f7_old + f8_old);
     return rho_local;
+}
+//==========================================
+//2.更新密度修正量(各點相同) 
+//輸入: double* rho_d 舊更新密度場 ; double* rho_modify :密度修正量 (各點相同)
+//輸出: rho_modify[0] :新的密度修正量 (各點相同)
+//==========================================
+void ComputeMassCorrection(double* rho_d, double* rho_modify) {
+    // 1. 計算當前全域密度總和（只計算計算區域）
+    double rho_sum = 0.0;
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            rho_sum += rho_d[idx];
+        }
+    }
+    // 2. 計算目標總密度（初始密度 × 網格數）
+    double rho_initial = 1.0;
+    int num_cells = (NY6 - 6) * (NZ6 - 6);
+    double rho_target = rho_initial * (double)num_cells;
+    // 3. 計算"場平均密修正量" 加到每一個場點的密度
+    rho_modify[0] = (rho_target - rho_sum) / (double)num_cells;
+}
+
+//==========================================
+//3.計算當前密度場場平均值
+//輸入: double* rho_d 舊更新密度場 ; int step :時間步
+//輸出: rho_avg 當前密度場場平均直
+//==========================================
+double CheckMassConservation(double* rho_d, int step) {
+    // 1. 計算全域密度總和
+    double rho_sum = 0.0;
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            rho_sum += rho_d[idx];
+        }
+    }
+    // 2. 計算平均密度
+    int num_cells = (NY6 - 6) * (NZ6 - 6);
+    double rho_avg = rho_sum / (double)num_cells;
+    return rho_avg;
 }
 
 void stream_collide(
@@ -152,6 +194,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             }
         }
         //3.質量修正
+        ComputeMassCorrection( rho_d, rho_modify) ; //第一步:先更新密度場修正量(各點相同)(更新方法:與密度為1的場比較)
         F0_in = F0_in + rho_modify[0];
         //4.計算equilibirium distribution function 
         double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 
@@ -279,5 +322,7 @@ void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
     // 5. 重置累加器
     *Ub_sum_ptr = 0.0;
 }
+
+
 
 #endif

@@ -200,40 +200,29 @@ int main() {
     cout << "Initializing..." << endl ;
     // 步驟 1：配置記憶體
     AllocateAllWeightArrays();
-    // 步驟 2：驗證配置
-    VerifyMemoryAllocation();
-    // 步驟 3：印出記憶體佈局
-    PrintMemoryLayout();
-    //步驟 4 :清零所有陣列
+    //步驟 2 :清零所有陣列
     initializeArrays();
-    //步驟 5 : 建立網格
+    //步驟 3 : 建立網格
     cout << "Generating mesh..." << endl ;
     GenerateMesh_Y();
     GenerateMesh_Z();
-    //步驟 ６ :預計算插值權重
+    //步驟 4 :預計算插值權重
     cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();
     GetIntrplParameter_Xi();
-    //步驟 ７ : BFL 邊界初始化
+    //步驟 5 : BFL 邊界初始化
     cout << "Initializing BFL boundary...." << endl ;
     BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
-    //步驟 ８ : 初始化流場與分佈函數
+    //步驟 6 : 初始化流場與分佈函數
     cout << "Initializing flow field...." << endl ;
     InitialUsingDftFunc();
-    //步驟 ９ : 複製初始分佈函數到 f_old
+    //步驟 7 : 複製初始分佈函數到 f_old
     for(int dir = 0; dir < 9; dir++) {
         for(int idx = 0; idx < NY6 * NZ6; idx++) {
             f_old[dir][idx] = f[dir][idx];
         }
     }//f_old為上一個時間步所更新的碰撞後插值後一般態分佈函數 
     cout << "Initialization complete.." << endl ;
-    // 步驟 10：一次性輸出（山丘幾何、ParaView 腳本）
-    cout << "生成輔助檔案..." << endl;
-    // 步驟 11：輸出山丘幾何（只需執行一次）
-    OutputHillGeometry("output/hill.vtk");
-    // 步驟 12:生成 ParaView 腳本（只需執行一次）
-    GenerateParaViewScript("output/visualize.py");
-    cout << "✓ 輔助檔案生成完成" << endl;
     //-------------------------------------------------------------------------
     // 5.2 時間迴圈
     //-------------------------------------------------------------------------
@@ -332,13 +321,16 @@ int main() {
         //---------------------------------------------------------------------
         // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
         if(t % outputInterval_VTK == 0) {
-            cout << "\n=== 時間步 t = " << t << " ===" << endl;
-            cout << "輸出 VTK 檔案與統計資料..." << endl;
-            OutputFlowField(t, y_global, z_global, rho, v, w);
+            cout << "\n=== time step t = " << t << " ===" << endl;
+            cout << "Output VTK file and Statics Data..." << endl;
+            OutputVTK(t, y_global, z_global, rho, v, w);
         }
         // 終端統計輸出（較小間隔，用於監控模擬進度）
         else if(t % outputInterval_Stats == 0) {
-            printStatistics(t);
+            //每 outputInterval_Stats 步輸出一次平均密度
+            cout << "==================================================================" << endl ; 
+            cout << "Time=" << t <<" ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << "Density Correction=" << rho_modify[0] << endl ;
+            //printStatistics(t);
         }
     }
     //-------------------------------------------------------------------------

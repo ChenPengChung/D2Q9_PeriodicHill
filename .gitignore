@@ -12,6 +12,7 @@
 *.vtk
 *.dat
 *.log
+output/
 # CUDA compiled
 *.cubin
 *.ptx

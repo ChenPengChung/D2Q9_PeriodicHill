@@ -85,6 +85,24 @@ double HillFunction_Inverse_Right(double z) {
 (           \
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
 )
+//給定 xi_h 輸出 索引 j
+// 反向將 xi_h（已扣掉 minSize/2.0 的值）映回連續索引 j
+inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double a, int N) {
+    const double val = xi_val + MinSize / 2.0;   // 還原到 tanhFunction 的輸出值
+    const double center = L / 2.0 + MinSize / 2.0;
+    const double scale = (L / 2.0) / a;
+    const double log_term = log((1.0 + a) / (1.0 - a));
+    double u = (val - center) / scale;           // tanh 的輸出
+    // 限制數值在 atanh 定義域內
+    if (u > 0.999999999) u = 0.999999999;
+    if (u < -0.999999999) u = -0.999999999;
+    double t = atanh(u);
+    double j_cont = (double)N * (1.0 + (2.0 / log_term) * t) / 2.0;
+    if (j_cont < 0.0) j_cont = 0.0;
+    if (j_cont > (double)N) j_cont = (double)N;
+    return j_cont;
+}
+
 
 //4.
 /**
@@ -151,14 +169,19 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
  * ! 確保 Para 陣列已正確分配記憶體
  * @see Lagrange_6th()
  */
-void GetParameter_6th( double** Para , double Position , double* phy , int now , int start){
-    Para[0][now] = Lagrange_6th( Position , *(phy+start) ,   *(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ; 
-    Para[1][now] = Lagrange_6th( Position , *(phy+start+1) , *(phy+start) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[2][now] = Lagrange_6th( Position , *(phy+start+2) , *(phy+start) ,*(phy+start+1) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[3][now] = Lagrange_6th( Position , *(phy+start+3) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[4][now] = Lagrange_6th( Position , *(phy+start+4) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[5][now] = Lagrange_6th( Position , *(phy+start+5) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+6) ) ;     
-    Para[6][now] = Lagrange_6th( Position , *(phy+start+6) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ) ;     
+
+
+void GetParameter_6th(
+    double *Para_h[7],      double Position,
+    double *Pos,            int i,              int n  )
+{   
+    Para_h[0][i] = Lagrange_6th(Position, Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[1][i] = Lagrange_6th(Position, Pos[n+1], Pos[n],   Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[2][i] = Lagrange_6th(Position, Pos[n+2], Pos[n],   Pos[n+1], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[3][i] = Lagrange_6th(Position, Pos[n+3], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[4][i] = Lagrange_6th(Position, Pos[n+4], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+5], Pos[n+6]);
+    Para_h[5][i] = Lagrange_6th(Position, Pos[n+5], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+6]);
+    Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
 }
 
 //7.0度去向邊界計算點

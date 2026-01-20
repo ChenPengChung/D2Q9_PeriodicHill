@@ -198,6 +198,89 @@ double xi_h[NZ6];                // 無因次化Z座標
 
 #### 高優先級 (阻斷性錯誤)
 1. **MRT_Process.h 陣列越界** - 必須立即修復
+
+---
+
+## 2025-01-20 插值與非均勻網格快取調整（AI 協助）
+
+### 新增/變更
+- 新增全域 `nonuni_a`：`globalVariables.h` 宣告，`main.cpp` 定義，`GenerateMesh_Z` 計算一次後共用，避免多次呼叫 `GetNonuniParameter()`。
+- `GenerateMesh_Z` 內部：使用 `nonuni_a` 生成 `xi_h`、`z_global`，邏輯不變，僅移除重複求 a。
+- 新增 `BuildXiWeights`（`initialization.h`）：對同一 `(j,k)` 一次性計算七列的 `RelationXi`/`GetParameter_6th2`，寫入對應 `XiPara*_h[?][index_xi + row*NZ6]`；內含 y 週期處理，使用預先的 `nonuni_a`，避免 8 倍重算。
+- `GetIntrplParameter_Xi`：八個速度方向改呼叫 `BuildXiWeights`，原 `GetXiParameter` 保留但不再使用。
+- 修正 `GetParameter_6th2` 第五列使用 `pos_z` 的錯誤，統一用同一組 `pos_z2`。
+
+#### 主要程式碼片段
+
+`globalVariables.h` / `main.cpp`：新增共用的非均勻參數 `nonuni_a`。
+```cpp
+// globalVariables.h
+extern double nonuni_a;
+
+// main.cpp
+double nonuni_a = 0.0;
+```
+
+`initialization.h`：在產網格時計算一次 a，之後都用同一數值。
+```cpp
+void GenerateMesh_Z() {
+    ...
+    nonuni_a = GetNonuniParameter();      // 只算一次
+    const double a = nonuni_a;
+    xi_h[k] = tanhFunction(LXi, minSize, a, (k-3), (NZ6-7)) - minSize/2.0;
+    ...
+}
+```
+
+`initialization.h`：`BuildXiWeights` 將同一 `(j,k)` 的七列權重一次算完，供 8 個方向共用。
+```cpp
+inline void BuildXiWeights(double* XiPara_h[7], double pos_z, double pos_y,
+                           int index_xi, int j, int k) {
+    int jj = j;
+    if (jj < 3) jj += NY6 - 7;
+    if (jj > NY6 - 4) jj -= (NY6 - 7);
+    double L = LZ - HillFunction(pos_y) - minSize;
+    double pos_xi = pos_z - (HillFunction(pos_y) + minSize/2.0);
+    double j_cont = Inverse_tanh_index(pos_xi, L, minSize, nonuni_a, (NZ6-7));
+
+    auto fillRow = [&](int rowOffset, int storeRow) {
+        int rowIdx = jj + rowOffset;
+        if (rowIdx < 0) rowIdx += NY6;
+        if (rowIdx >= NY6) rowIdx -= NY6;
+        double H = HillFunction(y_global[rowIdx]);
+        double Lrow = LZ - H - minSize;
+        double pos_z_row = tanhFunction(Lrow, minSize, nonuni_a, j_cont, (NZ6-7)) - minSize/2.0;
+        double rel[7];
+        RelationXi(j_cont, Lrow, minSize, nonuni_a, (NZ6-7), rel);
+        GetParameter_6th2(XiPara_h, pos_z_row, rel, storeRow, index_xi);
+    };
+    fillRow(-3,0); fillRow(-2,1); fillRow(-1,2); fillRow(0,3);
+    fillRow(1,4);  fillRow(2,5);  fillRow(3,6);
+}
+```
+
+`GetIntrplParameter_Xi`：八個方向共用 `BuildXiWeights`，避免重算。
+```cpp
+int idx = j * NZ6 + k;
+BuildXiWeights(XiParaF1_h, z_global[idx],         y_global[j]-minSize, idx, j, k);
+BuildXiWeights(XiParaF2_h, z_global[idx]-minSize, y_global[j],         idx, j, k);
+BuildXiWeights(XiParaF3_h, z_global[idx],         y_global[j]+minSize, idx, j, k);
+BuildXiWeights(XiParaF4_h, z_global[idx]+minSize, y_global[j],         idx, j, k);
+BuildXiWeights(XiParaF5_h, z_global[idx]-minSize, y_global[j]-minSize, idx, j, k);
+BuildXiWeights(XiParaF6_h, z_global[idx]-minSize, y_global[j]+minSize, idx, j, k);
+BuildXiWeights(XiParaF7_h, z_global[idx]+minSize, y_global[j]+minSize, idx, j, k);
+BuildXiWeights(XiParaF8_h, z_global[idx]+minSize, y_global[j]-minSize, idx, j, k);
+```
+
+`GetParameter_6th2` 呼叫修正：`(j+1)` 那列使用同一組 `pos_z2`。
+```cpp
+RelationXi(j_cont, LT, minSize, a, (NZ6-7), RelationXi_4);
+GetParameter_6th2(XiPara_h, pos_z2, RelationXi_4, 4, index_xi);
+```
+
+### 未改動的邏輯
+- 網格生成公式、HillFunction、Y 向插值、BFL 初始化、MRT/演化主流程均未改。
+- 既有的 `GetXiParameter` 仍在檔案中，可刪可留，不影響現行流程。
 2. **MRT_Process.h 缺少分號** - 編譯錯誤
 3. **initializationTool.h HillHalfWidth 錯誤** - 影響邊界判斷
 
@@ -1509,3 +1592,106 @@ F8_in = f8_old[idx_xi];
 | F6 | (-1, +1) | (y+Δ, z-Δ) | 斜向偏移 |
 | F7 | (-1, -1) | (y+Δ, z+Δ) | 斜向偏移 |
 | F8 | (+1, -1) | (y-Δ, z+Δ) | 斜向偏移 |
+
+## 2026-01-20 程式碼改進 
+
+```cpp
+//給我一個編號，產生該Y值所對應的七個無因次化座標
+void RelationXi(double nonintindex, double L , double MinSize , double a , int N , double* RelationXi){
+    int i = (int)floor(nonintindex);
+    RelationXi[0] = tanhFunction( L , MinSize , a, i-3 , N) - MinSize/2.0;
+    RelationXi[1] = tanhFunction( L , MinSize , a, i-2 , N) - MinSize/2.0;
+    RelationXi[2] = tanhFunction( L , MinSize , a, i-1 , N) - MinSize/2.0;
+    RelationXi[3] = tanhFunction( L , MinSize , a, i , N) - MinSize/2.0;
+    RelationXi[4] = tanhFunction( L , MinSize , a, i+1 , N) - MinSize/2.0;
+    RelationXi[5] = tanhFunction( L , MinSize , a, i+2 , N) - MinSize/2.0;
+    RelationXi[6] = tanhFunction( L , MinSize , a, i+3 , N) - MinSize/2.0;
+}
+
+
+
+void GetParameter_6th(
+    double *Para_h[7],      double Position,
+    double *Pos,            int i,              int n  )
+{
+    Para_h[0][i] = Lagrange_6th(Position, Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[1][i] = Lagrange_6th(Position, Pos[n+1], Pos[n],   Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[2][i] = Lagrange_6th(Position, Pos[n+2], Pos[n],   Pos[n+1], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[3][i] = Lagrange_6th(Position, Pos[n+3], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[4][i] = Lagrange_6th(Position, Pos[n+4], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+5], Pos[n+6]);
+    Para_h[5][i] = Lagrange_6th(Position, Pos[n+5], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+6]);
+    Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
+}
+void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+    XiPara[0][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[1][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
+    XiPara[5][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
+    XiPara[6][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    
+}//pos_xi為換算過後的無因次化Z座標 
+
+
+
+
+void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k ) 
+{   
+    //越界防呆
+    if(j<3) j = j + NY6-7 ; 
+    if(j>NY6-4) j = j - (NY6-7) ;
+    //Z方向係數編號系統(第二格)  = (j+relation)*NZ6 + k  ; relation:1~7
+    double L = LZ - HillFunction(pos_y) - minSize;
+    //每一個y位置而言每一個計算間都不一樣 
+    double pos_xi = LXi * (pos_z - (HillFunction(pos_y)+minSize/2.0)) / L;
+    double a = GetNonuniParameter();
+     //求解目標點的編號(映射回均勻系統)
+    double j_cont = Inverse_tanh_index( pos_xi , L , minSize , GetNonuniParameter() , (NZ6-7) );
+    //Z方向成員起始編號
+    int cell_z1 = k-3;
+    if( k <= 6 ) cell_z1 = 3;
+    if( k >= NZ6-7 ) cell_z1 = NZ6-10; 
+    //給我一個double 給出相對應七個內插的無因次化座標
+    double RelationXi_0[7] ; //(j-3)
+    double LT = LZ - HillFunction(y_global[j-3]) - minSize;
+    double pos_z =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NZ6] ~ XiPara_h[6][index_xi + 0*NZ6]
+    
+    double RelationXi_1[7] ; //(j-2)
+    LT = LZ - HillFunction(y_global[j-2]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NZ6] ~ XiPara_h[6][index_xi + 1*NZ6]
+    
+    double RelationXi_2[7] ; //(j-1)
+    LT = LZ - HillFunction(y_global[j-1]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NZ6] ~ XiPara_h[6][index_xi + 2*NZ6]
+    
+    double RelationXi_3[7] ; //(j)
+    LT = LZ - HillFunction(y_global[j]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_3);//寫入第四套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_3 , 3 , index_xi); //XiPara_h[0][index_xi + 3*NZ6] ~ XiPara_h[6][index_xi + 3*NZ6]
+
+    double RelationXi_4[7] ; //(j+1)
+    LT = LZ - HillFunction(y_global[j+1]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_4);//寫入第五套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_4 , 4 , index_xi); //XiPara_h[0][index_xi + 4*NZ6] ~ XiPara_h[6][index_xi + 4*NZ6]
+
+    double RelationXi_5[7] ; //(j+2)
+    LT = LZ - HillFunction(y_global[j+2]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_5);//寫入第六套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_5 , 5 , index_xi); //XiPara_h[0][index_xi + 5*NZ6] ~ XiPara_h[6][index_xi + 5*NZ6]
+   
+    double RelationXi_6[7] ; //(j+3)
+    LT = LZ - HillFunction(y_global[j+3]) - minSize;
+    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_6);//寫入第七套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NZ6] ~ XiPara_h[6][index_xi + 6*NZ6]
+}
+```

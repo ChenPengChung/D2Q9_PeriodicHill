@@ -29,6 +29,7 @@ extern double Force[2];                 // 外力項 (Fy, Fz)
 extern double y_global[NY6];            // Y方向物理座標
 extern double z_global[NY6 * NZ6];      // Z方向物理座標（含山丘）
 extern double xi_h[NZ6];                // 無因次化Z座標（不含山丘）
+extern double nonuni_a;                 // 非均勻網格參數 a（預先計算一次）
 
 //=============================================================================
 // Y 方向插值權重（一般）

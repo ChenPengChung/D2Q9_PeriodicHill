@@ -56,7 +56,9 @@ void GenerateMesh_Z() {
         cout << "Mesh needs to be non-uniform in z-direction in periodic hill problem, exit..." << endl ;
         exit(0);
     }//Z方向做非均勻網格系統
-    double a = GetNonuniParameter(); //計算最合適非均勻參數 
+    // 計算一次非均勻參數 a 並儲存，後續共用
+    nonuni_a = GetNonuniParameter(); //計算最合適非均勻參數 
+    const double a = nonuni_a;
     
     //計算(不含山丘)離散化無因次化Z座標
     for( int k = bufferlayer; k < NZ6-bufferlayer; k++ ){ //3~NZ6-4 
@@ -77,7 +79,46 @@ void GenerateMesh_Z() {
     }
 }
 
+// 預先計算每個方向的 Xi 權重：對同一個 (j,k) 只做一次 7 列權重計算
+inline void BuildXiWeights(
+    double* XiPara_h[7],
+    double pos_z,       // 來源 z 位置
+    double pos_y,       // 來源 y 位置
+    int index_xi,       // 儲存起點 j*NZ6+k
+    int j, int k        // 目標格點索引（含 buffer）
+) {
+    // 週期邊界處理 y 索引
+    int jj = j;
+    if (jj < 3) jj += NY6 - 7;
+    if (jj > NY6 - 4) jj -= (NY6 - 7);
 
+    // 來源列的長度與無因次位置
+    double L = LZ - HillFunction(pos_y) - minSize;
+    double pos_xi = pos_z - (HillFunction(pos_y) + minSize/2.0);
+    double j_cont = Inverse_tanh_index(pos_xi, L, minSize, nonuni_a, (NZ6-7));
+
+    auto fillRow = [&](int rowOffset, int storeRow) {
+        int rowIdx = jj + rowOffset;
+        if (rowIdx < 0) rowIdx += NY6;
+        if (rowIdx >= NY6) rowIdx -= NY6;
+        double H = HillFunction(y_global[rowIdx]);
+        double Lrow = LZ - H - minSize;
+        double pos_z_row = tanhFunction(Lrow, minSize, nonuni_a, j_cont, (NZ6-7)) - minSize/2.0;
+        double rel[7];
+        RelationXi(j_cont, Lrow, minSize, nonuni_a, (NZ6-7), rel);
+        GetParameter_6th2(XiPara_h, pos_z_row, rel, storeRow, index_xi);
+    };
+
+    fillRow(-3, 0);
+    fillRow(-2, 1);
+    fillRow(-1, 2);
+    fillRow( 0, 3);
+    fillRow( 1, 4);
+    fillRow( 2, 5);
+    fillRow( 3, 6);
+}
+
+// 舊的 GetXiParameter 仍保留，若不再需要可移除
 void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k ) 
 {   //越界防呆
     if(j<3) j = j + NY6-7 ; 
@@ -85,10 +126,10 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     //Z方向係數編號系統(第二格)  = (j+relation)*NZ6 + k  ; relation:1~7
     double L = LZ - HillFunction(pos_y) - minSize;
     //每一個y位置而言每一個計算間都不一樣 
-    double pos_xi = LXi * (pos_z - (HillFunction(pos_y)+minSize/2.0)) / L;
-    double a = GetNonuniParameter();
+    double pos_xi =  (pos_z - (HillFunction(pos_y)+minSize/2.0)) ;
+    const double a = nonuni_a; // 已在 GenerateMesh_Z 中計算
      //求解目標點的編號(映射回均勻系統)
-    double j_cont = Inverse_tanh_index( pos_xi , L , minSize , GetNonuniParameter() , (NZ6-7) );
+    double j_cont = Inverse_tanh_index( pos_xi , L , minSize , a , (NZ6-7) );
     //Z方向成員起始編號
     int cell_z1 = k-3;
     if( k <= 6 ) cell_z1 = 3;
@@ -96,45 +137,45 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     //給我一個double 給出相對應七個內插的無因次化座標
     double RelationXi_0[7] ; //(j-3)
     double LT = LZ - HillFunction(y_global[j-3]) - minSize;
-    double pos_z =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NZ6] ~ XiPara_h[6][index_xi + 0*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NZ6] ~ XiPara_h[6][index_xi + 0*NZ6]
     
     double RelationXi_1[7] ; //(j-2)
     LT = LZ - HillFunction(y_global[j-2]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NZ6] ~ XiPara_h[6][index_xi + 1*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NZ6] ~ XiPara_h[6][index_xi + 1*NZ6]
     
     double RelationXi_2[7] ; //(j-1)
     LT = LZ - HillFunction(y_global[j-1]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NZ6] ~ XiPara_h[6][index_xi + 2*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NZ6] ~ XiPara_h[6][index_xi + 2*NZ6]
     
     double RelationXi_3[7] ; //(j)
     LT = LZ - HillFunction(y_global[j]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_3);//寫入第四套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_3 , 3 , index_xi); //XiPara_h[0][index_xi + 3*NZ6] ~ XiPara_h[6][index_xi + 3*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_3 , 3 , index_xi); //XiPara_h[0][index_xi + 3*NZ6] ~ XiPara_h[6][index_xi + 3*NZ6]
 
     double RelationXi_4[7] ; //(j+1)
     LT = LZ - HillFunction(y_global[j+1]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_4);//寫入第五套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_4 , 4 , index_xi); //XiPara_h[0][index_xi + 4*NZ6] ~ XiPara_h[6][index_xi + 4*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2, RelationXi_4 , 4 , index_xi); //XiPara_h[0][index_xi + 4*NZ6] ~ XiPara_h[6][index_xi + 4*NZ6]
 
     double RelationXi_5[7] ; //(j+2)
     LT = LZ - HillFunction(y_global[j+2]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_5);//寫入第六套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_5 , 5 , index_xi); //XiPara_h[0][index_xi + 5*NZ6] ~ XiPara_h[6][index_xi + 5*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_5 , 5 , index_xi); //XiPara_h[0][index_xi + 5*NZ6] ~ XiPara_h[6][index_xi + 5*NZ6]
    
     double RelationXi_6[7] ; //(j+3)
     LT = LZ - HillFunction(y_global[j+3]) - minSize;
-    pos_z = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_6);//寫入第七套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NZ6] ~ XiPara_h[6][index_xi + 6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NZ6] ~ XiPara_h[6][index_xi + 6*NZ6]
 }
 
 
@@ -159,21 +200,21 @@ void GetIntrplParameter_Xi() {
             // 重要：傳入 GetXiParameter 的 k 參數用於判斷 stencil 起點，應該是**來源點**的索引！
             //
             // F1 (+Y,0): 從 (y-Δ, z) 來，z 方向無偏移，用 k
-            GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j*NZ6+k , j,  k);
             // F2 (0,+Z): 從 (y, z-Δ) 來，來源點在 k-1
-            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k);
             // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移，用 k
-            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize,  j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F4 (0,-Z): 從 (y, z+Δ) 來，來源點在 k+1
-            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],          j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],          j*NZ6+k , j,  k);
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來，來源點在 k-1
-            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize,  j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize,  j*NZ6+k , j,  k);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來，來源點在 k-1
-            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來，來源點在 k+1
-            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來，來源點在 k+1
-            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
+            BuildXiWeights( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
     }}
 }
 

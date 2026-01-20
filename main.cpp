@@ -47,6 +47,7 @@ double rho_modify[1] = {0.0};    // 質量修正項
 double y_global[NY6];            // Y方向物理座標
 double z_global[NY6 * NZ6];      // (含山丘)離散化全域Z座標
 double xi_h[NZ6];                // 無因次化Z座標
+double nonuni_a = 0.0;           // 非均勻網格參數（初始化後設定一次）
 //-----------------------------------------------------------------------------
 // 2.5 Y方向插值權重 (6階Lagrange = 7點)
 // YPara0: 用於 F1, F5, F8 (從 y-minSize 位置插值)

@@ -158,6 +158,8 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 //給我一個編號，產生該Y值所對應的七個無因次化座標
 void RelationXi(double nonintindex, double L , double MinSize , double a , int N , double* RelationXi){
     int i = (int)floor(nonintindex);
+    if(i < 3 )  i = 3;
+    if(i > N-4 ) i =  N-4 ;
     RelationXi[0] = tanhFunction( L , MinSize , a, i-3 , N) - MinSize/2.0;
     RelationXi[1] = tanhFunction( L , MinSize , a, i-2 , N) - MinSize/2.0;
     RelationXi[2] = tanhFunction( L , MinSize , a, i-1 , N) - MinSize/2.0;

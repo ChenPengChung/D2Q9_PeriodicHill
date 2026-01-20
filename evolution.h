@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include "interpolationHillISLBM.h"
+#include "InterpolationHillISLBM.h"
 #include "initialization.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"

@@ -107,32 +107,89 @@ inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double
 //4.
 /**
  * @brief 計算非均勻網格伸縮參數 a
- * * 使用二分法求解伸縮參數，使最小網格間距等於 minSize
+ * * 使用 Newton-Raphson 法求解伸縮參數，使最小網格間距等於 minSize
+ * * 若 Newton-Raphson 法失敗，則退回使用二分法
  * @return 伸縮參數 a (0 < a < 1)
  * ! minSize 定義為以 LZ-(y=0.0 下的山坡高度) 為總長度均勻切割下的網格大小 × 0.6
- * TODO: 考慮改用 Newton-Raphson 加速收斂
+ * @note Newton-Raphson 提供二次收斂速度 vs 二分法的線性收斂
  * @see tanhFunction
  */
 double GetNonuniParameter() {
     double total = LZ - HillFunction( 0.0 ) - minSize;
-    double a_temp[2] = {0.1, 1.0};
+    const int N = NZ6 - 7;
+    
+    // * 嘗試使用 Newton-Raphson 法
+    double a = 0.5;  // 初始猜測值（範圍中點）
+    const int max_iter = 50;
+    const double tol = 1e-14;
+    const double a_min = 0.1, a_max = 1.0;
+    
+    bool newton_success = true;
+    for(int iter = 0; iter < max_iter; iter++) {
+        // * 計算當前間距 dx = x(a, 1) - x(a, 0)
+        double x0 = tanhFunction(total, minSize, a, 0, N);
+        double x1 = tanhFunction(total, minSize, a, 1, N);
+        double dx = x1 - x0;
+        
+        // * 計算殘差 f(a) = dx(a) - minSize
+        double f = dx - minSize;
+        
+        // * 檢查收斂
+        if (fabs(f) < tol) {
+            return a;
+        }
+        
+        // * 計算導數 f'(a) = d(dx)/da
+        // 使用有限差分近似（中心差分）
+        const double da = 1e-8;
+        double x0_plus = tanhFunction(total, minSize, a + da, 0, N);
+        double x1_plus = tanhFunction(total, minSize, a + da, 1, N);
+        double dx_plus = x1_plus - x0_plus;
+        double df_da = (dx_plus - dx) / da;
+        
+        // * 檢查導數是否太小（避免除零）
+        if (fabs(df_da) < 1e-15) {
+            newton_success = false;
+            break;
+        }
+        
+        // * Newton-Raphson 更新: a_new = a - f(a) / f'(a)
+        double a_new = a - f / df_da;
+        
+        // * 確保 a 保持在有效範圍內
+        if (a_new <= a_min || a_new >= a_max) {
+            newton_success = false;
+            break;
+        }
+        
+        a = a_new;
+    }
+    
+    // * 若 Newton-Raphson 成功收斂，返回結果
+    if (newton_success) {
+        return a;
+    }
+    
+    // * 退回使用二分法（Bisection Method）
+    double a_temp[2] = {a_min, a_max};
     double a_mid;
-
     double x_temp[2], dx;
-    do{
-        a_mid = (a_temp[0]+a_temp[1]) / 2.0;
+    
+    do {
+        a_mid = (a_temp[0] + a_temp[1]) / 2.0;
         // * dx = Z方向y = 0.0 非均勻網格下的最小間距 (從y=0.0取)
         // ? minSize的定義為以LZ-(y = 0.0下的山坡高度)為總長度均勻切割下的網格大小*0.6
         // ! 判斷標準：最小的網格必須要大於minSize
-        x_temp[0] = tanhFunction(total, minSize, a_mid, 0, (NZ6-7));
-        x_temp[1] = tanhFunction(total, minSize, a_mid, 1, (NZ6-7));
+        x_temp[0] = tanhFunction(total, minSize, a_mid, 0, N);
+        x_temp[1] = tanhFunction(total, minSize, a_mid, 1, N);
         dx = x_temp[1] - x_temp[0];
-        if( dx - minSize >= 0.0 ){
+        if (dx - minSize >= 0.0) {
             a_temp[0] = a_mid;
         } else {
             a_temp[1] = a_mid;
         }
-    } while (fabs( dx - minSize) > 1e-14 );
+    } while (fabs(dx - minSize) > tol);
+    
     return a_mid;
 }
 

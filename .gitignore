@@ -16,3 +16,9 @@ output/
 # CUDA compiled
 *.cubin
 *.ptx
+
+# Test files
+test_*
+!test-build.ps1
+hill
+test_nr

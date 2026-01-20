@@ -148,7 +148,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //左丘邊界，更新F1
         if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
             double q1 = Q1_h[idx_xi] ; 
-            if(q1<0.5){
+            if(q1<0.5 && q1 >= 0 ){
                 //透過內插與Streaming更新F1
                 Y_XI_Intrpl7(f3_old, F1_in, j, k, j-3, cell_z, j, idx_xi, 
                 YBFLF3_0,YBFLF3_1,YBFLF3_2,YBFLF3_3,YBFLF3_4,YBFLF3_5,YBFLF3_6,
@@ -161,20 +161,20 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //右丘邊界，更新F3
         if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
             double q3 = Q3_h[idx_xi] ;
-            if(q3<0.5){
+            if(q3<0.5 && q3 >= 0.0){
                 //透過內插與Streaming更新F3
                 Y_XI_Intrpl7(f1_old, F3_in, j, k, j-3, cell_z, j, idx_xi, 
                 YBFLF1_0,YBFLF1_1,YBFLF1_2,YBFLF1_3,YBFLF1_4,YBFLF1_5,YBFLF1_6,
                 XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);
             }
-            if(q3>0.5){
+            if(q3>0.5 ){
                 F3_in = (1.0/(2.0*q3))*f1_old[idx_xi] + ((2.0*q3-1.0)/(2.0*q3))*f3_old[idx_xi];
             }
         }
         //左丘邊界，更新F5
         if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
             double q5 = Q5_h[idx_xi] ;
-            if(q5<0.5){
+            if(q5<0.5 && q5 >= 0.0){
                 //透過內插與Streaming更新F5
                 Y_XI_Intrpl7(f7_old, F5_in, j, k, j-3, cell_z, j, idx_xi, 
                 YBFLF7_0,YBFLF7_1,YBFLF7_2,YBFLF7_3,YBFLF7_4,YBFLF7_5,YBFLF7_6,
@@ -187,7 +187,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //右丘邊界，更新F6
         if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
             double q6 = Q6_h[idx_xi] ;
-            if(q6<0.5){
+            if(q6<0.5 && q6 >= 0.0){
                 //透過內插與Streaming更新F6
                 Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z, j, idx_xi, 
                 YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,

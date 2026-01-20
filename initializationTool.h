@@ -86,6 +86,22 @@ double HillFunction_Inverse_Right(double z) {
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
 )
 
+// 將 xi_h（已扣掉 minSize/2.0 的值）反映回連續索引 j，用於建立 xi_h 與 j 的對應
+inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double a, int N) {
+    const double val = xi_val + MinSize / 2.0;   // 還原到 tanhFunction 的輸出值
+    const double center = L / 2.0 + MinSize / 2.0;
+    const double scale = (L / 2.0) / a;
+    const double log_term = log((1.0 + a) / (1.0 - a));
+    double u = (val - center) / scale;           // tanh 的輸出
+    if (u > 0.999999999) u = 0.999999999;
+    if (u < -0.999999999) u = -0.999999999;
+    double t = atanh(u);
+    double j_cont = (double)N * (1.0 + (2.0 / log_term) * t) / 2.0;
+    if (j_cont < 0.0) j_cont = 0.0;
+    if (j_cont > (double)N) j_cont = (double)N;
+    return j_cont;
+}
+
 //4.
 /**
  * @brief 計算非均勻網格伸縮參數 a
@@ -139,6 +155,10 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
 }
+double Lagrange_6th_int(double pos , int i_i , int i_1 , int i_2 , int i_3 , int i_4 , int i_5 , int i_6){
+    double Lagrange = (pos - i_1 )/(i_i - i_1)*(pos - i_2)/(i_i - i_2)*(pos - i_3)/(i_i - i_3)*(pos - i_4)/(i_i - i_4)*(pos - i_5)/(i_i - i_5)*(pos - i_6)/(i_i - i_6);
+    return Lagrange ; 
+}
 //6.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列
@@ -159,6 +179,15 @@ void GetParameter_6th( double** Para , double Position , double* phy , int now ,
     Para[4][now] = Lagrange_6th( Position , *(phy+start+4) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+5) ,*(phy+start+6) ) ;     
     Para[5][now] = Lagrange_6th( Position , *(phy+start+5) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+6) ) ;     
     Para[6][now] = Lagrange_6th( Position , *(phy+start+6) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ) ;     
+}
+void GetParameter_6th_int(double** Para , double Position , int index_xi , int j , int j_start){
+    Para[0][index_xi] = Lagrange_6th_int( Position , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ; 
+    Para[1][index_xi] = Lagrange_6th_int( Position , j_start+1 , j_start , j_start+2 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ;     
+    Para[2][index_xi] = Lagrange_6th_int( Position , j_start+2 , j_start , j_start+1 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ;     
+    Para[3][index_xi] = Lagrange_6th_int( Position , j_start+3 , j_start , j_start+1 , j_start+2 , j_start+4 , j_start+5 , j_start+6 ) ;     
+    Para[4][index_xi] = Lagrange_6th_int( Position , j_start+4 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+5 , j_start+6 ) ;     
+    Para[5][index_xi] = Lagrange_6th_int( Position , j_start+5 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+6 ) ;     
+    Para[6][index_xi] = Lagrange_6th_int( Position , j_start+6 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+5 ) ;     
 }
 
 //7.0度去向邊界計算點

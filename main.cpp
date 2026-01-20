@@ -330,7 +330,9 @@ int main() {
         if(t % outputInterval_Stats == 0) {
             //每 outputInterval_Stats 步輸出一次平均密度
             cout << "++      ++     ++      ++      ++      ++    ++      ++     ++      ++" << endl ; 
-            cout << "Time=" << t << setw(6) <<" ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << "Density Correction=" << rho_modify[0] << endl ;
+            cout << "Time=" << t << setw(6) <<
+            " ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << 
+            " ; Density Correction=" << fabs(rho_modify[0] )<< endl ;
             //printStatistics(t);
         }
     }

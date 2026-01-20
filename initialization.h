@@ -114,7 +114,7 @@ void GetIntrplParameter_Xi() {
             // F1 (+Y,0): 從 (y-Δ, z) 來
             GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, xi_h, j*NZ6+k, k );
             // F2 (0,+Z): 從 (y, z-Δ) 來
-            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize, y_global[j],         xi_h, j*NZ6+k, k );
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],         xi_h, j*NZ6+k, k );
             // F3 (-Y,0): 從 (y+Δ, z) 來
             GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, xi_h, j*NZ6+k, k );
             // F4 (0,-Z): 從 (y, z+Δ) 來

@@ -129,6 +129,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
         Y_XI_Intrpl7(f6_old, F6_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
         Y_XI_Intrpl7(f7_old, F7_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
         Y_XI_Intrpl7(f8_old, F8_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+        
+    
         //2.Special case of Streaming Step : Boundry Treatment
         //(1.)Halhf-way Bounce-Back Boundary Condition
         if( k == 3 ){
@@ -201,7 +203,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //4.計算equilibirium distribution function 
         double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 
         double v1 = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
-	    double w1 = (F2_in+ F5_in+ F6_in- ( F4_in+F7_in+F8_in)) / rho_s ;
+	    double w1 = (F2_in+ F5_in+ F6_in -( F4_in+F7_in+F8_in)) / rho_s ;
         double udot = v1*v1 + w1*w1;
         const double F0_eq  = (4./9.)  *rho_s*(1.0-1.5*udot);
         const double F1_eq  = (1./9.)  *rho_s*(1.0+3.0*v1 +4.5*v1*v1-1.5*udot);

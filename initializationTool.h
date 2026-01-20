@@ -155,10 +155,18 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
 }
-double Lagrange_6th_int(double pos , int i_i , int i_1 , int i_2 , int i_3 , int i_4 , int i_5 , int i_6){
-    double Lagrange = (pos - i_1 )/(i_i - i_1)*(pos - i_2)/(i_i - i_2)*(pos - i_3)/(i_i - i_3)*(pos - i_4)/(i_i - i_4)*(pos - i_5)/(i_i - i_5)*(pos - i_6)/(i_i - i_6);
-    return Lagrange ; 
+//給我一個編號，產生該Y值所對應的七個無因次化座標
+void RelationXi(double nonintindex, double L , double MinSize , double a , int N , double* RelationXi){
+    int i = (int)floor(nonintindex);
+    RelationXi[0] = tanhFunction( L , MinSize , a, i-3 , N) - MinSize/2.0;
+    RelationXi[1] = tanhFunction( L , MinSize , a, i-2 , N) - MinSize/2.0;
+    RelationXi[2] = tanhFunction( L , MinSize , a, i-1 , N) - MinSize/2.0;
+    RelationXi[3] = tanhFunction( L , MinSize , a, i , N) - MinSize/2.0;
+    RelationXi[4] = tanhFunction( L , MinSize , a, i+1 , N) - MinSize/2.0;
+    RelationXi[5] = tanhFunction( L , MinSize , a, i+2 , N) - MinSize/2.0;
+    RelationXi[6] = tanhFunction( L , MinSize , a, i+3 , N) - MinSize/2.0;
 }
+
 //6.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列
@@ -171,24 +179,27 @@ double Lagrange_6th_int(double pos , int i_i , int i_1 , int i_2 , int i_3 , int
  * ! 確保 Para 陣列已正確分配記憶體
  * @see Lagrange_6th()
  */
-void GetParameter_6th( double** Para , double Position , double* phy , int now , int start){
-    Para[0][now] = Lagrange_6th( Position , *(phy+start) ,   *(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ; 
-    Para[1][now] = Lagrange_6th( Position , *(phy+start+1) , *(phy+start) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[2][now] = Lagrange_6th( Position , *(phy+start+2) , *(phy+start) ,*(phy+start+1) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[3][now] = Lagrange_6th( Position , *(phy+start+3) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+4) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[4][now] = Lagrange_6th( Position , *(phy+start+4) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+5) ,*(phy+start+6) ) ;     
-    Para[5][now] = Lagrange_6th( Position , *(phy+start+5) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+6) ) ;     
-    Para[6][now] = Lagrange_6th( Position , *(phy+start+6) , *(phy+start) ,*(phy+start+1) ,*(phy+start+2) ,*(phy+start+3) ,*(phy+start+4) ,*(phy+start+5) ) ;     
+void GetParameter_6th(
+    double *Para_h[7],      double Position,
+    double *Pos,            int i,              int n  )
+{
+    Para_h[0][i] = Lagrange_6th(Position, Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[1][i] = Lagrange_6th(Position, Pos[n+1], Pos[n],   Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[2][i] = Lagrange_6th(Position, Pos[n+2], Pos[n],   Pos[n+1], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[3][i] = Lagrange_6th(Position, Pos[n+3], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+4], Pos[n+5], Pos[n+6]);
+    Para_h[4][i] = Lagrange_6th(Position, Pos[n+4], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+5], Pos[n+6]);
+    Para_h[5][i] = Lagrange_6th(Position, Pos[n+5], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+6]);
+    Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
 }
-void GetParameter_6th_int(double** Para , double Position , int index_xi , int j , int j_start){
-    Para[0][index_xi] = Lagrange_6th_int( Position , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ; 
-    Para[1][index_xi] = Lagrange_6th_int( Position , j_start+1 , j_start , j_start+2 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ;     
-    Para[2][index_xi] = Lagrange_6th_int( Position , j_start+2 , j_start , j_start+1 , j_start+3 , j_start+4 , j_start+5 , j_start+6 ) ;     
-    Para[3][index_xi] = Lagrange_6th_int( Position , j_start+3 , j_start , j_start+1 , j_start+2 , j_start+4 , j_start+5 , j_start+6 ) ;     
-    Para[4][index_xi] = Lagrange_6th_int( Position , j_start+4 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+5 , j_start+6 ) ;     
-    Para[5][index_xi] = Lagrange_6th_int( Position , j_start+5 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+6 ) ;     
-    Para[6][index_xi] = Lagrange_6th_int( Position , j_start+6 , j_start , j_start+1 , j_start+2 , j_start+3 , j_start+4 , j_start+5 ) ;     
-}
+void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+    XiPara[0][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[1][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
+    XiPara[5][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
+    XiPara[6][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    
+}//pos_xi為換算過後的無因次化Z座標 
 
 //7.0度去向邊界計算點
 /**

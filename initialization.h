@@ -111,22 +111,24 @@ void GetIntrplParameter_Xi() {
             // D2Q9 速度方向: F1(+Y), F2(+Z), F3(-Y), F4(-Z), F5(+Y+Z), F6(-Y+Z), F7(-Y-Z), F8(+Y-Z)
             // Streaming: f_i(x,t+dt) = f_i(x - e_i*dt, t) → 從 (y - ey*Δ, z - ez*Δ) 位置取值
             //
-            // F1 (+Y,0): 從 (y-Δ, z) 來
+            // 重要：傳入 GetXiParameter 的 k 參數用於判斷 stencil 起點，應該是**來源點**的索引！
+            //
+            // F1 (+Y,0): 從 (y-Δ, z) 來，z 方向無偏移，用 k
             GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, xi_h, j*NZ6+k, k );
-            // F2 (0,+Z): 從 (y, z-Δ) 來
-            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],         xi_h, j*NZ6+k, k );
-            // F3 (-Y,0): 從 (y+Δ, z) 來
+            // F2 (0,+Z): 從 (y, z-Δ) 來，來源點在 k-1
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],         xi_h, j*NZ6+k, k-1 );
+            // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移，用 k
             GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, xi_h, j*NZ6+k, k );
-            // F4 (0,-Z): 從 (y, z+Δ) 來
-            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         xi_h, j*NZ6+k, k );
-            // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
-            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k );
-            // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
-            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k );
-            // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
-            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k );
-            // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
-            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k );
+            // F4 (0,-Z): 從 (y, z+Δ) 來，來源點在 k+1
+            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         xi_h, j*NZ6+k, k+1 );
+            // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來，來源點在 k-1
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k-1 );
+            // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來，來源點在 k-1
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k-1 );
+            // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來，來源點在 k+1
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, xi_h, j*NZ6+k, k+1 );
+            // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來，來源點在 k+1
+            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, xi_h, j*NZ6+k, k+1 );
     }}
 }
 

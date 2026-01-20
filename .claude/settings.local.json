@@ -47,7 +47,11 @@
       "Bash(powershell -Command \"Stop-Process -Name main -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 34900,122696,153324 -Force\")",
       "Bash(del \"E:\\\\D2Q9_PeriodicHill\\\\main.exe\")",
-      "Bash(cmd //c del /F \"E:\\\\D2Q9_PeriodicHill\\\\main.exe\")"
+      "Bash(cmd //c del /F \"E:\\\\D2Q9_PeriodicHill\\\\main.exe\")",
+      "Bash(C:/Strawberry/c/bin/g++.exe:*)",
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

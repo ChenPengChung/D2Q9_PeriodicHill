@@ -78,4 +78,17 @@ extern double Q3_h[NY6 * NZ6];          // F3 邊界點的 q 值
 extern double Q5_h[NY6 * NZ6];          // F5 邊界點的 q 值
 extern double Q6_h[NY6 * NZ6];          // F6 邊界點的 q 值
 
+//=============================================================================
+// Stencil 起點索引（基於來源點位置預先計算）
+//=============================================================================
+
+extern int CellZ_F1[NY6 * NZ6];         // F1 方向的 Z stencil 起點
+extern int CellZ_F2[NY6 * NZ6];         // F2 方向的 Z stencil 起點
+extern int CellZ_F3[NY6 * NZ6];         // F3 方向的 Z stencil 起點
+extern int CellZ_F4[NY6 * NZ6];         // F4 方向的 Z stencil 起點
+extern int CellZ_F5[NY6 * NZ6];         // F5 方向的 Z stencil 起點
+extern int CellZ_F6[NY6 * NZ6];         // F6 方向的 Z stencil 起點
+extern int CellZ_F7[NY6 * NZ6];         // F7 方向的 Z stencil 起點
+extern int CellZ_F8[NY6 * NZ6];         // F8 方向的 Z stencil 起點
+
 #endif // GLOBALVARIABLES_H

@@ -91,7 +91,11 @@ void stream_collide(
     //宏觀參數
     double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
     //BFL邊界條件無因次化距離q
-    double *Q1_h,        double*Q3_h,         double *Q5_h,       double*Q6_h){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
+    double *Q1_h,        double*Q3_h,         double *Q5_h,       double*Q6_h,
+    //預計算的 Stencil 起點索引（基於來源點位置）
+    int* cellZ_F1, int* cellZ_F2, int* cellZ_F3, int* cellZ_F4,
+    int* cellZ_F5, int* cellZ_F6, int* cellZ_F7, int* cellZ_F8
+){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
     
     // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
     Matrix;
@@ -112,23 +116,17 @@ for(int j = 3 ; j < NY6-3 ; j++){
         double m0, m1, m2, m3, m4, m5, m6, m7, m8;
         double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;
 
-        //xi方向預配置連乘權重一維連續記憶體的內插成員起始編號
-        //也是xi_h[NZ6]在Z方向有設立bufferlayer沒有使用的證據
-        int cell_z = k-3;
-        if( k <= 6 ) cell_z = 3;
-        if( k >= NZ6-7 ) cell_z = NZ6-10;
-
-        
-        //1.Interpolation and Streaming 
+        //1.Interpolation and Streaming
+        //使用預計算的 stencil 起點（基於來源點位置計算，與 RelationXi 一致）
         F0_Intrpl7(f0_old, j, k);
-        F1_Intrpl7(f1_old,j,k,j-3,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-        F3_Intrpl7(f3_old,j,k,j-3,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-        F2_Intrpl7(f2_old, j,k, j-3, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-        F4_Intrpl7(f4_old, j, k, j-3, cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-        Y_XI_Intrpl7(f5_old, F5_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-        Y_XI_Intrpl7(f6_old, F6_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-        Y_XI_Intrpl7(f7_old, F7_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-        Y_XI_Intrpl7(f8_old, F8_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+        F1_Intrpl7(f1_old,j,k,j-3,cellZ_F1[idx_xi],j,idx_xi,Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+        F3_Intrpl7(f3_old,j,k,j-3,cellZ_F3[idx_xi],j,idx_xi,Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+        F2_Intrpl7(f2_old, j,k, j-3, cellZ_F2[idx_xi], j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+        F4_Intrpl7(f4_old, j, k, j-3, cellZ_F4[idx_xi], j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+        Y_XI_Intrpl7(f5_old, F5_in, j, k, j-3, cellZ_F5[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+        Y_XI_Intrpl7(f6_old, F6_in, j, k, j-3, cellZ_F6[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+        Y_XI_Intrpl7(f7_old, F7_in, j, k, j-3, cellZ_F7[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+        Y_XI_Intrpl7(f8_old, F8_in, j, k, j-3, cellZ_F8[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
         
     
         //2.Special case of Streaming Step : Boundry Treatment
@@ -145,12 +143,17 @@ for(int j = 3 ; j < NY6-3 ; j++){
         }
         //2.BFL curvlinear boundary treatment
         //透過BFLInitialization已經寫入q值到矩陣當中
+        //BFL 用的 stencil 起點（基於目標點位置，因為 BFL 權重是獨立計算的）
+        int cell_z_bfl = k-3;
+        if( k <= 6 ) cell_z_bfl = 3;
+        if( k >= NZ6-7 ) cell_z_bfl = NZ6-10;
+
         //左丘邊界，更新F1
         if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
-            double q1 = Q1_h[idx_xi] ; 
+            double q1 = Q1_h[idx_xi] ;
             if(q1<0.5 && q1 >= 0 ){
                 //透過內插與Streaming更新F1
-                Y_XI_Intrpl7(f3_old, F1_in, j, k, j-3, cell_z, j, idx_xi, 
+                Y_XI_Intrpl7(f3_old, F1_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF3_0,YBFLF3_1,YBFLF3_2,YBFLF3_3,YBFLF3_4,YBFLF3_5,YBFLF3_6,
                 XiBFLF3_0, XiBFLF3_1, XiBFLF3_2, XiBFLF3_3, XiBFLF3_4, XiBFLF3_5, XiBFLF3_6);
             }
@@ -163,7 +166,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             double q3 = Q3_h[idx_xi] ;
             if(q3<0.5 && q3 >= 0.0){
                 //透過內插與Streaming更新F3
-                Y_XI_Intrpl7(f1_old, F3_in, j, k, j-3, cell_z, j, idx_xi, 
+                Y_XI_Intrpl7(f1_old, F3_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF1_0,YBFLF1_1,YBFLF1_2,YBFLF1_3,YBFLF1_4,YBFLF1_5,YBFLF1_6,
                 XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);
             }
@@ -176,7 +179,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             double q5 = Q5_h[idx_xi] ;
             if(q5<0.5 && q5 >= 0.0){
                 //透過內插與Streaming更新F5
-                Y_XI_Intrpl7(f7_old, F5_in, j, k, j-3, cell_z, j, idx_xi, 
+                Y_XI_Intrpl7(f7_old, F5_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF7_0,YBFLF7_1,YBFLF7_2,YBFLF7_3,YBFLF7_4,YBFLF7_5,YBFLF7_6,
                 XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);
             }
@@ -189,7 +192,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             double q6 = Q6_h[idx_xi] ;
             if(q6<0.5 && q6 >= 0.0){
                 //透過內插與Streaming更新F6
-                Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z, j, idx_xi, 
+                Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,
                 XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);
             }

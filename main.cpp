@@ -96,7 +96,19 @@ double Q3_h[NY6 * NZ6];          // F3 方向的 q 值（右丘 -Y）
 double Q5_h[NY6 * NZ6];          // F5 方向的 q 值（左丘 +Y+Z）
 double Q6_h[NY6 * NZ6];          // F6 方向的 q 值（右丘 -Y+Z）
 //-----------------------------------------------------------------------------
-// 2.10 外力修正用變數
+// 2.10 Stencil 起點索引（基於來源點位置預先計算）
+// 用於解決 RelationXi 與 evolution.h 中 cell_z 計算不一致的問題
+//-----------------------------------------------------------------------------
+int CellZ_F1[NY6 * NZ6];         // F1 方向的 Z stencil 起點
+int CellZ_F2[NY6 * NZ6];         // F2 方向的 Z stencil 起點
+int CellZ_F3[NY6 * NZ6];         // F3 方向的 Z stencil 起點
+int CellZ_F4[NY6 * NZ6];         // F4 方向的 Z stencil 起點
+int CellZ_F5[NY6 * NZ6];         // F5 方向的 Z stencil 起點
+int CellZ_F6[NY6 * NZ6];         // F6 方向的 Z stencil 起點
+int CellZ_F7[NY6 * NZ6];         // F7 方向的 Z stencil 起點
+int CellZ_F8[NY6 * NZ6];         // F8 方向的 Z stencil 起點
+//-----------------------------------------------------------------------------
+// 2.11 外力修正用變數
 //-----------------------------------------------------------------------------
 double Ub_sum = 0.0;             // 累積的平均速度
 int force_update_count = 0;      // 累積的時間步數
@@ -294,7 +306,10 @@ int main() {
             // 宏觀參數
             v, w, rho, Force, rho_modify,
             // BFL q值
-            Q1_h, Q3_h, Q5_h, Q6_h
+            Q1_h, Q3_h, Q5_h, Q6_h,
+            // 預計算的 Stencil 起點索引
+            CellZ_F1, CellZ_F2, CellZ_F3, CellZ_F4,
+            CellZ_F5, CellZ_F6, CellZ_F7, CellZ_F8
         );
 
         // 5.2.2 週期性邊界條件

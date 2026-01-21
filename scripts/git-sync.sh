@@ -5,7 +5,7 @@
 #   ./scripts/git-sync.sh stop              - 停止自動同步
 #   ./scripts/git-sync.sh status            - 查看狀態
 
-PROJECT_DIR="/Volumes/Seagate/D2Q9_PeriodicHill"
+PROJECT_DIR="/Volumes/Seagate/D2Q9_PeriodicHill/D2Q9_PeriodicHill"
 PID_FILE="${PROJECT_DIR}/scripts/.sync.pid"
 LOG_FILE="${PROJECT_DIR}/auto-sync.log"
 

@@ -112,7 +112,7 @@ const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 #include "memoryAllocator.h"
 #include "initializationTool.h"
 #include "initialization.h"
-#include "interpolationHillISLBM.h"
+#include "InterpolationHillISLBM.h"
 #include "MRT_Matrix.h"
 #include "MRT_Process.h"
 #include "evolution.h"

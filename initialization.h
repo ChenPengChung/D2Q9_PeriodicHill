@@ -79,46 +79,8 @@ void GenerateMesh_Z() {
     }
 }
 
-// 預先計算每個方向的 Xi 權重：對同一個 (j,k) 只做一次 7 列權重計算
-inline void BuildXiWeights(
-    double* XiPara_h[7],
-    double pos_z,       // 來源 z 位置
-    double pos_y,       // 來源 y 位置
-    int index_xi,       // 儲存起點 j*NZ6+k
-    int j, int k        // 目標格點索引（含 buffer）
-) {
-    // 週期邊界處理 y 索引
-    int jj = j;
-    if (jj < 3) jj += NY6 - 7;
-    if (jj > NY6 - 4) jj -= (NY6 - 7);
 
-    // 來源列的長度與無因次位置
-    double L = LZ - HillFunction(pos_y) - minSize;
-    double pos_xi = pos_z - (HillFunction(pos_y) + minSize/2.0);
-    double j_cont = Inverse_tanh_index(pos_xi, L, minSize, nonuni_a, (NZ6-7));
 
-    auto fillRow = [&](int rowOffset, int storeRow) {
-        int rowIdx = jj + rowOffset;
-        if (rowIdx < 0) rowIdx += NY6;
-        if (rowIdx >= NY6) rowIdx -= NY6;
-        double H = HillFunction(y_global[rowIdx]);
-        double Lrow = LZ - H - minSize;
-        double pos_z_row = tanhFunction(Lrow, minSize, nonuni_a, j_cont, (NZ6-7)) - minSize/2.0;
-        double rel[7];
-        RelationXi(j_cont, Lrow, minSize, nonuni_a, (NZ6-7), rel);
-        GetParameter_6th2(XiPara_h, pos_z_row, rel, storeRow, index_xi);
-    };
-
-    fillRow(-3, 0);
-    fillRow(-2, 1);
-    fillRow(-1, 2);
-    fillRow( 0, 3);
-    fillRow( 1, 4);
-    fillRow( 2, 5);
-    fillRow( 3, 6);
-}
-
-// 舊的 GetXiParameter 仍保留，若不再需要可移除
 void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k ) 
 {   //越界防呆
     if(j<3) j = j + NY6-7 ; 
@@ -200,21 +162,21 @@ void GetIntrplParameter_Xi() {
             // 重要：傳入 GetXiParameter 的 k 參數用於判斷 stencil 起點，應該是**來源點**的索引！
             //
             // F1 (+Y,0): 從 (y-Δ, z) 來，z 方向無偏移，用 k
-            BuildXiWeights( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j*NZ6+k , j,  k);
             // F2 (0,+Z): 從 (y, z-Δ) 來，來源點在 k-1
-            BuildXiWeights( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k);
             // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移，用 k
-            BuildXiWeights( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize,  j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F4 (0,-Z): 從 (y, z+Δ) 來，來源點在 k+1
-            BuildXiWeights( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],          j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],          j*NZ6+k , j,  k);
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來，來源點在 k-1
-            BuildXiWeights( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize,  j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize,  j*NZ6+k , j,  k);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來，來源點在 k-1
-            BuildXiWeights( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來，來源點在 k+1
-            BuildXiWeights( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize,  j*NZ6+k , j,  k);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來，來源點在 k+1
-            BuildXiWeights( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
+            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
     }}
 }
 

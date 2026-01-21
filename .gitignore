@@ -13,6 +13,8 @@
 *.dat
 *.log
 output/
+main
+*.dSYM/
 # CUDA compiled
 *.cubin
 *.ptx

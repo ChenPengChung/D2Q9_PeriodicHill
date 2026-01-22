@@ -70,10 +70,10 @@ inline void AllocateWeightArray(
  */
 inline void AllocateAllWeightArrays() {
     const int lenY = NY6;
-    const int lenXi = (NY6+7) * NZ6; //Z 方向曲面插值需要 
+    const int lenXi = 7 * NY6 * NZ6; //Z 方向曲面插值需要 (7 layers)
 
     std::cout << "==================================================================" << std::endl;
-    std::cout << "  Allocate memory for XiPara[7][NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
+    std::cout << "  Allocate memory for XiPara[7][7*NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
     std::cout << "==================================================================" << std::endl;
 
     // 外部宣告的指標陣列（假設已在 main.cpp 中宣告）

@@ -13,6 +13,14 @@
 #include <cmath>
 #include "variables.h"
 #include "model.h"
+#ifndef DEBUG_XI_OVERWRITE
+#define DEBUG_XI_OVERWRITE 1
+#endif
+#if DEBUG_XI_OVERWRITE
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#endif
 using namespace std;
 
 // * 半邊山丘寬度 (無因次化)
@@ -203,23 +211,71 @@ void GetParameter_6th(
     Para_h[5][i] = 0.0 ;
     Para_h[6][i] = 0.0 ;
 }
-void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+
+#if DEBUG_XI_OVERWRITE
+static inline void DebugXiOverlap(const void* key, const char* tag, int index_xi, int r) {
+    const int layer_stride = NY6 * NZ6;
+    const int lenXi = 7 * layer_stride;
+    const int write_idx = index_xi + r * layer_stride;
+    if (write_idx < 0 || write_idx >= lenXi) {
+        std::cout << "[XiOverlap] out-of-range write_idx=" << write_idx
+                  << " lenXi=" << lenXi << '\n';
+        return;
+    }
+
+    static std::unordered_map<const void*, std::vector<int>> last_writer;
+    static int printed = 0;
+    const int print_limit = 50;
+
+    std::vector<int>& prev = last_writer[key];
+    if (prev.empty()) {
+        prev.assign(lenXi, -1);
+    }
+
+    const int prev_index = prev[write_idx];
+    if (prev_index != -1 && prev_index != index_xi) {
+        if (printed < print_limit) {
+            const int pj = prev_index / NZ6;
+            const int pk = prev_index % NZ6;
+            const int cj = index_xi / NZ6;
+            const int ck = index_xi % NZ6;
+            std::cout << "[XiOverlap] " << (tag ? tag : "XiPara")
+                      << " write_idx=" << write_idx
+                      << " prev(index_xi=" << prev_index << " j=" << pj << " k=" << pk << ")"
+                      << " now(index_xi=" << index_xi << " j=" << cj << " k=" << ck << ")"
+                      << " r=" << r << '\n';
+        } else if (printed == print_limit) {
+            std::cout << "[XiOverlap] more collisions suppressed..." << '\n';
+        }
+        printed++;
+    } else if (prev_index == -1) {
+        prev[write_idx] = index_xi;
+    }
+}
+#endif
+
+void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi, const char* debug_tag = nullptr){
+#if DEBUG_XI_OVERWRITE
+    DebugXiOverlap(static_cast<const void*>(XiPara), debug_tag, index_xi, r);
+#endif
+    const int layer_stride = NY6 * NZ6;
+    const int base = index_xi + r * layer_stride;
     /*
-    XiPara[0][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
-    XiPara[1][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
-    XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
-    XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[4], RelationXi[5], RelationXi[6]); 
-    XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
-    XiPara[5][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
-    XiPara[6][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    */
+    XiPara[0][base] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[1][base] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[2][base] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[3][base] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[4], RelationXi[5], RelationXi[6]); 
+    XiPara[4][base] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
+    XiPara[5][base] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
+    XiPara[6][base] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    */
     //二街精度插值測試
-    XiPara[0][index_xi+r*NZ6] = 0.0 ; 
-    XiPara[1][index_xi+r*NZ6] = 0.0 ; 
-    XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[3],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
-    XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[2],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
-    XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[2],  RelationXi[3] , 0.0 , 0.0 , 0.0 , 0.0 );
-    XiPara[5][index_xi+r*NZ6] = 0.0 ; 
-    XiPara[6][index_xi+r*NZ6] = 0.0 ; 
+    XiPara[0][base] = 0.0 ; 
+    XiPara[1][base] = 0.0 ; 
+    XiPara[2][base] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[3],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[3][base] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[2],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[4][base] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[2],  RelationXi[3] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[5][base] = 0.0 ; 
+    XiPara[6][base] = 0.0 ; 
 }//pos_xi為換算過後的無因次化Z座標 
 
 //7.0度去向邊界計算點
@@ -580,8 +636,5 @@ double Right_q_DiagonalMinus135(double y , double z){
 
 
 #endif
-
-
-
 
 

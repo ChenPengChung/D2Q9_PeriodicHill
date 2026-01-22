@@ -118,6 +118,7 @@ double xi_h[NZ6];                // 無因次化Z座標
 #### ✅ variables.h (正常)
 - 定義物理參數：Re=50, LY=9.0, LZ=3.036
 - 網格設定：NY=128, NZ=64
+
 - Buffer 網格：NY6=135, NZ6=70
 - CFL=0.6, minSize 計算正確
 - tau=0.6833, omega_2 和 omega_7 定義正確
@@ -231,6 +232,8 @@ void GenerateMesh_Z() {
     ...
 }
 ```
+
+
 
 `initialization.h`：`BuildXiWeights` 將同一 `(j,k)` 的七列權重一次算完，供 8 個方向共用。
 ```cpp
@@ -1695,3 +1698,53 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     GetParameter_6th2( XiPara_h, pos_z , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NZ6] ~ XiPara_h[6][index_xi + 6*NZ6]
 }
 ```
+---
+
+## 2026-01-23 Xi 權重覆寫問題（今日討論）
+
+### 問題來源（關鍵程式段）
+
+1) `initializationTool.h` / `GetParameter_6th2(...)`
+
+```cpp
+XiPara[2][index_xi + r*NZ6] = Lagrange_6th(...);
+```
+
+2) `initialization.h` / `GetXiParameter(...)`
+
+```cpp
+GetParameter_6th2(XiPara_h, pos_z2, RelationXi_0, 0, index_xi);
+GetParameter_6th2(XiPara_h, pos_z2, RelationXi_1, 1, index_xi);
+...
+GetParameter_6th2(XiPara_h, pos_z2, RelationXi_6, 6, index_xi);
+```
+
+3) `initialization.h` / `GetIntrplParameter_Xi()` 與 `BFLInitialization()`
+
+```cpp
+GetXiParameter(XiParaF1_h, ...);
+...
+GetXiParameter(XiParaF8_h, ...);
+```
+
+### 覆寫是什麼意思
+- 不同空間點寫到同一個權重位置，後寫覆蓋先寫（不是越界）。
+
+### 為什麼會覆寫（例子）
+因為 `index_xi = j*NZ6 + k`，實際寫入位置是：
+
+```
+write_idx = index_xi + r*NZ6 = (j + r)*NZ6 + k
+```
+
+所以會發生：
+
+```
+(j=3, k=3, r=1) -> write_idx = (4,3)
+(j=4, k=3, r=0) -> write_idx = (4,3)
+```
+
+因此 `(j=3, r=1)` 的權重會被 `(j=4, r=0)` 覆蓋。
+
+### 結論
+- 目前的 `index_xi + r*NZ6` 只是把 r 映射成 j 位移，等同把 7 層權重疊在同一張 2D 格子上，會系統性覆寫。

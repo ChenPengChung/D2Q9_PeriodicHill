@@ -152,23 +152,32 @@ for(int j = 3 ; j < NY6-3 ; j++){
         if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
             double q1 = Q1_h[idx_xi] ;
             if(q1<0.5 && q1 >= 0 ){
-                //透過內插與Streaming更新F1
+                /*//透過內插與Streaming更新F1
                 Y_XI_Intrpl7(f3_old, F1_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF3_0,YBFLF3_1,YBFLF3_2,YBFLF3_3,YBFLF3_4,YBFLF3_5,YBFLF3_6,
-                XiBFLF3_0, XiBFLF3_1, XiBFLF3_2, XiBFLF3_3, XiBFLF3_4, XiBFLF3_5, XiBFLF3_6);
+                XiBFLF3_0, XiBFLF3_1, XiBFLF3_2, XiBFLF3_3, XiBFLF3_4, XiBFLF3_5, XiBFLF3_6);*/
+                //改用一階精度線性內插
+                F1_in = (2*q1)*f3_old[idx_xi] + (1.0 - 2.0*q1)*f3_old[idx_xi+NZ6];
+                //這邊有一個問題：書上做插值的點為Lattice上的計算點但是這邊取的是物理空間計算點的點 
             }
             if(q1>0.5){//做線性內插
                 F1_in = (1.0/(2.0*q1))*f3_old[idx_xi] + ((2.0*q1-1.0)/(2.0*q1))*f1_old[idx_xi];
+                //問題一:遷移後在鄰點上的值不存在
+                //問題二：若插分的點要用鄰點新值，會有2個問題，
+                //第一，該點不在物理間網格點上，只在Lattice上，
+                //第二：就算你用的到Lattice上的值，本程式碼與沒有對他做紀錄，只有暫態變數記錄且該值也還沒更新，因為掃描方向從左至右 .....
             }
         }
         //右丘邊界，更新F3
         if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
             double q3 = Q3_h[idx_xi] ;
             if(q3<0.5 && q3 >= 0.0){
-                //透過內插與Streaming更新F3
+                /*//透過內插與Streaming更新F3
                 Y_XI_Intrpl7(f1_old, F3_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF1_0,YBFLF1_1,YBFLF1_2,YBFLF1_3,YBFLF1_4,YBFLF1_5,YBFLF1_6,
-                XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);
+                XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);*/
+                 //改用一階精度線性內插
+                F3_in = (2*q3)*f1_old[idx_xi] + (1.0 - 2.0*q3)*f1_old[idx_xi-NZ6];
             }
             if(q3>0.5 ){
                 F3_in = (1.0/(2.0*q3))*f1_old[idx_xi] + ((2.0*q3-1.0)/(2.0*q3))*f3_old[idx_xi];
@@ -178,10 +187,12 @@ for(int j = 3 ; j < NY6-3 ; j++){
         if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
             double q5 = Q5_h[idx_xi] ;
             if(q5<0.5 && q5 >= 0.0){
-                //透過內插與Streaming更新F5
+                /*//透過內插與Streaming更新F5
                 Y_XI_Intrpl7(f7_old, F5_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF7_0,YBFLF7_1,YBFLF7_2,YBFLF7_3,YBFLF7_4,YBFLF7_5,YBFLF7_6,
-                XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);
+                XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);*/
+                //取右上左下線性內插
+                F5_in = (2*q5)*f7_old[idx_xi] + (1.0 - 2.0*q5)*f7_old[idx_xi+NZ6+1];//往右邊再往上
             }
             if(q5>0.5){
                 F5_in = (1.0/(2.0*q5))*f7_old[idx_xi] + ((2.0*q5-1.0)/(2.0*q5))*f5_old[idx_xi];
@@ -191,10 +202,12 @@ for(int j = 3 ; j < NY6-3 ; j++){
         if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
             double q6 = Q6_h[idx_xi] ;
             if(q6<0.5 && q6 >= 0.0){
-                //透過內插與Streaming更新F6
+                /*//透過內插與Streaming更新F6
                 Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z_bfl, j, idx_xi,
                 YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,
-                XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);
+                XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);*/
+                //取左上右下線性內插
+                F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
             }
             if(q6>0.5){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];

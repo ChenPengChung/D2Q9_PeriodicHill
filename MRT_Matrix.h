@@ -17,11 +17,11 @@
 #define Relaxation \
     double s0 = 0.0; \
     double s1 = omega_2; \
-    double s2 = 1.0; \
+    double s2 = 1.2; \
     double s3 = 0.0; \
-    double s4 = 1.0; \
+    double s4 = 1.2; \
     double s5 = 0.0; \
-    double s6 = 1.0; \
+    double s6 = 1.2; \
     double s7 = omega_7; \
     double s8 = omega_7
 

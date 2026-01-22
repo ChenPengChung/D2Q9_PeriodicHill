@@ -152,7 +152,8 @@ double GetNonuniParameter() {
  * @see GetParameter_6th()
  */
 double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
-    double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
+    //double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
+    double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2);
     return Lagrange; 
 }
 //給我一個編號，產生該Y值所對應的七個無因次化座標
@@ -184,7 +185,7 @@ void RelationXi(double nonintindex, double L , double MinSize , double a , int N
 void GetParameter_6th(
     double *Para_h[7],      double Position,
     double *Pos,            int i,              int n  )
-{
+{/*
     Para_h[0][i] = Lagrange_6th(Position, Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
     Para_h[1][i] = Lagrange_6th(Position, Pos[n+1], Pos[n],   Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
     Para_h[2][i] = Lagrange_6th(Position, Pos[n+2], Pos[n],   Pos[n+1], Pos[n+3], Pos[n+4], Pos[n+5], Pos[n+6]);
@@ -192,15 +193,33 @@ void GetParameter_6th(
     Para_h[4][i] = Lagrange_6th(Position, Pos[n+4], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+5], Pos[n+6]);
     Para_h[5][i] = Lagrange_6th(Position, Pos[n+5], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+6]);
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
+    */
+   //二維度插值測試 
+    Para_h[0][i] = 0.0 ;
+    Para_h[1][i] = 0.0 ;
+    Para_h[2][i] = Lagrange_6th(Position, Pos[n+2], Pos[n+3],   Pos[n+4], 0.0 , 0.0 , 0.0 , 0.0 );
+    Para_h[3][i] = Lagrange_6th(Position, Pos[n+3], Pos[n+2],   Pos[n+4], 0.0 , 0.0 , 0.0 , 0.0 );
+    Para_h[4][i] = Lagrange_6th(Position, Pos[n+4], Pos[n+2],   Pos[n+3], 0.0 , 0.0 , 0.0 , 0.0 );
+    Para_h[5][i] = 0.0 ;
+    Para_h[6][i] = 0.0 ;
 }
 void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+    /*
     XiPara[0][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[1][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
     XiPara[5][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
-    XiPara[6][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    
+    XiPara[6][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    */
+    //二街精度插值測試
+    XiPara[0][index_xi+r*NZ6] = 0.0 ; 
+    XiPara[1][index_xi+r*NZ6] = 0.0 ; 
+    XiPara[2][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[3],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[3][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[3],  RelationXi[2],  RelationXi[4] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[4][index_xi+r*NZ6] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[2],  RelationXi[3] , 0.0 , 0.0 , 0.0 , 0.0 );
+    XiPara[5][index_xi+r*NZ6] = 0.0 ; 
+    XiPara[6][index_xi+r*NZ6] = 0.0 ; 
 }//pos_xi為換算過後的無因次化Z座標 
 
 //7.0度去向邊界計算點

@@ -6,8 +6,8 @@
 #define     LY     (9.0)
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
-#define     NY      32
-#define     NZ      16
+#define     NY      64
+#define     NZ      32
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)
@@ -24,7 +24,7 @@
 //定義無因次化長度上限
 #define LXi (10.0)
 //雷諾數
-#define Re 5 
+#define Re 1 
 //模擬迴圈上限值
 #define loop 1000000
 /**********Secondary Parameter********************/

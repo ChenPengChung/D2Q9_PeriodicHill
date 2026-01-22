@@ -107,8 +107,8 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
 
     // 存儲計算好的 stencil 起點
     if(CellZ_out != nullptr) {
-        CellZ_out[index_xi] = cell_z1;
-    } 
+        CellZ_out[index_xi] = cell_z1;//儲存Z方向的內插成員座標起始點
+        } 
     //給我一個double 給出相對應七個內插的無因次化座標
     double RelationXi_0[7] ; //(j-3)
     double LT = LZ - HillFunction(y_global[j-3]) - minSize;

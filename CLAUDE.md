@@ -1750,5 +1750,124 @@ write_idx = index_xi + r*NZ6 = (j + r)*NZ6 + k
 - 目前的 `index_xi + r*NZ6` 只是把 r 映射成 j 位移，等同把 7 層權重疊在同一張 2D 格子上，會系統性覆寫。
 
 
-## 2026-01-23 未求避免記憶體爆炸，Y方向只用三點格式降階
+## 2026-01-23 為避免記憶體爆炸，Y方向只用三點格式降階
 1.先調整 RelaxationXi 陣列 
+
+---
+
+## 2026-01-24 邊界處理修正與數值穩定性工作
+
+### 問題診斷過程
+
+#### 1. 初始問題：程式發散 (t=10 開始出現 nan)
+- **症狀**：`rho = -54151.9` (t=10)，迅速發散
+- **除錯輸出**：在 k=152 (上邊界 NZ6-4) 發現 F4 為負值 (-1.38293)
+- **根本原因**：F4 (-Z方向) 的來源位置是 z+Δ，當 k=152 時會超出計算域
+
+#### 2. cellZ_F* 計算問題
+- **問題**：`GetXiParameter` 中 `cell_z1 = k-3` 使用的是目標點 k，而非來源點
+- **修正**：改為基於 `j_cont`（映射後的連續座標）計算
+```cpp
+// 舊版
+int cell_z1 = k-3;
+
+// 新版  
+int k_source = static_cast<int>(std::round(j_cont)) + 3;
+int cell_z1 = k_source - 3;
+if(cell_z1 < 0) cell_z1 = 0;
+if(cell_z1 > NZ6-7) cell_z1 = NZ6-7;
+```
+
+#### 3. 邊界區域的插值外推問題
+- **問題**：7-point stencil 在邊界附近會存取 buffer 區域，導致 Lagrange 外推產生極端權重
+- **影響範圍**：
+  - 下邊界 (k ≤ 5)：F2, F5, F6 的來源可能越界
+  - 上邊界 (k ≥ NZ6-6=150)：F4, F7, F8 的來源可能越界
+  - F1, F3 的 Xi stencil 也會受影響
+
+### 最終解決方案：邊界區域使用簡化 streaming
+
+```cpp
+// evolution.h 中的邊界處理邏輯
+if( k <= 5 ) {
+    // 下邊界附近：使用簡單 streaming 和 bounce-back
+    F1_in = f1_old[(j-1)*NZ6 + k];
+    F3_in = f3_old[(j+1)*NZ6 + k];
+    F2_in = f4_old[idx_xi];  // bounce-back
+    F5_in = f7_old[idx_xi];  // bounce-back
+    F6_in = f8_old[idx_xi];  // bounce-back
+    F4_Intrpl7(...);  // 正常插值（遠離下邊界）
+    F7_in = f7_old[(j+1)*NZ6 + k+1];
+    F8_in = f8_old[(j-1)*NZ6 + k+1];
+    
+} else if( k >= NZ6-6 ) {
+    // 上邊界附近：使用簡單 streaming 和 bounce-back
+    F1_in = f1_old[(j-1)*NZ6 + k];
+    F3_in = f3_old[(j+1)*NZ6 + k];
+    F2_in = f2_old[j*NZ6 + k-1];      // 簡單 streaming
+    F5_in = f5_old[(j-1)*NZ6 + k-1];  // 簡單 streaming
+    F6_in = f6_old[(j+1)*NZ6 + k-1];  // 簡單 streaming
+    F4_in = f2_old[idx_xi];  // bounce-back
+    F7_in = f5_old[idx_xi];  // bounce-back
+    F8_in = f6_old[idx_xi];  // bounce-back
+    
+} else {
+    // 內部區域：正常 ISLBM 插值
+    F1_Intrpl3(...); F3_Intrpl3(...);
+    F2_Intrpl7(...); F4_Intrpl7(...);
+    Y_XI_Intrpl3(...);  // F5~F8
+}
+```
+
+### 修改的檔案清單
+
+| 檔案 | 修改內容 |
+|------|----------|
+| `initialization.h` | `GetXiParameter` 中 cell_z1 計算改用 j_cont |
+| `evolution.h` | 新增邊界區域條件判斷，使用簡化 streaming 替代插值 |
+
+### 測試結果
+- ✅ 程式穩定運行至 t=1000+
+- ✅ 密度收斂到 ~0.988
+- ⚠️ 出現 **Checkerboard instability**（棋盤格振盪）
+
+### Checkerboard 問題分析
+
+**觀察**：
+- Y 方向七階插值 → 條紋較粗
+- Y 方向三階插值 → 條紋較密
+
+**可能原因**：
+1. 奇偶解耦 (odd-even decoupling)
+2. 非均勻網格的數值色散
+3. Lagrange 插值的振盪特性
+
+**待嘗試解決方案**：
+- [ ] Z 方向也降為三階插值
+- [ ] 調整 MRT 鬆弛參數
+- [ ] 加入數值濾波器
+
+### 下次工作方向
+
+1. **Z 方向降階測試**
+   - 新增 `F2_Intrpl3` 和 `F4_Intrpl3` 巨集
+   - 修改 `evolution.h` 使用三階版本
+   
+2. **評估降階效果**
+   - 若 checkerboard 消失且結果合理 → 繼續使用
+   - 若精度不足 → 考慮其他抑制方法
+
+### 目前配置摘要
+
+| 項目 | 設定值 |
+|------|--------|
+| Y 方向插值 | 3 階 Lagrange |
+| Z 方向插值 | 7 階 Lagrange |
+| 下邊界處理 (k≤5) | 簡化 streaming + bounce-back |
+| 上邊界處理 (k≥150) | 簡化 streaming + bounce-back |
+| 內部區域 | ISLBM 插值 |
+| Re | 1 |
+| CFL | 0.2 |
+| 網格 | NY=200, NZ=150 (含 buffer: NY6=207, NZ6=156) |
+
+

@@ -96,16 +96,20 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     double j_cont = Inverse_tanh_index( pos_xi , L , minSize , a , (NZ6-7) );
 
     //Z方向成員起始編號
-    //在 ISLBM 中，stencil 需要包圍目標點的 k 索引
-    //使用 k-3 作為起點，使得目標 k 落在 stencil 的中間位置 (位置 3)
-    //這樣 stencil 覆蓋 k-3 到 k+3，共 7 個點
+    //在 ISLBM 中，stencil 需要包圍來源點的 k 索引
+    //使用 j_cont-3 作為起點，使得來源點落在 stencil 的中間位置 (位置 3)
+    //這樣 stencil 覆蓋約 k_src-3 到 k_src+3，共 7 個點
     //
-    //關於 RelationXi 的 j_cont：RelationXi 使用 j_cont 來決定 Z 座標的生成
-    //但 cell_z 決定的是從哪個 k 索引開始讀取分佈函數資料
-    //由於分佈函數存儲在規則網格上，stencil 起點應基於目標 k
-    int cell_z1 = k-3 ; 
-    if(k<3) cell_z1 = 0 ; 
-    if(k>NZ6-4) cell_z1 = NZ6-7 ;
+    //重要修正：cell_z1 應該基於 j_cont（映射後的連續座標）而不是傳入的 k
+    //因為不同方向的 Fi 有不同的來源位置偏移：
+    //  F2 (+Z): 來源在 z-Δ → j_cont 較小
+    //  F4 (-Z): 來源在 z+Δ → j_cont 較大，可能接近或超出邊界
+    //
+    //需要加上 buffer 區域偏移 (+3) 來得到實際的 k 索引
+    int k_source = static_cast<int>(std::round(j_cont)) + 3;  // 來源點的 k 索引
+    int cell_z1 = k_source - 3;
+    if(cell_z1 < 0) cell_z1 = 0;
+    if(cell_z1 > NZ6-7) cell_z1 = NZ6-7;
     //預先計算 內插成員起始點座標編號Z座標 
     if(CellZ_out != nullptr) {
         CellZ_out[index_xi] = cell_z1;//儲存Z方向的內插成員座標起始點

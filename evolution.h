@@ -132,41 +132,97 @@ for(int j = 3 ; j < NY6-3 ; j++){
         Y_XI_Intrpl7(f6_old, F6_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
         Y_XI_Intrpl7(f7_old, F7_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
         Y_XI_Intrpl7(f8_old, F8_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);*/
+        
         //降階版本
         F0_in = f0_old[idx_xi];
-        F1_Intrpl3(f1_old,j,k,j-1,cellZ_F1[idx_xi],j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-        F3_Intrpl3(f3_old,j,k,j-1,cellZ_F3[idx_xi],j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-        F2_Intrpl7(f2_old, j,k, j-1, cellZ_F2[idx_xi], j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-        F4_Intrpl7(f4_old, j, k, j-1, cellZ_F4[idx_xi], j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-        Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cellZ_F5[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-        Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cellZ_F6[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-        Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cellZ_F7[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-        Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cellZ_F8[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+        
+        // 對 Z 方向邊界使用條件式處理：
+        // 7-point Xi stencil 需要 k_start 到 k_start+6 範圍內的有效資料
+        // 當 cellZ_F* + 6 >= NZ6 - 3 時，會存取到上邊界 buffer 區
+        // 當 cellZ_F* < 3 時，會存取到下邊界 buffer 區
+        // 使用 half-way bounce-back 代替插值以避免外推問題
+        
+        // 下邊界 (k <= 5): F2,F5,F6 的來源位置可能落在下邊界 buffer 區
+        // 上邊界 (k >= NZ6-6=150): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
+        // 注意：F1,F3 只有 Y 方向偏移，Z 方向不變，但 stencil 仍可能越界
+        
+        if( k <= 5 ) {
+            // 下邊界附近
+            // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ < 3 會越界
+            // 使用簡單的 streaming 替代插值
+            
+            // F1,F3: Z 不變
+            F1_in = f1_old[(j-1)*NZ6 + k];  // 從 y-1 位置直接取值
+            F3_in = f3_old[(j+1)*NZ6 + k];  // 從 y+1 位置直接取值
+            
+            // F2,F5,F6: 使用 bounce-back（來源在下邊界外）
+            F2_in = f4_old[idx_xi];
+            F5_in = f7_old[idx_xi];
+            F6_in = f8_old[idx_xi];
+            
+            // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值，使用簡單 streaming
+            F4_in = f4_old[j*NZ6 + k+1];    // 從 z+1 位置直接取值
+            F7_in = f7_old[(j+1)*NZ6 + k+1];  // 從 (y+1,z+1) 取值
+            F8_in = f8_old[(j-1)*NZ6 + k+1];  // 從 (y-1,z+1) 取值
+            
+        } else if( k >= NZ6-6 ) {
+            // 上邊界附近 (k>=150)
+            // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ+6 >= NZ6-3 會越界
+            // 使用簡單的 streaming 替代插值
+            
+            // F1,F3: Z 不變
+            F1_in = f1_old[(j-1)*NZ6 + k];  // 從 y-1 位置直接取值
+            F3_in = f3_old[(j+1)*NZ6 + k];  // 從 y+1 位置直接取值
+            
+            // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值，使用簡單 streaming
+            F2_in = f2_old[j*NZ6 + k-1];    // 從 z-1 位置直接取值
+            F5_in = f5_old[(j-1)*NZ6 + k-1];  // 從 (y-1,z-1) 取值
+            F6_in = f6_old[(j+1)*NZ6 + k-1];  // 從 (y+1,z-1) 取值
+            
+            // F4,F7,F8: 使用 bounce-back（來源在上邊界外）
+            F4_in = f2_old[idx_xi];
+            F7_in = f5_old[idx_xi];
+            F8_in = f6_old[idx_xi];
+            
+        } else {
+            // 內部區域：正常插值
+            F1_Intrpl3(f1_old,j,k,j-1,cellZ_F1[idx_xi],j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+            F3_Intrpl3(f3_old,j,k,j-1,cellZ_F3[idx_xi],j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            F2_Intrpl7(f2_old, j,k, j-1, cellZ_F2[idx_xi], j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            F4_Intrpl7(f4_old, j, k, j-1, cellZ_F4[idx_xi], j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cellZ_F5[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cellZ_F6[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cellZ_F7[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cellZ_F8[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+        }
 
-        // 除錯：檢查插值結果
-        if(j == 10 && k == 10) {
-            static int debug_count = 0;
-            if(debug_count < 3) {
-                std::cout << "DEBUG j=" << j << " k=" << k 
+
+        // 除錯：檢查是否有異常值（暫時放寬閾值以觀察趨勢）
+        double rho_local = F0_in + F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in;
+        if(rho_local > 5.0 || rho_local < 0.0 || std::isnan(rho_local)) {
+            static int error_count = 0;
+            if(error_count < 10) {
+                std::cout << "ABNORMAL at j=" << j << " k=" << k 
+                          << " rho=" << rho_local
                           << " F0=" << F0_in << " F1=" << F1_in << " F2=" << F2_in 
-                          << " F3=" << F3_in << " F4=" << F4_in << " F5=" << F5_in 
-                          << " F6=" << F6_in << " F7=" << F7_in << " F8=" << F8_in << std::endl;
-                debug_count++;
+                          << " F3=" << F3_in << " F4=" << F4_in
+                          << " F5=" << F5_in << " F6=" << F6_in 
+                          << " F7=" << F7_in << " F8=" << F8_in << std::endl;
+                error_count++;
             }
         }
 
         //2.Special case of Streaming Step : Boundry Treatment
         //(1.)Halhf-way Bounce-Back Boundary Condition
+        // 注意：對於 k==3 和 k==NZ6-4，已在上面的插值條件式中處理
+        // 這裡保留對 k==3 的額外確認（最下邊界層）
         if( k == 3 ){
-        F2_in = f4_old[idx_xi];
-        F5_in = f7_old[idx_xi];
-        F6_in = f8_old[idx_xi];
+            F2_in = f4_old[idx_xi];
+            F5_in = f7_old[idx_xi];
+            F6_in = f8_old[idx_xi];
         }
-        if( k == NZ6-4 ){
-        F4_in = f2_old[idx_xi];
-        F7_in = f5_old[idx_xi];
-        F8_in = f6_old[idx_xi];
-        }
+        // 對於 k==NZ6-4 (k==152)，已在 k >= NZ6-6 條件中處理
+        
         //2.BFL curvlinear boundary treatment
         //透過BFLInitialization已經寫入q值到矩陣當中
         //BFL 用的 stencil 起點（基於目標點位置，因為 BFL 權重是獨立計算的）

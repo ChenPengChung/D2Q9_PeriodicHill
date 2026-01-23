@@ -223,6 +223,11 @@ int main() {
         }
     }//f_old為上一個時間步所更新的碰撞後插值後一般態分佈函數 
     cout << "Initialization complete.." << endl ;
+    
+    // DEBUG: 檢查初始值
+    cout << "DEBUG Initial: Force[0]=" << Force[0] << ", Uref=" << Uref << ", niu=" << niu << endl;
+    cout << "DEBUG Initial: minSize=" << minSize << ", omega_7=" << omega_7 << endl;
+    
     //-------------------------------------------------------------------------
     // 5.2 時間迴圈
     //-------------------------------------------------------------------------
@@ -320,14 +325,16 @@ int main() {
         // 5.2.6 輸出數據
         //---------------------------------------------------------------------
         // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
-        if(t % outputInterval_VTK == 0) {
+        if(t % outputInterval_VTK == 0 || t < 5) {
             cout << "==================================================================" << endl ; 
             cout << "\n=== time step t = " << t << " ===" << endl;
-            cout << "Output VTK file and Statics Data..." << endl;
-            OutputVTK(t, y_global, z_global, rho, v, w);
+            if(t % outputInterval_VTK == 0) {
+                cout << "Output VTK file and Statics Data..." << endl;
+                OutputVTK(t, y_global, z_global, rho, v, w);
+            }
         }
         // 終端統計輸出（較小間隔，用於監控模擬進度）
-        if(t % outputInterval_Stats == 0) {
+        if(t % outputInterval_Stats == 0 || t < 5) {
             //每 outputInterval_Stats 步輸出一次平均密度
             cout << "++      ++     ++      ++      ++      ++    ++      ++     ++      ++" << endl ; 
             cout << "Time=" << t << setw(6) <<

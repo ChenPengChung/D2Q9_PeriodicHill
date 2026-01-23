@@ -125,7 +125,6 @@ const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 #include "initializationTool.h"
 #include "initialization.h"
 #include "InterpolationHillISLBM.h"
-#include "InterpolationHillISLBM_3pt.h"
 #include "MRT_Matrix.h"
 #include "MRT_Process.h"
 #include "evolution.h"

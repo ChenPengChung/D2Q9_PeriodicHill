@@ -73,14 +73,14 @@ do { \
 #define F2_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { \
     const int idx_f = j * nface + k_c; \
-    F2_in = Intrpl7( f[idx_f], xi_0[idx_xi+3*NY6*nface], f[idx_f+1], xi_1[idx_xi+3*NY6*nface], f[idx_f+2], xi_2[idx_xi+3*NY6*nface], f[idx_f+3], xi_3[idx_xi+3*NY6*nface], f[idx_f+4], xi_4[idx_xi+3*NY6*nface], f[idx_f+5], xi_5[idx_xi+3*NY6*nface], f[idx_f+6], xi_6[idx_xi+3*NY6*nface] ); \
+    F2_in = Intrpl7( f[idx_f], xi_0[idx_xi+1*NY6*nface], f[idx_f+1], xi_1[idx_xi+1*NY6*nface], f[idx_f+2], xi_2[idx_xi+1*NY6*nface], f[idx_f+3], xi_3[idx_xi+1*NY6*nface], f[idx_f+4], xi_4[idx_xi+1*NY6*nface], f[idx_f+5], xi_5[idx_xi+1*NY6*nface], f[idx_f+6], xi_6[idx_xi+1*NY6*nface] ); \
 } while(0)
 
 //如下定義為D2Q9模型的F4 (-Z方向) - 只需要 Z 方向插值
 #define F4_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { \
     const int idx_f = j * nface + k_c; \
-    F4_in = Intrpl7( f[idx_f], xi_0[idx_xi+3*NY6*nface], f[idx_f+1], xi_1[idx_xi+3*NY6*nface], f[idx_f+2], xi_2[idx_xi+3*NY6*nface], f[idx_f+3], xi_3[idx_xi+3*NY6*nface], f[idx_f+4], xi_4[idx_xi+3*NY6*nface], f[idx_f+5], xi_5[idx_xi+3*NY6*nface], f[idx_f+6], xi_6[idx_xi+3*NY6*nface] ); \
+    F4_in = Intrpl7( f[idx_f], xi_0[idx_xi+1*NY6*nface], f[idx_f+1], xi_1[idx_xi+1*NY6*nface], f[idx_f+2], xi_2[idx_xi+1*NY6*nface], f[idx_f+3], xi_3[idx_xi+1*NY6*nface], f[idx_f+4], xi_4[idx_xi+1*NY6*nface], f[idx_f+5], xi_5[idx_xi+1*NY6*nface], f[idx_f+6], xi_6[idx_xi+1*NY6*nface] ); \
 } while(0)
 
 //如下定義為D2Q9模型的F5,F6,F7,F8 (斜向) - 需要 Y 和 Z 

@@ -240,7 +240,18 @@ int main() {
     // 5.2 時間迴圈
     //-------------------------------------------------------------------------
     cout << "Starting time loop..." << endl ;
+    cout << "loop = " << loop << endl ;
+    cout.flush();
     for(int t = 0; t < loop; t++) {
+        if(t % 10 == 0) { 
+            double rho_check = CheckMassConservation(rho, t);
+            if(std::isnan(rho_check) || std::isinf(rho_check)) {
+                cout << "DIVERGED at t = " << t << ", rho = " << rho_check << endl;
+                return 1;
+            }
+            if(t < 200) cout << "t = " << t << ", rho = " << rho_check << endl; 
+            cout.flush(); 
+        }
         // 5.2.1 Stream + Collide
         stream_collide(
             // f_old (9個)

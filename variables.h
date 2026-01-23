@@ -6,8 +6,8 @@
 #define     LY     (9.0)
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
-#define     NY      120 
-#define     NZ      60
+#define     NY      200 
+#define     NZ      150
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)

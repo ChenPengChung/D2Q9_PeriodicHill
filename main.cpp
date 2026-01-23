@@ -13,6 +13,16 @@
 #include <iomanip>
 #include <sstream>
 using namespace std;
+
+// 強制禁用輸出緩衝，確保 GDB 調試時輸出即時顯示
+struct FlushOnStart {
+    FlushOnStart() { 
+        setvbuf(stdout, NULL, _IONBF, 0);
+        setvbuf(stderr, NULL, _IONBF, 0);
+        cout.setf(ios::unitbuf);
+    }
+} _flushOnStart;
+
 //=============================================================================
 // [區塊 1] 引入參數定義（不依賴全域變數的標頭檔）
 //=============================================================================

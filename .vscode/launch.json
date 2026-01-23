@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "MinGW (Strawberry) - Build & Debug Active CPP",
+      "name": "MinGW (Strawberry) - Build & Debug",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\main.exe",
@@ -12,7 +12,7 @@
       "environment": [
         { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-      "externalConsole": true,
+      "externalConsole": false,
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe",
       "preLaunchTask": "Build main.exe (MinGW)",
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "name": "MinGW (Strawberry) - Run Active EXE (No Build)",
+      "name": "MinGW - Run Only (No Debug)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}\\main.exe",
@@ -35,7 +35,7 @@
       "environment": [
         { "name": "PATH", "value": "C:\\Strawberry\\c\\bin;${env:PATH}" }
       ],
-      "externalConsole": true,
+      "externalConsole": false,
       "MIMode": "gdb",
       "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe"
     }

@@ -197,13 +197,29 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
             }
         }
-        //3.質量修正
+        //3.質量修正 - 按 D2Q9 權重分配到所有分佈函數
+        // 權重: W0=4/9, W1~W4=1/9, W5~W8=1/36
+        // 這樣可以保持平衡態分佈的形式，避免密度震盪
+        double dm = rho_modify[0];
+        F0_in = F0_in + dm * (4.0/9.0);
+        F1_in = F1_in + dm * (1.0/9.0);
+        F2_in = F2_in + dm * (1.0/9.0);
+        F3_in = F3_in + dm * (1.0/9.0);
+        F4_in = F4_in + dm * (1.0/9.0);
+        F5_in = F5_in + dm * (1.0/36.0);
+        F6_in = F6_in + dm * (1.0/36.0);
+        F7_in = F7_in + dm * (1.0/36.0);
+        F8_in = F8_in + dm * (1.0/36.0);
         
-        F0_in = F0_in + rho_modify[0];
         //4.計算equilibirium distribution function 
         double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 
-        double v1 = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
-	    double w1 = (F2_in+ F5_in+ F6_in -( F4_in+F7_in+F8_in)) / rho_s ;
+        // 計算原始速度 (用於輸出和外力項)
+        double v1_raw = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
+	    double w1_raw = (F2_in+ F5_in+ F6_in -( F4_in+F7_in+F8_in)) / rho_s ;
+        // 計算 force-shifted velocity (用於平衡態分佈函數)
+        // u* = u + 0.5*F/rho (Guo forcing scheme)
+        double v1 = v1_raw + 0.5 * Force[0] / rho_s;
+        double w1 = w1_raw;  // Z方向無外力
         double udot = v1*v1 + w1*w1;
         const double F0_eq  = (4./9.)  *rho_s*(1.0-1.5*udot);
         const double F1_eq  = (1./9.)  *rho_s*(1.0+3.0*v1 +4.5*v1*v1-1.5*udot);
@@ -230,10 +246,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
         f7_new[idx_xi] = F7_in;
         f8_new[idx_xi] = F8_in;
 
-        //7.更新宏觀量
+        //7.更新宏觀量 (使用原始速度，非 force-shifted)
         rho_d[idx_xi] = rho_s;
-        v[idx_xi] = v1;
-        w[idx_xi] = w1;
+        v[idx_xi] = v1_raw;
+        w[idx_xi] = w1_raw;
 }}}
 //y方向週期邊界條件 
 void periodicSW(

@@ -30,7 +30,9 @@ void InitialUsingDftFunc() {
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
         //離散化宏觀外立場的初始化initilaoization of the discrete macroscopic force term
-        Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
+        // 對於 Poiseuille flow: dp/dx = 8*mu*U_mean/H^2
+        // 這裡 H = LZ (山丘高度), U_mean = Uref
+        Force[0] =  (8.0*niu*Uref)/(LZ*LZ);  // 標準 Poiseuille 外力
         Force[1] = 0.0;  // Z 方向無外力
 }
 //建立Y(主流場方向)方向之均勻網格系統

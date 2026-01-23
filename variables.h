@@ -31,8 +31,8 @@
 #define dt (minSize) 
 #define cs (1.0/1.732050807568877)
 //Parameters of periodic hills Using MRT operator    
-#define     omega_2     1.2
-#define     omega_7     1.2
+#define     omega_2     1.0
+#define     omega_7     1.0
 #define     niu         (1/3.)*(1/omega_7 - 0.5 )
 //以山坡高度流場的特徵長度，計算特徵速度
 #define     Uref        (Re*niu)

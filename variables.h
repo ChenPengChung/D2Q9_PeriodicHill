@@ -1,6 +1,6 @@
 #ifndef VARIABLES_FILE
 #define VARIABLES_FILE
-//包含山坡之物理模型(矩形體)
+//包含山坡之物理模型(矩形)
 #define     pi     3.14159265358979323846264338327950
 //二維模型之長寬設定
 #define     LY     (9.0)

@@ -53,8 +53,8 @@ double nonuni_a = 0.0;           // 非均勻網格參數（初始化後設定�
 // YPara0: 用於 F1, F5, F8 (從 y-minSize 位置插值)
 // YPara2: 用於 F3, F6, F7 (從 y+minSize 位置插值)
 //-----------------------------------------------------------------------------
-double* YPara0_h[7];
-double* YPara2_h[7];
+double* YPara0_h[3];
+double* YPara2_h[3];
 //-----------------------------------------------------------------------------
 // 2.6 Xi方向插值權重 (每個速度方向各一組)
 // 維度: [7個權重][NY6*NZ6個計算點]
@@ -75,10 +75,10 @@ double* XiParaF8_h[7];
 // - YBFLParaF7: 插值 F7，用於更新 F5（左丘對角線）
 // - YBFLParaF8: 插值 F8，用於更新 F6（右丘對角線）
 //-----------------------------------------------------------------------------
-double* YBFLParaF3_h[7];
-double* YBFLParaF1_h[7];
-double* YBFLParaF7_h[7];
-double* YBFLParaF8_h[7];
+double* YBFLParaF3_h[3];
+double* YBFLParaF1_h[3];
+double* YBFLParaF7_h[3];
+double* YBFLParaF8_h[3];
 //-----------------------------------------------------------------------------
 // 2.8 BFL邊界條件：Xi方向插值權重
 //-----------------------------------------------------------------------------
@@ -125,6 +125,7 @@ const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 #include "initializationTool.h"
 #include "initialization.h"
 #include "InterpolationHillISLBM.h"
+#include "InterpolationHillISLBM_3pt.h"
 #include "MRT_Matrix.h"
 #include "MRT_Process.h"
 #include "evolution.h"
@@ -250,11 +251,11 @@ int main() {
             f_new[0], f_new[1], f_new[2], f_new[3], f_new[4],
             f_new[5], f_new[6], f_new[7], f_new[8],
             // Y方向權重 YPara0 (7個)
-            YPara0_h[0], YPara0_h[1], YPara0_h[2], YPara0_h[3],
-            YPara0_h[4], YPara0_h[5], YPara0_h[6],
+            YPara0_h[0], YPara0_h[1], YPara0_h[2], 
+            //YPara0_h[3], YPara0_h[4], YPara0_h[5], YPara0_h[6],
             // Y方向權重 YPara2 (7個)
-            YPara2_h[0], YPara2_h[1], YPara2_h[2], YPara2_h[3],
-            YPara2_h[4], YPara2_h[5], YPara2_h[6],
+            YPara2_h[0], YPara2_h[1], YPara2_h[2], 
+            //YPara2_h[3], YPara2_h[4], YPara2_h[5], YPara2_h[6],
             // Xi方向權重 F1 (7個)
             XiParaF1_h[0], XiParaF1_h[1], XiParaF1_h[2], XiParaF1_h[3],
             XiParaF1_h[4], XiParaF1_h[5], XiParaF1_h[6],
@@ -280,17 +281,13 @@ int main() {
             XiParaF8_h[0], XiParaF8_h[1], XiParaF8_h[2], XiParaF8_h[3],
             XiParaF8_h[4], XiParaF8_h[5], XiParaF8_h[6],
             // BFL Y方向權重 F3 (7個)
-            YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], YBFLParaF3_h[3],
-            YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
+            YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], //YBFLParaF3_h[3], YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
             // BFL Y方向權重 F1 (7個)
-            YBFLParaF1_h[0], YBFLParaF1_h[1], YBFLParaF1_h[2], YBFLParaF1_h[3],
-            YBFLParaF1_h[4], YBFLParaF1_h[5], YBFLParaF1_h[6],
+            YBFLParaF1_h[0], YBFLParaF1_h[1], YBFLParaF1_h[2], //YBFLParaF1_h[3], YBFLParaF1_h[4], YBFLParaF1_h[5], YBFLParaF1_h[6],
             // BFL Y方向權重 F7 (7個)
-            YBFLParaF7_h[0], YBFLParaF7_h[1], YBFLParaF7_h[2], YBFLParaF7_h[3],
-            YBFLParaF7_h[4], YBFLParaF7_h[5], YBFLParaF7_h[6],
+            YBFLParaF7_h[0], YBFLParaF7_h[1], YBFLParaF7_h[2], //YBFLParaF7_h[3], YBFLParaF7_h[4], YBFLParaF7_h[5], YBFLParaF7_h[6],
             // BFL Y方向權重 F8 (7個)
-            YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], YBFLParaF8_h[3],
-            YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
+            YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], //YBFLParaF8_h[3],  YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
             // BFL Xi方向權重 F3 (7個)
             XiBFLParaF3_h[0], XiBFLParaF3_h[1], XiBFLParaF3_h[2], XiBFLParaF3_h[3],
             XiBFLParaF3_h[4], XiBFLParaF3_h[5], XiBFLParaF3_h[6],

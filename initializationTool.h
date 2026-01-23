@@ -85,7 +85,6 @@ double HillFunction_Inverse_Right(double z) {
 (           \
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
 )
-
 // 將 xi_h（已扣掉 minSize/2.0 的值）反映回連續索引 j，用於建立 xi_h 與 j 的對應
 inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double a, int N) {
     const double val = xi_val + MinSize / 2.0;   // 還原到 tanhFunction 的輸出值
@@ -151,10 +150,17 @@ double GetNonuniParameter() {
  * @return Lagrange 基底函數值
  * @see GetParameter_6th()
  */
+//降階版本
+double Lagrange_2nd(double pos , double x_i , double x1 , double x2 ){
+    double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2);
+    return Lagrange; 
+}
+
 double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
 }
+
 //給我一個編號，產生該Y值所對應的七個無因次化座標
 void RelationXi(double nonintindex, double L , double MinSize , double a , int N , double* RelationXi){
     int i = (int)floor(nonintindex);
@@ -181,6 +187,16 @@ void RelationXi(double nonintindex, double L , double MinSize , double a , int N
  * ! 確保 Para 陣列已正確分配記憶體
  * @see Lagrange_6th()
  */
+//降階版本
+void GetParameter_2nd(
+    double *Para_h[3],      double Position,
+    double *Pos,            int i,              int n  )
+{
+    Para_h[0][i] = Lagrange_2nd(Position, Pos[n],   Pos[n+1], Pos[n+2]);
+    Para_h[1][i] = Lagrange_2nd(Position, Pos[n+1], Pos[n],   Pos[n+2]);
+    Para_h[2][i] = Lagrange_2nd(Position, Pos[n+2], Pos[n],   Pos[n+1]);
+    
+}
 void GetParameter_6th(
     double *Para_h[7],      double Position,
     double *Pos,            int i,              int n  )

@@ -70,15 +70,19 @@ inline void AllocateWeightArray(
  */
 inline void AllocateAllWeightArrays() {
     const int lenY = NY6;
-    const int lenXi = 7 * NY6 * NZ6; //Z 方向曲面插值需要 (7 layers)
-
+    //const int lenXi = 7 * NY6 * NZ6; //Z 方向曲面插值需要 (7 layers)
+    //降階版本，只需要三層 
+    const int lenXi = 3 * NY6 * NZ6; //Z 方向曲面插值需要 (3 layers)
     std::cout << "==================================================================" << std::endl;
-    std::cout << "  Allocate memory for XiPara[7][7*NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
+    std::cout << "  Allocate memory for XiPara[7][3*NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
     std::cout << "==================================================================" << std::endl;
 
     // 外部宣告的指標陣列（假設已在 main.cpp 中宣告）
-    extern double* YPara0_h[7];
-    extern double* YPara2_h[7];
+    //extern double* YPara0_h[7];
+    //extern double* YPara2_h[7];
+    //降階版本 
+    extern double* YPara0_h[3];
+    extern double* YPara2_h[3];
     extern double* XiParaF1_h[7];
     extern double* XiParaF2_h[7];
     extern double* XiParaF3_h[7];
@@ -87,10 +91,15 @@ inline void AllocateAllWeightArrays() {
     extern double* XiParaF6_h[7];
     extern double* XiParaF7_h[7];
     extern double* XiParaF8_h[7];
-    extern double* YBFLParaF1_h[7];
-    extern double* YBFLParaF3_h[7];
-    extern double* YBFLParaF7_h[7];
-    extern double* YBFLParaF8_h[7];
+    //降階版本 
+    //extern double* YBFLParaF1_h[7];
+    //extern double* YBFLParaF3_h[7];
+    //extern double* YBFLParaF7_h[7];
+    //extern double* YBFLParaF8_h[7];
+    extern double* YBFLParaF1_h[3];
+    extern double* YBFLParaF3_h[3];
+    extern double* YBFLParaF7_h[3];
+    extern double* YBFLParaF8_h[3];
     extern double* XiBFLParaF1_h[7];
     extern double* XiBFLParaF3_h[7];
     extern double* XiBFLParaF7_h[7];
@@ -100,10 +109,15 @@ inline void AllocateAllWeightArrays() {
     // Y 方向插值權重
     //-------------------------------------------------------------------------
     std::cout << "[1/4] Y-direction interpolation weights..." << std::endl;
-    AllocateWeightArray(YPara0_h, YPara0_buf, 7, lenY);
-    AllocateWeightArray(YPara2_h, YPara2_buf, 7, lenY);
-    std::cout << " Configuration: 2 arrays × 7 weights × " << lenY << " points " << std::endl;
-    std::cout << " Size: " << (2 * 7 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
+    //AllocateWeightArray(YPara0_h, YPara0_buf, 7, lenY);
+    //AllocateWeightArray(YPara2_h, YPara2_buf, 7, lenY);
+    //降階版本
+    AllocateWeightArray(YPara0_h, YPara0_buf, 3, lenY);
+    AllocateWeightArray(YPara2_h, YPara2_buf, 3, lenY);
+    //std::cout << " Configuration: 2 arrays × 7 weights × " << lenY << " points " << std::endl;
+    std::cout << " Configuration: 2 arrays × 3 weights × " << lenY << " points " << std::endl;
+    //std::cout << " Size: " << (2 * 7 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
+    std::cout << " Size: " << (2 * 3 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
 
     //-------------------------------------------------------------------------
     // Xi 方向插值權重 (F1~F8)
@@ -124,12 +138,19 @@ inline void AllocateAllWeightArrays() {
     // BFL Y 方向權重
     //-------------------------------------------------------------------------
     std::cout << "[3/4] BFL Y-direction interpolation weights..." << std::endl;
-    AllocateWeightArray(YBFLParaF1_h, YBFLParaF1_buf, 7, lenY);
-    AllocateWeightArray(YBFLParaF3_h, YBFLParaF3_buf, 7, lenY);
-    AllocateWeightArray(YBFLParaF7_h, YBFLParaF7_buf, 7, lenY);
-    AllocateWeightArray(YBFLParaF8_h, YBFLParaF8_buf, 7, lenY);
-    std::cout << " Configuration: 4 arrays × 7 weights × " << lenY << " points" << std::endl;
-    std::cout << " Size: " << (4 * 7 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
+    //AllocateWeightArray(YBFLParaF1_h, YBFLParaF1_buf, 7, lenY);
+    //AllocateWeightArray(YBFLParaF3_h, YBFLParaF3_buf, 7, lenY);
+    //AllocateWeightArray(YBFLParaF7_h, YBFLParaF7_buf, 7, lenY);
+    //AllocateWeightArray(YBFLParaF8_h, YBFLParaF8_buf, 7, lenY);
+    //std::cout << " Configuration: 4 arrays × 7 weights × " << lenY << " points" << std::endl;
+    //std::cout << " Size: " << (4 * 7 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
+    //降接版本
+    AllocateWeightArray(YBFLParaF1_h, YBFLParaF1_buf, 3, lenY);
+    AllocateWeightArray(YBFLParaF3_h, YBFLParaF3_buf, 3, lenY);
+    AllocateWeightArray(YBFLParaF7_h, YBFLParaF7_buf, 3, lenY);
+    AllocateWeightArray(YBFLParaF8_h, YBFLParaF8_buf, 3, lenY);
+    std::cout << " Configuration: 4 arrays × 3 weights × " << lenY << " points" << std::endl;
+    std::cout << " Size: " << (4 * 3 * lenY * sizeof(double)) / 1024.0 << " KB" << std::endl;
 
     //-------------------------------------------------------------------------
     // BFL Xi 方向權重
@@ -146,9 +167,9 @@ inline void AllocateAllWeightArrays() {
     // 統計總計
     //-------------------------------------------------------------------------
     double totalMB = (
-        2 * 7 * lenY +      // Y 方向
+        2 * 3 * lenY +      // Y 方向
         8 * 7 * lenXi +     // Xi 方向
-        4 * 7 * lenY +      // BFL Y
+        4 * 3 * lenY +      // BFL Y
         4 * 7 * lenXi       // BFL Xi
     ) * sizeof(double) / (1024.0 * 1024.0);
 

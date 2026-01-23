@@ -29,7 +29,7 @@ void InitialUsingDftFunc() {
                                                     3.0 *(e[dir][0] * v[index] + e[dir][1] * w[index])+          //1階項
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
-        //離散化宏觀外立場的初始化initilaoization of the discrete macroscopic force term
+        //離散化\ 宏觀\ 外立\ 場的初始化initilaoization of the discrete macroscopic force term
         Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //0.0001;
         Force[1] = 0.0;  // Z 方向無外力
 }
@@ -82,7 +82,9 @@ void GenerateMesh_Z() {
 
 
 void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k, int* CellZ_out)
-{   //越界防呆
+{   //index_xi , j.  k:為當前座標點 
+    //CellZ_out[idx_xi] : 為當前座標點的內插成員起始點Z座標
+    //越界防呆
     if(j<3) j = j + NY6-7 ;
     if(j>NY6-4) j = j - (NY6-7) ;
     //Z方向係數編號系統(第二格)  = (j+relation)*NZ6 + k  ; relation:1~7
@@ -101,15 +103,15 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     //關於 RelationXi 的 j_cont：RelationXi 使用 j_cont 來決定 Z 座標的生成
     //但 cell_z 決定的是從哪個 k 索引開始讀取分佈函數資料
     //由於分佈函數存儲在規則網格上，stencil 起點應基於目標 k
-    int cell_z1 = k-3;
-    if( k <= 6 )    cell_z1 = 3;
-    if( k >= NZ6-7) cell_z1 = NZ6-10;
-
-    // 存儲計算好的 stencil 起點
+    int cell_z1 = k-3 ; 
+    if(k<3) cell_z1 = 0 ; 
+    if(k>NZ6-4) cell_z1 = NZ6-7 ;
+    //預先計算 內插成員起始點座標編號Z座標 
     if(CellZ_out != nullptr) {
         CellZ_out[index_xi] = cell_z1;//儲存Z方向的內插成員座標起始點
         } 
-    //給我一個double 給出相對應七個內插的無因次化座標
+    //y方向為七點版本
+    /*/給我一個double 給出相對應七個內插的無因次化座標
     double RelationXi_0[7] ; //(j-3)
     double LT = LZ - HillFunction(y_global[j-3]) - minSize;
     double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
@@ -150,14 +152,33 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     LT = LZ - HillFunction(y_global[j+3]) - minSize;
     pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_6);//寫入第七套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NY6*NZ6] ~ XiPara_h[6][index_xi + 6*NY6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NY6*NZ6] ~ XiPara_h[6][index_xi + 6*NY6*NZ6]*/
+    
+    //y方向為三點版本
+    double RelationXi_0[7] ; //(j-1)
+    double LT = LZ - HillFunction(y_global[j-1]) - minSize;
+    double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    
+    double RelationXi_1[7] ; //(j-0)
+    LT = LZ - HillFunction(y_global[j-0]) - minSize;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
+    
+    double RelationXi_2[7] ; //(j+1)
+    LT = LZ - HillFunction(y_global[j+1]) - minSize;
+    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
+    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
 }
 
-
+//降階版本 
 void GetIntrplParameter_Y() {
-    for( int i = 3; i < NY6-3; i++ ){
-        GetParameter_6th( YPara0_h, y_global[i]-minSize, y_global, i, i-3 );//使用在F1，作為y方向預配置連乘權重一維連續記憶體 
-        GetParameter_6th( YPara2_h, y_global[i]+minSize, y_global, i, i-3 );//使用在F3，作為y方向預配置連乘權重一維連續記憶體 
+    for( int j = 3; j < NY6-3; j++ ){
+        GetParameter_2nd( YPara0_h, y_global[j]-minSize, y_global, j, j-1 );//使用在F1，作為y方向預配置連乘權重一維連續記憶體 
+        GetParameter_2nd( YPara2_h, y_global[j]+minSize, y_global, j, j-1 );//使用在F3，作為y方向預配置連乘權重一維連續記憶體 
     }
 }
 
@@ -179,15 +200,15 @@ void GetIntrplParameter_Xi() {
             // F2 (0,+Z): 從 (y, z-Δ) 來
             GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k, CellZ_F2);
             // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移
-            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize,  j*NZ6+k , j,  k, CellZ_F3);
+            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j*NZ6+k , j,  k, CellZ_F3);
             // F4 (0,-Z): 從 (y, z+Δ) 來
-            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],          j*NZ6+k , j,  k, CellZ_F4);
+            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         j*NZ6+k , j,  k, CellZ_F4);
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
-            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize,  j*NZ6+k , j,  k, CellZ_F5);
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j*NZ6+k , j,  k, CellZ_F5);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
-            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize,  j*NZ6+k , j,  k, CellZ_F6);
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j*NZ6+k , j,  k, CellZ_F6);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
-            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize,  j*NZ6+k , j,  k, CellZ_F7);
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j*NZ6+k , j,  k, CellZ_F7);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
             GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k, CellZ_F8);
     }}
@@ -208,7 +229,9 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
                 double delta1 = minSize * (1.0 - 2.0*q1);
                 // BFL 反彈點在 +Y 方向: y + delta, z 不變
-                GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
+                //GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
+                //降階版本
+                GetParameter_2nd(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-1);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
                 GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1,  j*NZ6+k , j,  k, nullptr) ;
                 Q1_h[j*NZ6+k] = q1;
             }
@@ -219,7 +242,9 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
                 double delta3 = minSize * (1.0 - 2.0*q3);
                 // BFL 反彈點在 -Y 方向: y - delta, z 不變
-                GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
+                //GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
+                //降階版本
+                GetParameter_2nd(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-1);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
                 GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3,  j*NZ6+k , j,  k, nullptr);
                 Q3_h[j*NZ6+k] = q3;
             }
@@ -230,7 +255,9 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
                 double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
                 // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
-                GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-3);
+                //GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-3);
+                //降階版本
+                GetParameter_2nd(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-1);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
                 GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5,  j*NZ6+k , j,  k, nullptr);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
                 Q5_h[j*NZ6+k] = q5;
             }
@@ -241,14 +268,13 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
                 double delta6 = minSize * (1.0 - 2.0*q6) / std::sqrt(2.0);
                 // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
-                GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
+                //GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
+                //降階版本
+                GetParameter_2nd(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-1);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
                 GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6,  j*NZ6+k , j,  k, nullptr);
                 Q6_h[j*NZ6+k] = q6;
             }
         }
     }
 }
-
-
-
 #endif 

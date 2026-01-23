@@ -34,10 +34,13 @@ extern double nonuni_a;                 // 非均勻網格參數 a（預先計�
 //=============================================================================
 // Y 方向插值權重（一般）
 //=============================================================================
-
+/*
 extern double* YPara0_h[7];             // F1 使用
 extern double* YPara2_h[7];             // F3 使用
-
+*/
+//降階版本
+extern double* YPara0_h[3];             // F1 使用
+extern double* YPara2_h[3];             // F3 使用
 //=============================================================================
 // Xi 方向插值權重（一般）F1~F8
 //=============================================================================
@@ -55,10 +58,15 @@ extern double* XiParaF8_h[7];           // F8 (+Y,-Z)
 // BFL Y 方向插值權重
 //=============================================================================
 
-extern double* YBFLParaF1_h[7];         // 更新 F3 時使用（從 F1 插值）
+/*extern double* YBFLParaF1_h[7];         // 更新 F3 時使用（從 F1 插值）
 extern double* YBFLParaF3_h[7];         // 更新 F1 時使用（從 F3 插值）
 extern double* YBFLParaF7_h[7];         // 更新 F5 時使用（從 F7 插值）
-extern double* YBFLParaF8_h[7];         // 更新 F6 時使用（從 F8 插值）
+extern double* YBFLParaF8_h[7];         // 更新 F6 時使用（從 F8 插值*/
+//降階版本 
+extern double* YBFLParaF1_h[3];         // 更新 F3 時使用（從 F1 插值）
+extern double* YBFLParaF3_h[3];         // 更新 F1 時使用（從 F3 插值）
+extern double* YBFLParaF7_h[3];         // 更新 F5 時使用（從 F7 插值）
+extern double* YBFLParaF8_h[3];         // 更新 F6 時使用（從 F8 插值）
 
 //=============================================================================
 // BFL Xi 方向插值權重
@@ -82,13 +90,13 @@ extern double Q6_h[NY6 * NZ6];          // F6 邊界點的 q 值
 // Stencil 起點索引（基於來源點位置預先計算）
 //=============================================================================
 
-extern int CellZ_F1[NY6 * NZ6];         // F1 方向的 Z stencil 起點
-extern int CellZ_F2[NY6 * NZ6];         // F2 方向的 Z stencil 起點
-extern int CellZ_F3[NY6 * NZ6];         // F3 方向的 Z stencil 起點
-extern int CellZ_F4[NY6 * NZ6];         // F4 方向的 Z stencil 起點
-extern int CellZ_F5[NY6 * NZ6];         // F5 方向的 Z stencil 起點
-extern int CellZ_F6[NY6 * NZ6];         // F6 方向的 Z stencil 起點
-extern int CellZ_F7[NY6 * NZ6];         // F7 方向的 Z stencil 起點
-extern int CellZ_F8[NY6 * NZ6];         // F8 方向的 Z stencil 起點
+extern int CellZ_F1[NY6 * NZ6];         // F1 方向的 Z stencil 起點編號 (三排或七排可共用 )
+extern int CellZ_F2[NY6 * NZ6];         // F2 方向的 Z stencil 起點編號
+extern int CellZ_F3[NY6 * NZ6];         // F3 方向的 Z stencil 起點編號
+extern int CellZ_F4[NY6 * NZ6];         // F4 方向的 Z stencil 起點編號
+extern int CellZ_F5[NY6 * NZ6];         // F5 方向的 Z stencil 起點編號
+extern int CellZ_F6[NY6 * NZ6];         // F6 方向的 Z stencil 起點編號 (三排或七排可共用 )
+extern int CellZ_F7[NY6 * NZ6];         // F7 方向的 Z stencil 起點編號 (三排或七排可共用 )
+extern int CellZ_F8[NY6 * NZ6];         // F8 方向的 Z stencil 起點編號 (三排或七排可共用 )
 
 #endif // GLOBALVARIABLES_H

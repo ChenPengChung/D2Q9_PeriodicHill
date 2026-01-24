@@ -59,14 +59,14 @@ double* YPara2_h[3];
 // 2.6 Xi方向插值權重 (每個速度方向各一組)
 // 維度: [7個權重][NY6*NZ6個計算點]
 //-----------------------------------------------------------------------------
-double* XiParaF1_h[3];
-double* XiParaF2_h[3];
-double* XiParaF3_h[3];
-double* XiParaF4_h[3];
-double* XiParaF5_h[3];
-double* XiParaF6_h[3];
-double* XiParaF7_h[3];
-double* XiParaF8_h[3];
+double* XiParaF1_h[7];
+double* XiParaF2_h[7];
+double* XiParaF3_h[7];
+double* XiParaF4_h[7];
+double* XiParaF5_h[7];
+double* XiParaF6_h[7];
+double* XiParaF7_h[7];
+double* XiParaF8_h[7];
 //-----------------------------------------------------------------------------
 // 2.7 BFL邊界條件：Y方向插值權重
 // 命名規則：YBFLParaF*_h 中的 F* 表示「用來插值 F* 分佈函數」
@@ -82,10 +82,10 @@ double* YBFLParaF8_h[3];
 //-----------------------------------------------------------------------------
 // 2.8 BFL邊界條件：Xi方向插值權重
 //-----------------------------------------------------------------------------
-double* XiBFLParaF3_h[3];
-double* XiBFLParaF1_h[3];
-double* XiBFLParaF7_h[3];
-double* XiBFLParaF8_h[3];
+double* XiBFLParaF3_h[7];
+double* XiBFLParaF1_h[7];
+double* XiBFLParaF7_h[7];
+double* XiBFLParaF8_h[7];
 //-----------------------------------------------------------------------------
 // 2.9 BFL邊界條件：無因次化距離 q
 // q = 計算點到壁面的距離 / minSize
@@ -125,8 +125,7 @@ const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 #include "memoryAllocator.h"
 #include "initializationTool.h"
 #include "initialization.h"
-//#include "InterpolationHillISLBM.h"
-#include "InterpolationHillISLBM_3pt.h"
+#include "InterpolationHillISLBM.h"
 #include "MRT_Matrix.h"
 #include "MRT_Process.h"
 #include "evolution.h"
@@ -315,29 +314,29 @@ int main() {
             YPara2_h[0], YPara2_h[1], YPara2_h[2], 
             //YPara2_h[3], YPara2_h[4], YPara2_h[5], YPara2_h[6],
             // Xi方向權重 F1 (7個)
-            XiParaF1_h[0], XiParaF1_h[1], XiParaF1_h[2], 
-            //XiParaF1_h[3], XiParaF1_h[4], XiParaF1_h[5], XiParaF1_h[6],
+            XiParaF1_h[0], XiParaF1_h[1], XiParaF1_h[2], XiParaF1_h[3],
+            XiParaF1_h[4], XiParaF1_h[5], XiParaF1_h[6],
             // Xi方向權重 F2 (7個)
-            XiParaF2_h[0], XiParaF2_h[1], XiParaF2_h[2], 
-            //XiParaF2_h[3], XiParaF2_h[4], XiParaF2_h[5], XiParaF2_h[6],
+            XiParaF2_h[0], XiParaF2_h[1], XiParaF2_h[2], XiParaF2_h[3],
+            XiParaF2_h[4], XiParaF2_h[5], XiParaF2_h[6],
             // Xi方向權重 F3 (7個)
-            XiParaF3_h[0], XiParaF3_h[1], XiParaF3_h[2], 
-            //XiParaF3_h[3], XiParaF3_h[4], XiParaF3_h[5], XiParaF3_h[6],
+            XiParaF3_h[0], XiParaF3_h[1], XiParaF3_h[2], XiParaF3_h[3],
+            XiParaF3_h[4], XiParaF3_h[5], XiParaF3_h[6],
             // Xi方向權重 F4 (7個)
-            XiParaF4_h[0], XiParaF4_h[1], XiParaF4_h[2], 
-            //XiParaF4_h[3], XiParaF4_h[4], XiParaF4_h[5], XiParaF4_h[6],
+            XiParaF4_h[0], XiParaF4_h[1], XiParaF4_h[2], XiParaF4_h[3],
+            XiParaF4_h[4], XiParaF4_h[5], XiParaF4_h[6],
             // Xi方向權重 F5 (7個)
-            XiParaF5_h[0], XiParaF5_h[1], XiParaF5_h[2], 
-            //XiParaF5_h[3], XiParaF5_h[4], XiParaF5_h[5], XiParaF5_h[6],
+            XiParaF5_h[0], XiParaF5_h[1], XiParaF5_h[2], XiParaF5_h[3],
+            XiParaF5_h[4], XiParaF5_h[5], XiParaF5_h[6],
             // Xi方向權重 F6 (7個)
-            XiParaF6_h[0], XiParaF6_h[1], XiParaF6_h[2], 
-            //XiParaF6_h[3], XiParaF6_h[4], XiParaF6_h[5], XiParaF6_h[6],
+            XiParaF6_h[0], XiParaF6_h[1], XiParaF6_h[2], XiParaF6_h[3],
+            XiParaF6_h[4], XiParaF6_h[5], XiParaF6_h[6],
             // Xi方向權重 F7 (7個)
-            XiParaF7_h[0], XiParaF7_h[1], XiParaF7_h[2], 
-            //XiParaF7_h[3], XiParaF7_h[4], XiParaF7_h[5], XiParaF7_h[6],
+            XiParaF7_h[0], XiParaF7_h[1], XiParaF7_h[2], XiParaF7_h[3],
+            XiParaF7_h[4], XiParaF7_h[5], XiParaF7_h[6],
             // Xi方向權重 F8 (7個)
-            XiParaF8_h[0], XiParaF8_h[1], XiParaF8_h[2],
-            //XiParaF8_h[3], XiParaF8_h[4], XiParaF8_h[5], XiParaF8_h[6],
+            XiParaF8_h[0], XiParaF8_h[1], XiParaF8_h[2], XiParaF8_h[3],
+            XiParaF8_h[4], XiParaF8_h[5], XiParaF8_h[6],
             // BFL Y方向權重 F3 (7個)
             YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], //YBFLParaF3_h[3], YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
             // BFL Y方向權重 F1 (7個)
@@ -347,17 +346,17 @@ int main() {
             // BFL Y方向權重 F8 (7個)
             YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], //YBFLParaF8_h[3],  YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
             // BFL Xi方向權重 F3 (7個)
-            XiBFLParaF3_h[0], XiBFLParaF3_h[1], XiBFLParaF3_h[2], 
-            //XiBFLParaF3_h[3], XiBFLParaF3_h[4], XiBFLParaF3_h[5], XiBFLParaF3_h[6],
+            XiBFLParaF3_h[0], XiBFLParaF3_h[1], XiBFLParaF3_h[2], XiBFLParaF3_h[3],
+            XiBFLParaF3_h[4], XiBFLParaF3_h[5], XiBFLParaF3_h[6],
             // BFL Xi方向權重 F1 (7個)
-            XiBFLParaF1_h[0], XiBFLParaF1_h[1], XiBFLParaF1_h[2], 
-            //XiBFLParaF1_h[3], XiBFLParaF1_h[4], XiBFLParaF1_h[5], XiBFLParaF1_h[6],
+            XiBFLParaF1_h[0], XiBFLParaF1_h[1], XiBFLParaF1_h[2], XiBFLParaF1_h[3],
+            XiBFLParaF1_h[4], XiBFLParaF1_h[5], XiBFLParaF1_h[6],
             // BFL Xi方向權重 F7 (7個)
-            XiBFLParaF7_h[0], XiBFLParaF7_h[1], XiBFLParaF7_h[2], 
-            //XiBFLParaF7_h[3],bXiBFLParaF7_h[4], XiBFLParaF7_h[5], XiBFLParaF7_h[6],
+            XiBFLParaF7_h[0], XiBFLParaF7_h[1], XiBFLParaF7_h[2], XiBFLParaF7_h[3],
+            XiBFLParaF7_h[4], XiBFLParaF7_h[5], XiBFLParaF7_h[6],
             // BFL Xi方向權重 F8 (7個)
-            XiBFLParaF8_h[0], XiBFLParaF8_h[1], XiBFLParaF8_h[2], 
-            //XiBFLParaF8_h[3], XiBFLParaF8_h[4], XiBFLParaF8_h[5], XiBFLParaF8_h[6],
+            XiBFLParaF8_h[0], XiBFLParaF8_h[1], XiBFLParaF8_h[2], XiBFLParaF8_h[3],
+            XiBFLParaF8_h[4], XiBFLParaF8_h[5], XiBFLParaF8_h[6],
             // 宏觀參數
             v, w, rho, Force, rho_modify,
             // BFL q值

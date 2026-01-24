@@ -167,18 +167,13 @@ void RelationXi(int k , double L , double MinSize , double a , int N , double* R
     int j = k-3 ; 
     if (j <3)  j =3 ;
     if (j > N-4) j = N-4 ;
-    /*高階版本
     RelationXi[0] = tanhFunction( L , MinSize , a, j-3 , N) - MinSize/2.0;
     RelationXi[1] = tanhFunction( L , MinSize , a, j-2 , N) - MinSize/2.0;
     RelationXi[2] = tanhFunction( L , MinSize , a, j-1 , N) - MinSize/2.0;
     RelationXi[3] = tanhFunction( L , MinSize , a, j , N) - MinSize/2.0;
     RelationXi[4] = tanhFunction( L , MinSize , a, j+1 , N) - MinSize/2.0;
     RelationXi[5] = tanhFunction( L , MinSize , a, j+2 , N) - MinSize/2.0;
-    RelationXi[6] = tanhFunction( L , MinSize , a, j+3 , N) - MinSize/2.0;*/
-    //降階版本 
-    RelationXi[0] = tanhFunction( L , MinSize , a, j-1 , N) - MinSize/2.0;
-    RelationXi[1] = tanhFunction( L , MinSize , a, j , N) - MinSize/2.0;
-    RelationXi[2] = tanhFunction( L , MinSize , a, j+1 , N) - MinSize/2.0;
+    RelationXi[6] = tanhFunction( L , MinSize , a, j+3 , N) - MinSize/2.0;
 }
 
 //6.
@@ -201,6 +196,7 @@ void GetParameter_2nd(
     Para_h[0][i] = Lagrange_2nd(Position, Pos[n],   Pos[n+1], Pos[n+2]);
     Para_h[1][i] = Lagrange_2nd(Position, Pos[n+1], Pos[n],   Pos[n+2]);
     Para_h[2][i] = Lagrange_2nd(Position, Pos[n+2], Pos[n],   Pos[n+1]);
+    
 }
 void GetParameter_6th(
     double *Para_h[7],      double Position,
@@ -215,15 +211,7 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-
-void GetParameter_2nd2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
-    const int layer_stride = NY6 * NZ6;
-    const int base = index_xi + r * layer_stride;
-    XiPara[0][base] = Lagrange_2nd(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2]); 
-    XiPara[1][base] = Lagrange_2nd(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2]); 
-    XiPara[2][base] = Lagrange_2nd(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1]);  
-}
-
+//此為錯誤配值權重，因為hyperbolic tangent 為非線性映射關係 
 void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
     const int layer_stride = NY6 * NZ6;
     const int base = index_xi + r * layer_stride;

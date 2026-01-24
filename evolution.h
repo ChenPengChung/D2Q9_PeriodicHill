@@ -3,8 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-//#include "InterpolationHillISLBM.h"
-#include "InterpolationHillISLBM_3pt.h"
+#include "InterpolationHillISLBM.h"
+
 #include "initialization.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
@@ -71,24 +71,24 @@ void stream_collide(
     double *Y0_0,  double *Y0_1, double *Y0_2,  //double *Y0_3,  double *Y0_4,  double *Y0_5,  double *Y0_6,  //(處理F1,F5,F8等等y方向插值問題)
     double *Y2_0,  double *Y2_1,  double *Y2_2,  //double *Y2_3,  double *Y2_4,  double *Y2_5,  double *Y2_6, //(處理F3,F6,F7等等y方向插值問題)
     //Z方向預配置連乘權重一維連續記憶體
-    double* XiF1_0, double* XiF1_1, double* XiF1_2, // double* XiF1_3, double* XiF1_4, double* XiF1_5, double* XiF1_6,
-    double* XiF2_0, double* XiF2_1, double* XiF2_2, //double* XiF2_3, double* XiF2_4, double* XiF2_5, double* XiF2_6,
-    double* XiF3_0, double* XiF3_1, double* XiF3_2, //double* XiF3_3, double* XiF3_4, double* XiF3_5, double* XiF3_6,
-    double* XiF4_0, double* XiF4_1, double* XiF4_2, //double* XiF4_3, double* XiF4_4, double* XiF4_5, double* XiF4_6,
-    double* XiF5_0, double* XiF5_1, double* XiF5_2, //double* XiF5_3, double* XiF5_4, double* XiF5_5, double* XiF5_6,
-    double* XiF6_0, double* XiF6_1, double* XiF6_2, //double* XiF6_3, double* XiF6_4, double* XiF6_5, double* XiF6_6,
-    double* XiF7_0, double* XiF7_1, double* XiF7_2, //double* XiF7_3, double* XiF7_4, double* XiF7_5, double* XiF7_6,
-    double* XiF8_0, double* XiF8_1, double* XiF8_2, //double* XiF8_3, double* XiF8_4, double* XiF8_5, double* XiF8_6,
+    double* XiF1_0, double* XiF1_1, double* XiF1_2, double* XiF1_3, double* XiF1_4, double* XiF1_5, double* XiF1_6,
+    double* XiF2_0, double* XiF2_1, double* XiF2_2, double* XiF2_3, double* XiF2_4, double* XiF2_5, double* XiF2_6,
+    double* XiF3_0, double* XiF3_1, double* XiF3_2, double* XiF3_3, double* XiF3_4, double* XiF3_5, double* XiF3_6,
+    double* XiF4_0, double* XiF4_1, double* XiF4_2, double* XiF4_3, double* XiF4_4, double* XiF4_5, double* XiF4_6,
+    double* XiF5_0, double* XiF5_1, double* XiF5_2, double* XiF5_3, double* XiF5_4, double* XiF5_5, double* XiF5_6,
+    double* XiF6_0, double* XiF6_1, double* XiF6_2, double* XiF6_3, double* XiF6_4, double* XiF6_5, double* XiF6_6,
+    double* XiF7_0, double* XiF7_1, double* XiF7_2, double* XiF7_3, double* XiF7_4, double* XiF7_5, double* XiF7_6,
+    double* XiF8_0, double* XiF8_1, double* XiF8_2, double* XiF8_3, double* XiF8_4, double* XiF8_5, double* XiF8_6,
     //BFL邊界條件(q<0.5)v下的y方向預配置連乘權重一維連續記憶體
     double* YBFLF3_0, double* YBFLF3_1, double* YBFLF3_2, //double* YBFLF3_3, double* YBFLF3_4, double* YBFLF3_5, double* YBFLF3_6,
     double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, //double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
     double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, //double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
     double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, //double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
     //BFL邊界條件(q<0.5)v下的z方向預配置連乘權重一維連續記憶體
-    double* XiBFLF3_0, double* XiBFLF3_1, double* XiBFLF3_2, //double* XiBFLF3_3, double* XiBFLF3_4, double* XiBFLF3_5, double* XiBFLF3_6,
-    double* XiBFLF1_0, double* XiBFLF1_1, double* XiBFLF1_2, //double* XiBFLF1_3, double* XiBFLF1_4, double* XiBFLF1_5, double* XiBFLF1_6,
-    double* XiBFLF7_0, double* XiBFLF7_1, double* XiBFLF7_2, //double* XiBFLF7_3, double* XiBFLF7_4, double* XiBFLF7_5, double* XiBFLF7_6,
-    double* XiBFLF8_0, double* XiBFLF8_1, double* XiBFLF8_2, //double* XiBFLF8_3, double* XiBFLF8_4, double* XiBFLF8_5, double* XiBFLF8_6,
+    double* XiBFLF3_0, double* XiBFLF3_1, double* XiBFLF3_2, double* XiBFLF3_3, double* XiBFLF3_4, double* XiBFLF3_5, double* XiBFLF3_6,
+    double* XiBFLF1_0, double* XiBFLF1_1, double* XiBFLF1_2, double* XiBFLF1_3, double* XiBFLF1_4, double* XiBFLF1_5, double* XiBFLF1_6,
+    double* XiBFLF7_0, double* XiBFLF7_1, double* XiBFLF7_2, double* XiBFLF7_3, double* XiBFLF7_4, double* XiBFLF7_5, double* XiBFLF7_6,
+    double* XiBFLF8_0, double* XiBFLF8_1, double* XiBFLF8_2, double* XiBFLF8_3, double* XiBFLF8_4, double* XiBFLF8_5, double* XiBFLF8_6,
     //宏觀參數
     double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
     //BFL邊界條件無因次化距離q
@@ -117,9 +117,9 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //1.Interpolation and Streaming
         //使用預計算的 stencil 起點（基於來源點位置計算，與 RelationXi 一致）
         //
-        int cell_z = k-1;
-        if( k <= 4 )    cell_z = 3;
-        if( k >= NZ6-5) cell_z = NZ6-6;
+        int cell_z = k-3;
+        if( k <= 6 )    cell_z = 3;
+        if( k >= NZ6-7) cell_z = NZ6-10;
        //========== 邊界判斷 ==========
         bool is_bottom = (k <= 6);   // 擴大範圍以保護 7-point stencil
         bool is_top = (k >= NZ6-7);   // 擴大範圍以保護 7-point stencil
@@ -197,14 +197,14 @@ for(int j = 3 ; j < NY6-3 ; j++){
             
         } else {
             // 內部區域：正常插值
-            F1_Intrpl3(f1_old,j,k,j-1,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2);
-            F3_Intrpl3(f3_old,j,k,j-1,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2);
-            F2_Intrpl3(f2_old, j,k, j-1, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2);
-            F4_Intrpl3(f4_old, j, k, j-1,cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2);
-            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2);
-            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2);
-            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2);
-            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2);
+            F1_Intrpl3(f1_old,j,k,j-1,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+            F3_Intrpl3(f3_old,j,k,j-1,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            F2_Intrpl7(f2_old, j,k, j-1, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            F4_Intrpl7(f4_old, j, k, j-1,cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
         }
 
 

@@ -153,23 +153,23 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NY6*NZ6] ~ XiPara_h[6][index_xi + 6*NY6*NZ6]*/
     
     //y方向為三點版本
-    double RelationXi_0[7] ; //(j-1)
+    double RelationXi_0[3] ; //(j-1)
     double LT = LZ - HillFunction(y_global[j-1]) - minSize;
     double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    GetParameter_2nd2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
     
-    double RelationXi_1[7] ; //(j-0)
+    double RelationXi_1[3] ; //(j-0)
     LT = LZ - HillFunction(y_global[j-0]) - minSize;
     pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
+    GetParameter_2nd2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
     
-    double RelationXi_2[7] ; //(j+1)
+    double RelationXi_2[3] ; //(j+1)
     LT = LZ - HillFunction(y_global[j+1]) - minSize;
     pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k , LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
+    GetParameter_2nd2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
 }
 
 //降階版本 

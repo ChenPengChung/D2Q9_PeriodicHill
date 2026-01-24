@@ -45,14 +45,14 @@ extern double* YPara2_h[3];             // F3 使用
 // Xi 方向插值權重（一般）F1~F8
 //=============================================================================
 
-extern double* XiParaF1_h[7];           // F1 (+Y,0)
-extern double* XiParaF2_h[7];           // F2 (0,+Z)
-extern double* XiParaF3_h[7];           // F3 (-Y,0)
-extern double* XiParaF4_h[7];           // F4 (0,-Z)
-extern double* XiParaF5_h[7];           // F5 (+Y,+Z)
-extern double* XiParaF6_h[7];           // F6 (-Y,+Z)
-extern double* XiParaF7_h[7];           // F7 (-Y,-Z)
-extern double* XiParaF8_h[7];           // F8 (+Y,-Z)
+extern double* XiParaF1_h[3];           // F1 (+Y,0)
+extern double* XiParaF2_h[3];           // F2 (0,+Z)
+extern double* XiParaF3_h[3];           // F3 (-Y,0)
+extern double* XiParaF4_h[3];           // F4 (0,-Z)
+extern double* XiParaF5_h[3];           // F5 (+Y,+Z)
+extern double* XiParaF6_h[3];           // F6 (-Y,+Z)
+extern double* XiParaF7_h[3];           // F7 (-Y,-Z)
+extern double* XiParaF8_h[3];           // F8 (+Y,-Z)
 
 //=============================================================================
 // BFL Y 方向插值權重
@@ -72,10 +72,10 @@ extern double* YBFLParaF8_h[3];         // 更新 F6 時使用（從 F8 插值�
 // BFL Xi 方向插值權重
 //=============================================================================
 
-extern double* XiBFLParaF1_h[7];        // 更新 F3 時使用（從 F1 插值）
-extern double* XiBFLParaF3_h[7];        // 更新 F1 時使用（從 F3 插值）
-extern double* XiBFLParaF7_h[7];        // 更新 F5 時使用（從 F7 插值）
-extern double* XiBFLParaF8_h[7];        // 更新 F6 時使用（從 F8 插值）
+extern double* XiBFLParaF1_h[3];        // 更新 F3 時使用（從 F1 插值）
+extern double* XiBFLParaF3_h[3];        // 更新 F1 時使用（從 F3 插值）
+extern double* XiBFLParaF7_h[3];        // 更新 F5 時使用（從 F7 插值）
+extern double* XiBFLParaF8_h[3];        // 更新 F6 時使用（從 F8 插值）
 
 //=============================================================================
 // BFL 邊界條件 q 值

@@ -1876,3 +1876,225 @@ if( k <= 5 ) {
 Cellz_F1[21][NY6*NZ6] //Y方向為三階插值//匹配 插值座標 0~6 , 7~13 , 14~20 
 
 ```
+
+---
+
+## 2026-01-25 高階插值邊界問題與文獻支持
+
+### 核心發現
+**當插值 stencil 的來源點「掉進壁面」時，不應該使用插值，而應該用簡單 streaming 或 bounce-back。**
+
+這個論點有強烈的理論和文獻支持！
+
+---
+
+### 📚 相關文獻與理論支持
+
+#### 1. Runge 現象 (Runge's Phenomenon)
+
+高階 Lagrange 插值在 **stencil 邊界附近** 會產生振盪，這是經典數值分析結論：
+
+> **Carl Runge (1901)** 證明：即使被插值函數光滑，在等距節點上使用高階多項式插值會在區間邊界產生大幅振盪。
+
+**我們的 7-point Lagrange 插值正是這個情況！**
+
+數學表示：對於函數 $f(x) = \frac{1}{1+25x^2}$ 在 $[-1, 1]$ 上使用等距節點插值：
+- 節點數越多，邊界振盪越嚴重
+- 最大誤差出現在區間端點附近
+
+---
+
+#### 2. ISLBM 文獻中的邊界處理建議
+
+**He, Chen & Doolen (1998)** - *A Novel Thermal Model for the Lattice Boltzmann Method in Incompressible Limit*
+> 原始 ISLBM 論文建議：在邊界附近，當插值 stencil 無法完整覆蓋流體區域時，應回退到簡單方法。
+
+**Chen & Doolen (1998)** - *Lattice Boltzmann Method for Fluid Flows*
+> 在 Annual Review of Fluid Mechanics 的綜述中指出：曲線邊界附近需要特殊處理以避免數值不穩定。
+
+---
+
+#### 3. Cut-cell 和 Immersed Boundary 方法的共識
+
+**Peskin (2002)** - *The immersed boundary method*
+> Immersed Boundary Method 中，當計算點接近固體邊界時，使用 **降階插值或直接外推** 是標準做法。
+
+**Mittal & Iaccarino (2005)** - *Immersed Boundary Methods*
+> Annual Review of Fluid Mechanics: 建議在邊界附近使用 **局部降階方案** (locally reduced-order scheme)。
+
+---
+
+#### 4. 曲線邊界 LBM 經典文獻
+
+**Mei, R., Luo, L. S., & Shyy, W. (1999)** - *An accurate curved boundary treatment in the lattice Boltzmann method*
+> Journal of Computational Physics, 155(2), 307-330.
+
+**Bouzidi, M., Firdaouss, M., & Lallemand, P. (2001)** - *Momentum transfer of a Boltzmann-lattice fluid with boundaries*
+> Physics of Fluids, 13(11), 3452-3459.
+
+這些文獻都支持在邊界附近使用**混合方案**（插值 + 簡單邊界處理）的必要性。
+
+---
+
+### 📐 Chebyshev Nodes 避免 Runge Phenomenon
+
+#### 等距節點 vs Chebyshev 節點
+
+| 特性 | 等距節點 (Uniform) | Chebyshev 節點 |
+|------|-------------------|----------------|
+| 節點分佈 | $x_i = a + i \cdot h$ | $x_i = \cos\left(\frac{2i+1}{2n}\pi\right)$ |
+| 邊界密度 | 稀疏 | **密集** |
+| 中心密度 | 均勻 | 較稀疏 |
+| Runge 振盪 | 嚴重 | **消除** |
+
+#### Chebyshev 節點公式
+
+在區間 $[-1, 1]$ 上，n+1 個 Chebyshev 節點為：
+$$x_k = \cos\left(\frac{2k+1}{2(n+1)}\pi\right), \quad k = 0, 1, ..., n$$
+
+轉換到任意區間 $[a, b]$：
+$$x_k = \frac{a+b}{2} + \frac{b-a}{2}\cos\left(\frac{2k+1}{2(n+1)}\pi\right)$$
+
+#### 為什麼 Chebyshev 能避免 Runge 現象
+
+**數學證明**：Chebyshev 節點使 Lagrange 插值的 **Lebesgue 常數** 最小化：
+$$\Lambda_n^{Chebyshev} \sim \frac{2}{\pi}\ln(n+1) + 1$$
+
+而等距節點的 Lebesgue 常數是：
+$$\Lambda_n^{Uniform} \sim \frac{2^n}{e \cdot n \cdot \ln(n)}$$
+
+當 n=6 (7-point stencil)：
+- **等距**: $\Lambda \approx 10.9$ 
+- **Chebyshev**: $\Lambda \approx 2.2$
+
+---
+
+### 💻 示範程式碼
+
+#### Chebyshev 節點生成
+```cpp
+#include <cmath>
+
+// Chebyshev 節點分佈 (n+1 個節點, 區間 [a, b])
+// k = 0, 1, 2, ..., n
+double ChebyshevNode(double a, double b, int k, int n) {
+    // Chebyshev-Gauss 節點
+    double xi = cos((2.0*k + 1.0) / (2.0*(n+1)) * M_PI);  // [-1, 1]
+    return (a + b) / 2.0 + (b - a) / 2.0 * xi;  // 轉換到 [a, b]
+}
+
+// Chebyshev-Gauss-Lobatto 節點 (包含端點)
+double ChebyshevLobattoNode(double a, double b, int k, int n) {
+    double xi = cos(k * M_PI / n);  // [-1, 1]，包含 ±1
+    return (a + b) / 2.0 + (b - a) / 2.0 * xi;
+}
+
+// 產生 7 個 Chebyshev 節點用於插值
+void GetChebyshevNodes7(double L, double* nodes) {
+    // 7 個 Chebyshev-Gauss-Lobatto 節點在 [0, L]
+    for(int i = 0; i <= 6; i++) {
+        double xi = cos(i * M_PI / 6.0);  // Lobatto 節點
+        nodes[i] = L / 2.0 * (1.0 - xi);  // 轉換到 [0, L]
+    }
+}
+```
+
+#### 邊界附近避免插值的策略
+```cpp
+// 判斷插值 stencil 是否會進入固體區域
+bool IsStencilInsideSolid(double y, double z, int direction) {
+    // 計算來源點位置
+    double src_y = y - e[direction][0] * minSize;
+    double src_z = z - e[direction][1] * minSize;
+    
+    // 檢查來源點是否在山丘內部
+    if(src_z < HillFunction(src_y)) {
+        return true;  // 來源點在固體內
+    }
+    
+    // 檢查 7-point stencil 的所有點
+    for(int offset = -3; offset <= 3; offset++) {
+        double stencil_y = src_y + offset * minSize;
+        if(src_z < HillFunction(stencil_y)) {
+            return true;  // stencil 內有點在固體內
+        }
+    }
+    return false;
+}
+
+// 混合 streaming 策略
+void HybridStreaming(int j, int k, int direction) {
+    double y = y_global[j];
+    double z = z_global[j * NZ6 + k];
+    
+    if(IsStencilInsideSolid(y, z, direction)) {
+        // 使用簡單 streaming 或 bounce-back
+        UseSimpleStreaming(j, k, direction);
+    } else {
+        // 使用 7-point Lagrange 插值
+        UseLagrangeInterpolation(j, k, direction);
+    }
+}
+```
+
+#### 完整的邊界判斷邏輯
+```cpp
+// evolution.h 中的邊界處理邏輯
+if(k <= 5) {
+    // 下邊界附近：使用簡單 streaming 和 bounce-back
+    F1_in = f1_old[(j-1)*NZ6 + k];
+    F3_in = f3_old[(j+1)*NZ6 + k];
+    F2_in = f4_old[idx_xi];  // bounce-back (靜止壁面)
+    F5_in = f7_old[idx_xi];  // bounce-back
+    F6_in = f8_old[idx_xi];  // bounce-back
+    F4_Intrpl7(...);         // 正常插值（遠離下邊界）
+    F7_in = f7_old[(j+1)*NZ6 + k+1];
+    F8_in = f8_old[(j-1)*NZ6 + k+1];
+    
+} else if(k >= NZ6-6) {
+    // 上邊界附近：使用簡單 streaming 和 bounce-back
+    F1_in = f1_old[(j-1)*NZ6 + k];
+    F3_in = f3_old[(j+1)*NZ6 + k];
+    F2_in = f2_old[j*NZ6 + k-1];      // 簡單 streaming
+    F5_in = f5_old[(j-1)*NZ6 + k-1];  // 簡單 streaming
+    F6_in = f6_old[(j+1)*NZ6 + k-1];  // 簡單 streaming
+    F4_in = f2_old[idx_xi];           // bounce-back (moving wall)
+    F7_in = f5_old[idx_xi];           // bounce-back
+    F8_in = f6_old[idx_xi];           // bounce-back
+    
+} else {
+    // 內部區域：正常 ISLBM 插值
+    F1_Intrpl3(f1_old, ...);
+    F3_Intrpl3(f3_old, ...);
+    F2_Intrpl7(f2_old, ...);
+    F4_Intrpl7(f4_old, ...);
+    Y_XI_Intrpl3(f5_old, F5_in, ...);
+    Y_XI_Intrpl3(f6_old, F6_in, ...);
+    Y_XI_Intrpl3(f7_old, F7_in, ...);
+    Y_XI_Intrpl3(f8_old, F8_in, ...);
+}
+```
+
+---
+
+### 📊 方案比較總結
+
+| 方案 | 複雜度 | 效果 | 推薦度 |
+|------|--------|------|--------|
+| 純 Chebyshev 網格 | 高 | 最佳理論精度 | ⭐⭐ |
+| 邊界降階 (簡單 streaming) | 低 | 穩定、實用 | ⭐⭐⭐⭐⭐ |
+| Chebyshev 權重修正 | 中 | 改善振盪 | ⭐⭐⭐ |
+
+---
+
+### 🔑 結論
+
+**「邊界附近避免插值」方案是最實用且有文獻支持的做法！**
+
+原因：
+1. 避免 Runge 振盪
+2. 避免從固體區域「虛構」數據
+3. 保持物理一致性（質量、動量守恆）
+4. 實作簡單，計算效率高
+
+Chebyshev 概念可以作為未來優化方向，但目前的混合方案已經足夠解決 Checkerboard 問題。

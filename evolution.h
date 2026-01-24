@@ -19,6 +19,12 @@ double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double
                 - (f1_old + f2_old + f3_old + f4_old + f5_old + f6_old + f7_old + f8_old);
     return rho_local;
 }
+double dRhoglobalabs(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in){
+    double rho_local;
+    rho_local = F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in ; 
+    return fabs(rho_local) ;
+}
+
 //==========================================
 //2.更新密度修正量(各點相同) 
 //輸入: double* rho_d 舊更新密度場 ; double* rho_modify :密度修正量 (各點相同)
@@ -81,7 +87,7 @@ void stream_collide(
     //宏觀參數
     double *v,           double *w,           double *rho_d,    double *rho_modify
 ){
-    
+    double sum = 0.0 ;
     // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
     Matrix;
     Matrix_Inverse;
@@ -428,7 +434,11 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 error_count++;
             }
         }
-}}}
+
+        sum += dRhoglobalabs(F1_in, F2_in, F3_in,  F4_in, F5_in,  F6_in, F7_in,F8_in) ; 
+}}
+    rhosum = sum ; 
+}
 
 
 #endif

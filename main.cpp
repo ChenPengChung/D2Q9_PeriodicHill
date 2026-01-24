@@ -25,6 +25,7 @@ using namespace std;
 double rho[NY6 * NZ6];           // 密度場
 double v[NY6 * NZ6];             // Y方向速度（主流場方向）
 double w[NY6 * NZ6];             // Z方向速度（垂直壁面方向）
+double rhosum ; 
 //-----------------------------------------------------------------------------
 // 2.2 分佈函數 (D2Q9)
 // 使用雙緩衝區：f_old 讀取, f_new 寫入，每步交換
@@ -271,6 +272,7 @@ int main() {
             cout << "Time=" << t << setw(6) <<
             " ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << 
             " ; Density Correction=" << fabs(rho_modify[0] )<< endl ;
+            cout << " ; Density Sum=" << rhosum << endl ;
             //printStatistics(t);
         }
     }

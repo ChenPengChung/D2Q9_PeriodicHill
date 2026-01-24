@@ -5,7 +5,7 @@
       "name": "MinGW (Strawberry) - Build & Debug (ASCII output)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "E:/D2Q9_PeriodicHill/bin/main.exe",
+      "program": "${workspaceFolder}/main.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

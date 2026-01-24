@@ -116,6 +116,7 @@ const int NDTFRC = 10000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
 // 2.11 輸出控制變數
 //-----------------------------------------------------------------------------
+int t ; 
 const int outputInterval_VTK = 1000;     // VTK 檔案輸出間隔（步數）
 const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
 //=============================================================================
@@ -203,6 +204,50 @@ void swapDistributions() {
         }
     }
 }
+//-----------------------------------------------------------------------------
+// 4.4 輸出需要進行曲面邊界處理的邊界計算點
+//-----------------------------------------------------------------------------
+void printBFLBoundaryPoints() {
+    struct BFLPoint { int j, k; double y, z, q; };
+    vector<BFLPoint> f1, f3, f5, f6;
+
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            double y = y_global[j];
+            double z = z_global[idx];
+
+            if(IsLeftHill_Boundary_yPlus(y, z)) {
+                f1.push_back({j, k, y, z, Q1_h[idx]});
+            }
+            if(IsRightHill_Boundary_yMinus(y, z)) {
+                f3.push_back({j, k, y, z, Q3_h[idx]});
+            }
+            if(IsLeftHill_Boundary_Diagonal45(y, z)) {
+                f5.push_back({j, k, y, z, Q5_h[idx]});
+            }
+            if(IsRightHill_Boundary_Diagonal135(y, z)) {
+                f6.push_back({j, k, y, z, Q6_h[idx]});
+            }
+        }
+    }
+
+    auto dump = [](const char* tag, const vector<BFLPoint>& pts) {
+        cout << tag << " (" << pts.size() << "):" << endl;
+        if(pts.empty()) { cout << "  (none)" << endl; return; }
+        for(const auto& p : pts) {
+            cout << "  j=" << p.j << ", k=" << p.k
+                 << ", y=" << p.y << ", z=" << p.z
+                 << ", q=" << p.q << endl;
+        }
+    };
+
+    cout << "BFL check the point need to boundary treatment!!!" << endl;
+    dump("F1 (+Y，Left Hill，f1_cont)", f1);
+    dump("F3 (-Y，Right Hill，f3_cont)", f3);
+    dump("F5 (+Y+Z，Left Hill，f5_cont)", f5);
+    dump("F6 (-Y+Z，Right Hill，f6_cont)", f6);
+}
 //=============================================================================
 // [區塊 5] 主程式
 //=============================================================================
@@ -226,6 +271,8 @@ int main() {
     //步驟 5 : BFL 邊界初始化
     cout << "Initializing BFL boundary...." << endl ;
     BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
+    //輸出需要進行曲面邊界處理的邊界計算點
+    printBFLBoundaryPoints();
     //步驟 6 : 初始化流場與分佈函數
     cout << "Initializing flow field...." << endl ;
     InitialUsingDftFunc();
@@ -242,7 +289,7 @@ int main() {
     cout << "Starting time loop..." << endl ;
     cout << "loop = " << loop << endl ;
     cout.flush();
-    for(int t = 0; t < loop; t++) {
+    for( t = 0; t < loop; t++) {
         if(t % 10 == 0) { 
             double rho_check = CheckMassConservation(rho, t);
             if(std::isnan(rho_check) || std::isinf(rho_check)) {

@@ -120,6 +120,20 @@ for(int j = 3 ; j < NY6-3 ; j++){
         int cell_z = k-3;
         if( k <= 6 )    cell_z = 3;
         if( k >= NZ6-7) cell_z = NZ6-10;
+       //========== 邊界判斷 ==========
+        bool is_bottom = (k <= 6);   // 擴大範圍以保護 7-point stencil
+        bool is_top = (k >= NZ6-7);   // 擴大範圍以保護 7-point stencil
+        bool is_left = (j <= 6);      // 擴大範圍以保護 3-point Y stencil
+        bool is_right = (j >= NY6-7); // 擴大範圍以保護 3-point Y stencil
+        
+        // 真正的壁面點（用於 moving wall 計算）
+        bool is_wall_bottom = (k == 3);
+        bool is_wall_top = (k == NZ6-4);
+        bool is_wall_left = (j == 3);
+        bool is_wall_right = (j == NY6-4);
+
+
+
         /*F0_Intrpl7(f0_old, j, k);
         F1_Intrpl7(f1_old,j,k,j-3,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
         F3_Intrpl7(f3_old,j,k,j-3,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
@@ -143,7 +157,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // 上邊界 (k >= NZ6-6=150): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
         // 注意：F1,F3 只有 Y 方向偏移，Z 方向不變，但 stencil 仍可能越界
         
-        if( k <= 5 ) {
+        if( k <= 6 ) {
             // 下邊界附近
             // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ < 3 會越界
             // 使用簡單的 streaming 替代插值
@@ -249,6 +263,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         }
         //右丘邊界，更新F3
         if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
+
             double q3 = Q3_h[idx_xi] ;
             if(q3<0.5 && q3 >= 0.0){
                 /*//透過內插與Streaming更新F3
@@ -329,6 +344,16 @@ for(int j = 3 ; j < NY6-3 ; j++){
         rho_d[idx_xi] = rho_s;
         v[idx_xi] = v1;
         w[idx_xi] = w1;
+        //邊界速度強制為壁面速度
+        if(is_bottom){
+            v[idx_xi] = 0.0;
+            w[idx_xi] = 0.0;
+        }
+        if(is_top){
+            v[idx_xi] = 0.0;
+            w[idx_xi] = 0.0;
+        }
+
 }}}
 //y方向週期邊界條件 
 void periodicSW(

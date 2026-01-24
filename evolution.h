@@ -92,10 +92,7 @@ void stream_collide(
     //宏觀參數
     double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
     //BFL邊界條件無因次化距離q
-    double *Q1_h,        double*Q3_h,         double *Q5_h,       double*Q6_h,
-    //預計算的 Stencil 起點索引（基於來源點位置）
-    int* cellZ_F1, int* cellZ_F2, int* cellZ_F3, int* cellZ_F4,
-    int* cellZ_F5, int* cellZ_F6, int* cellZ_F7, int* cellZ_F8
+    double *Q1_h,        double*Q3_h,         double *Q5_h,       double*Q6_h
 ){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
     
     // MRT 矩陣與鬆弛參數 (巨集展開後會宣告 M[9][9], M_I[9][9], s0~s8)
@@ -186,14 +183,14 @@ for(int j = 3 ; j < NY6-3 ; j++){
             
         } else {
             // 內部區域：正常插值
-            F1_Intrpl3(f1_old,j,k,j-1,cellZ_F1[idx_xi],j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-            F3_Intrpl3(f3_old,j,k,j-1,cellZ_F3[idx_xi],j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-            F2_Intrpl7(f2_old, j,k, j-1, cellZ_F2[idx_xi], j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-            F4_Intrpl7(f4_old, j, k, j-1, cellZ_F4[idx_xi], j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cellZ_F5[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cellZ_F6[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cellZ_F7[idx_xi], j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cellZ_F8[idx_xi], j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+            F1_Intrpl3(f1_old,j,k,j-1,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+            F3_Intrpl3(f3_old,j,k,j-1,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            F2_Intrpl7(f2_old, j,k, j-1, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            F4_Intrpl7(f4_old, j, k, j-1,cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
         }
 
 

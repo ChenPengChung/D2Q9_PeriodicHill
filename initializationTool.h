@@ -84,7 +84,8 @@ double HillFunction_Inverse_Right(double z) {
 #define tanhFunction( L , MinSize , a, j, N)\
 (           \
     L/2.0 + MinSize/2.0 + ((L/2.0)/a)*tanh((-1.0+2.0*(double)(j)/(double)(N))/2.0*log((1.0+a)/(1.0-a)))\
-)
+)//實際應用 : tanhFunction(LT,mimnSize,a,j,N) - 0.5minSize
+
 // 將 xi_h（已扣掉 minSize/2.0 的值）反映回連續索引 j，用於建立 xi_h 與 j 的對應
 inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double a, int N) {
     const double val = xi_val + MinSize / 2.0;   // 還原到 tanhFunction 的輸出值
@@ -162,17 +163,17 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 }
 
 //給我一個編號，產生該Y值所對應的七個無因次化座標
-void RelationXi(double nonintindex, double L , double MinSize , double a , int N , double* RelationXi){
-    int i = (int)floor(nonintindex);
-    if(i < 3 )  i = 3;
-    if(i > N-4 ) i =  N-4 ;
-    RelationXi[0] = tanhFunction( L , MinSize , a, i-3 , N) - MinSize/2.0;
-    RelationXi[1] = tanhFunction( L , MinSize , a, i-2 , N) - MinSize/2.0;
-    RelationXi[2] = tanhFunction( L , MinSize , a, i-1 , N) - MinSize/2.0;
-    RelationXi[3] = tanhFunction( L , MinSize , a, i , N) - MinSize/2.0;
-    RelationXi[4] = tanhFunction( L , MinSize , a, i+1 , N) - MinSize/2.0;
-    RelationXi[5] = tanhFunction( L , MinSize , a, i+2 , N) - MinSize/2.0;
-    RelationXi[6] = tanhFunction( L , MinSize , a, i+3 , N) - MinSize/2.0;
+void RelationXi(int k , double L , double MinSize , double a , int N , double* RelationXi ){
+    int j = k-3 ; 
+    if (j <3)  j =3 ;
+    if (j > N-4) j = N-4 ;
+    RelationXi[0] = tanhFunction( L , MinSize , a, j-3 , N) - MinSize/2.0;
+    RelationXi[1] = tanhFunction( L , MinSize , a, j-2 , N) - MinSize/2.0;
+    RelationXi[2] = tanhFunction( L , MinSize , a, j-1 , N) - MinSize/2.0;
+    RelationXi[3] = tanhFunction( L , MinSize , a, j , N) - MinSize/2.0;
+    RelationXi[4] = tanhFunction( L , MinSize , a, j+1 , N) - MinSize/2.0;
+    RelationXi[5] = tanhFunction( L , MinSize , a, j+2 , N) - MinSize/2.0;
+    RelationXi[6] = tanhFunction( L , MinSize , a, j+3 , N) - MinSize/2.0;
 }
 
 //6.
@@ -210,11 +211,10 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-
+//此為錯誤配值權重，因為hyperbolic tangent 為非線性映射關係 
 void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
     const int layer_stride = NY6 * NZ6;
     const int base = index_xi + r * layer_stride;
-    
     XiPara[0][base] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[1][base] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[2][base] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 

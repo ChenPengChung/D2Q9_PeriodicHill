@@ -313,10 +313,7 @@ int main() {
             // 宏觀參數
             v, w, rho, Force, rho_modify,
             // BFL q值
-            Q1_h, Q3_h, Q5_h, Q6_h,
-            // 預計算的 Stencil 起點索引
-            CellZ_F1, CellZ_F2, CellZ_F3, CellZ_F4,
-            CellZ_F5, CellZ_F6, CellZ_F7, CellZ_F8
+            Q1_h, Q3_h, Q5_h, Q6_h
         );
 
         // 5.2.2 週期性邊界條件

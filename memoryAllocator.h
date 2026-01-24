@@ -70,11 +70,13 @@ inline void AllocateWeightArray(
  */
 inline void AllocateAllWeightArrays() {
     const int lenY = NY6;
-    //const int lenXi = 7 * NY6 * NZ6; //Z 方向曲面插值需要 (7 layers)
-    //降階版本，只需要三層 
-    const int lenXi = 3 * NY6 * NZ6; //Z 方向曲面插值需要 (3 layers)
+    // Xi 方向的插值巨集在存取時會用到 0~6 共 7 層的權重
+    // （xi_w[idx_xi + layer*NY6*nface]，layer = 0..6）。
+    // 因此必須配置 7*NY6*NZ6 的長度，不能使用縮減後的 3 層版本，
+    // 否則會造成越界寫入並破壞其它緩衝區，導致首個時間步就數值爆掉。
+    const int lenXi = 7 * NY6 * NZ6; // Z 方向曲面插值需要 (7 layers)
     std::cout << "==================================================================" << std::endl;
-    std::cout << "  Allocate memory for XiPara[7][3*NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
+    std::cout << "  Allocate memory for XiPara[7][7*NY6*NZ6] YPara[7][(NY6+7) * NZ6]" << std::endl;
     std::cout << "==================================================================" << std::endl;
 
     // 外部宣告的指標陣列（假設已在 main.cpp 中宣告）

@@ -30,7 +30,8 @@ void InitialUsingDftFunc() {
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
         //離散化\ 宏觀\ 外立\ 場的初始化initilaoization of the discrete macroscopic force term
-        Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*1.0; //降低外力係數，原本是 5.0
+        //Lid Driven Cavity 不需要外力驅動，由上蓋速度 Uref 驅動
+        Force[0] = 0.0;  // Y 方向無外力 (Lid Driven Cavity)
         Force[1] = 0.0;  // Z 方向無外力
 }
 //建立Y(主流場方向)方向之均勻網格系統
@@ -69,12 +70,11 @@ void GenerateMesh_Z() {
     for( int j = 0; j < NY6; j++ ){
         double dy = LY / (double)(NY6-2*bufferlayer-1);
         y_global[j] = dy * ((double)(j-bufferlayer));//配合Hill Function做座標平移
-        double total = LZ - HillFunction( y_global[j] ) - minSize;
+        double total = LZ - 0 - minSize;
         for( int k = bufferlayer; k < NZ6-bufferlayer; k++ ){
-            z_global[j*NZ6+k] = tanhFunction( total, minSize, a, (k-3), (NZ6-7) ) + 
-                                HillFunction( y_global[j] );
+            z_global[j*NZ6+k] = tanhFunction( total, minSize, a, (k-3), (NZ6-7) ) ;
         }
-        z_global[j*NZ6+2] = HillFunction( y_global[j] );
+        z_global[j*NZ6+2] = 0.0 ;
         z_global[j*NZ6+(NZ6-3)] = (double)LZ;
     }
 }
@@ -88,9 +88,9 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     if(j<3) j = j + NY6-7 ;
     if(j>NY6-4) j = j - (NY6-7) ;
     //Z方向係數編號系統(第二格)  = (j+relation)*NZ6 + k  ; relation:1~7
-    double L = LZ - HillFunction(pos_y) - minSize;
+    double L = LZ - 0.0 - minSize;
     //每一個y位置而言每一個計算間都不一樣
-    double pos_xi =  (pos_z - (HillFunction(pos_y)+minSize/2.0)) ;
+    double pos_xi =  (pos_z - (minSize/2.0)) ;
     const double a = nonuni_a; // 已在 GenerateMesh_Z 中計算
     //求解目標點的編號(映射回均勻系統)
     double j_cont = Inverse_tanh_index( pos_xi , L , minSize , a , (NZ6-7) );
@@ -154,19 +154,19 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_x
     
     //y方向為三點版本
     double RelationXi_0[7] ; //(j-1)
-    double LT = LZ - HillFunction(y_global[j-1]) - minSize;
+    double LT = LZ -  minSize;
     double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
     GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
     
     double RelationXi_1[7] ; //(j-0)
-    LT = LZ - HillFunction(y_global[j-0]) - minSize;
+    LT = LZ -  minSize;
     pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
     GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
     
     double RelationXi_2[7] ; //(j+1)
-    LT = LZ - HillFunction(y_global[j+1]) - minSize;
+    LT = LZ -  minSize;
     pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
     RelationXi(k , LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
     GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
@@ -203,67 +203,5 @@ void GetIntrplParameter_Xi() {
     }}
 }
 
-void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
-    //此函數是為計算邊界計算點的q值以及邊界計算點的預配置連乘權重一維連續記憶體
-    //q: 計算點到壁面的無因次距離
-    //delta: BFL 反彈點相對於計算點的偏移量
-    //Parameter: 預配置 Lagrange 插值權重
 
-    for(int j = 3; j < NY6-3; j++){
-        for(int k = 3; k < NZ6-3; k++){
-
-            //F1 (+Y方向): 左丘邊界
-            // 當粒子從 -Y 方向來，可能撞到左丘
-            if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F1的邊界計算點
-                double q1 = Left_q_yPlus(y_global[j], z_global[j*NZ6+k]);
-                double delta1 = minSize * (1.0 - 2.0*q1);
-                // BFL 反彈點在 +Y 方向: y + delta, z 不變
-                //GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
-                //降階版本
-                GetParameter_2nd(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-1);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
-                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1,  j*NZ6+k , j,  k) ;
-                Q1_h[j*NZ6+k] = q1;
-            }
-
-            //F3 (-Y方向): 右丘邊界
-            // 當粒子從 +Y 方向來，可能撞到右丘
-            if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
-                double q3 = Right_q_yMinus(y_global[j], z_global[j*NZ6+k]);
-                double delta3 = minSize * (1.0 - 2.0*q3);
-                // BFL 反彈點在 -Y 方向: y - delta, z 不變
-                //GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
-                //降階版本
-                GetParameter_2nd(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-1);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
-                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3,  j*NZ6+k , j,  k);
-                Q3_h[j*NZ6+k] = q3;
-            }
-
-            //更新F5 (+Y+Z方向, 45度): 左丘邊界
-            // 當粒子從 (-Y,-Z) 方向來，可能撞到左丘
-            if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
-                double q5 = Left_q_Diagonal45(y_global[j], z_global[j*NZ6+k]);
-                double delta5 = minSize * (1.0 - 2.0*q5) / sqrt(2.0);
-                // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
-                //GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-3);
-                //降階版本
-                GetParameter_2nd(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-1);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
-                GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5,  j*NZ6+k , j,  k);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
-                Q5_h[j*NZ6+k] = q5;
-            }
-
-            //更新F6 (-Y+Z方向, 135度): 右丘邊界
-            // 當粒子從 (+Y,-Z) 方向來，可能撞到右丘
-            if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
-                double q6 = Right_q_Diagonal135(y_global[j], z_global[j*NZ6+k]);
-                double delta6 = minSize * (1.0 - 2.0*q6) / std::sqrt(2.0);
-                // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
-                //GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
-                //降階版本
-                GetParameter_2nd(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-1);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
-                GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6,  j*NZ6+k , j,  k);
-                Q6_h[j*NZ6+k] = q6;
-            }
-        }
-    }
-}
 #endif 

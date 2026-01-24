@@ -1,8 +1,5 @@
-//=============================================================================
-// main.cpp - D2Q9 Periodic Hill LBM 模擬主程式
-// 編譯：g++ -O3 -o hill main.cpp -lm
-// 執行：./hill
-//=============================================================================
+//本程式碼為模擬Lid Driven Cavity之跳板，
+//為驗證插值LBM之正確性所撰寫同樣的，Z方向為hyperbolic tange之非均勻網格 
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -17,7 +14,6 @@ using namespace std;
 // [區塊 1] 引入參數定義（不依賴全域變數的標頭檔）
 //=============================================================================
 #include "variables.h"
-#include "model.h"
 #include "paraviewOutput.h"
 //=============================================================================
 // [區塊 2] 全域變數宣告
@@ -67,52 +63,22 @@ double* XiParaF5_h[7];
 double* XiParaF6_h[7];
 double* XiParaF7_h[7];
 double* XiParaF8_h[7];
+
 //-----------------------------------------------------------------------------
-// 2.7 BFL邊界條件：Y方向插值權重
-// 命名規則：YBFLParaF*_h 中的 F* 表示「用來插值 F* 分佈函數」
-// - YBFLParaF3: 插值 F3，用於更新 F1（左丘邊界）
-// - YBFLParaF1: 插值 F1，用於更新 F3（右丘邊界）
-// - YBFLParaF7: 插值 F7，用於更新 F5（左丘對角線）
-// - YBFLParaF8: 插值 F8，用於更新 F6（右丘對角線）
+// 2.7 BFL Y方向插值權重 (Lid Driven Cavity 不使用，但 memoryAllocator.h 需要)
 //-----------------------------------------------------------------------------
-double* YBFLParaF3_h[3];
 double* YBFLParaF1_h[3];
+double* YBFLParaF3_h[3];
 double* YBFLParaF7_h[3];
 double* YBFLParaF8_h[3];
 //-----------------------------------------------------------------------------
-// 2.8 BFL邊界條件：Xi方向插值權重
+// 2.8 BFL Xi方向插值權重 (Lid Driven Cavity 不使用，但 memoryAllocator.h 需要)
 //-----------------------------------------------------------------------------
-double* XiBFLParaF3_h[7];
 double* XiBFLParaF1_h[7];
+double* XiBFLParaF3_h[7];
 double* XiBFLParaF7_h[7];
 double* XiBFLParaF8_h[7];
-//-----------------------------------------------------------------------------
-// 2.9 BFL邊界條件：無因次化距離 q
-// q = 計算點到壁面的距離 / minSize
-// 只有邊界計算點會被賦值，其他位置為 0
-//-----------------------------------------------------------------------------
-double Q1_h[NY6 * NZ6];          // F1 方向的 q 值（左丘 +Y）
-double Q3_h[NY6 * NZ6];          // F3 方向的 q 值（右丘 -Y）
-double Q5_h[NY6 * NZ6];          // F5 方向的 q 值（左丘 +Y+Z）
-double Q6_h[NY6 * NZ6];          // F6 方向的 q 值（右丘 -Y+Z）
-//-----------------------------------------------------------------------------
-// 2.10 Stencil 起點索引（基於來源點位置預先計算）
-// 用於解決 RelationXi 與 evolution.h 中 cell_z 計算不一致的問題
-//-----------------------------------------------------------------------------
-int CellZ_F1[NY6 * NZ6];         // F1 方向的 Z stencil 起點
-int CellZ_F2[NY6 * NZ6];         // F2 方向的 Z stencil 起點
-int CellZ_F3[NY6 * NZ6];         // F3 方向的 Z stencil 起點
-int CellZ_F4[NY6 * NZ6];         // F4 方向的 Z stencil 起點
-int CellZ_F5[NY6 * NZ6];         // F5 方向的 Z stencil 起點
-int CellZ_F6[NY6 * NZ6];         // F6 方向的 Z stencil 起點
-int CellZ_F7[NY6 * NZ6];         // F7 方向的 Z stencil 起點
-int CellZ_F8[NY6 * NZ6];         // F8 方向的 Z stencil 起點
-//-----------------------------------------------------------------------------
-// 2.11 外力修正用變數
-//-----------------------------------------------------------------------------
-double Ub_sum = 0.0;             // 累積的平均速度
-int force_update_count = 0;      // 累積的時間步數
-const int NDTFRC = 10000;        // 每多少步修正一次外力
+
 //-----------------------------------------------------------------------------
 // 2.11 輸出控制變數
 //-----------------------------------------------------------------------------
@@ -147,14 +113,6 @@ void initializeArrays() {
     memset(y_global, 0, sizeof(y_global));
     memset(z_global, 0, sizeof(z_global));
     memset(xi_h, 0, sizeof(xi_h));
-    // BFL q 值
-    memset(Q1_h, 0, sizeof(Q1_h));
-    memset(Q3_h, 0, sizeof(Q3_h));
-    memset(Q5_h, 0, sizeof(Q5_h));
-    memset(Q6_h, 0, sizeof(Q6_h));
-    // 外力
-    Force[0] = 0.0;
-    Force[1] = 0.0;
 }
 
 //-----------------------------------------------------------------------------
@@ -223,9 +181,6 @@ int main() {
     cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();
     GetIntrplParameter_Xi();
-    //步驟 5 : BFL 邊界初始化
-    cout << "Initializing BFL boundary...." << endl ;
-    BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
     //步驟 6 : 初始化流場與分佈函數
     cout << "Initializing flow field...." << endl ;
     InitialUsingDftFunc();
@@ -290,49 +245,12 @@ int main() {
             // Xi方向權重 F8 (7個)
             XiParaF8_h[0], XiParaF8_h[1], XiParaF8_h[2], XiParaF8_h[3],
             XiParaF8_h[4], XiParaF8_h[5], XiParaF8_h[6],
-            // BFL Y方向權重 F3 (7個)
-            YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], //YBFLParaF3_h[3], YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
-            // BFL Y方向權重 F1 (7個)
-            YBFLParaF1_h[0], YBFLParaF1_h[1], YBFLParaF1_h[2], //YBFLParaF1_h[3], YBFLParaF1_h[4], YBFLParaF1_h[5], YBFLParaF1_h[6],
-            // BFL Y方向權重 F7 (7個)
-            YBFLParaF7_h[0], YBFLParaF7_h[1], YBFLParaF7_h[2], //YBFLParaF7_h[3], YBFLParaF7_h[4], YBFLParaF7_h[5], YBFLParaF7_h[6],
-            // BFL Y方向權重 F8 (7個)
-            YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], //YBFLParaF8_h[3],  YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
-            // BFL Xi方向權重 F3 (7個)
-            XiBFLParaF3_h[0], XiBFLParaF3_h[1], XiBFLParaF3_h[2], XiBFLParaF3_h[3],
-            XiBFLParaF3_h[4], XiBFLParaF3_h[5], XiBFLParaF3_h[6],
-            // BFL Xi方向權重 F1 (7個)
-            XiBFLParaF1_h[0], XiBFLParaF1_h[1], XiBFLParaF1_h[2], XiBFLParaF1_h[3],
-            XiBFLParaF1_h[4], XiBFLParaF1_h[5], XiBFLParaF1_h[6],
-            // BFL Xi方向權重 F7 (7個)
-            XiBFLParaF7_h[0], XiBFLParaF7_h[1], XiBFLParaF7_h[2], XiBFLParaF7_h[3],
-            XiBFLParaF7_h[4], XiBFLParaF7_h[5], XiBFLParaF7_h[6],
-            // BFL Xi方向權重 F8 (7個)
-            XiBFLParaF8_h[0], XiBFLParaF8_h[1], XiBFLParaF8_h[2], XiBFLParaF8_h[3],
-            XiBFLParaF8_h[4], XiBFLParaF8_h[5], XiBFLParaF8_h[6],
             // 宏觀參數
-            v, w, rho, Force, rho_modify,
+            v, w, rho,  rho_modify
             // BFL q值
-            Q1_h, Q3_h, Q5_h, Q6_h
         );
 
-        // 5.2.2 週期性邊界條件
-        periodicSW(
-            f_new[0], f_new[1], f_new[2], f_new[3], f_new[4],
-            f_new[5], f_new[6], f_new[7], f_new[8],
-            v, w, rho
-        );
-
-        // 5.2.3 累積平均速度（用於外力修正）
-        AccumulateUbulk(v, &Ub_sum);
-        force_update_count++;
-
-        // 5.2.4 每 NDTFRC 步修正外力
-        if(force_update_count >= NDTFRC) {
-            ModifyForcingTerm(Force, &Ub_sum, NDTFRC);
-            force_update_count = 0;
-        }
-
+        
         // 5.2.5 交換 f_old 與 f_new
         swapDistributions();
 

@@ -12,64 +12,9 @@
  */
 #include <cmath>
 #include "variables.h"
-#include "model.h"
 using namespace std;
 
-// * 半邊山丘寬度 (無因次化)
-#define HillHalfWidth (54.0/28.0) 
-
 //1.
-/**
- * @brief 左半丘反函數 (數值法)
- * * 使用二分法求解左半丘的反函數，給定高度 z 返回對應的 y 座標
- * @param z 目標高度值
- * @return 對應的 y 座標
- * ! 注意：使用二分法，精度為 1e-12
- * ? 左半丘是遞減函數：y 越大，HillFunction(y) 越小
- * @see HillFunction(), HillFunction_Inverse_Right()
- */
-double HillFunction_Inverse_Left(double z) {
-    double y_low = 0.0, y_high = HillHalfWidth;
-    double y_mid;
-
-    // ? 左半丘是遞減函數: y 越大，HillFunction(y) 越小
-    while (y_high - y_low > 1e-12) {
-        y_mid = (y_low + y_high) / 2.0;
-        if (HillFunction(y_mid) > z) {
-            y_low = y_mid;
-        } else {
-            y_high = y_mid;
-        }
-    }
-    return y_mid;
-}
-
-//2.
-/**
- * @brief 右半丘反函數 (數值法)
- * * 使用二分法求解右半丘的反函數，給定高度 z 返回對應的 y 座標
- * @param z 目標高度值
- * @return 對應的 y 座標
- * ! 注意：使用二分法，精度為 1e-12
- * ? 右半丘是遞增函數：y 越大，HillFunction(y) 越大
- * @see HillFunction(), HillFunction_Inverse_Left()
- */
-double HillFunction_Inverse_Right(double z) {
-    double y_low = LY - HillHalfWidth, y_high = LY;
-    double y_mid;
-    // ? 右半丘是遞增函數: y 越大，HillFunction(y) 越大
-    while (y_high - y_low > 1e-12) {
-        y_mid = (y_low + y_high) / 2.0;
-        if (HillFunction(y_mid) < z) {
-            y_low = y_mid;
-        } else {
-            y_high = y_mid;
-        }
-    }
-    return y_mid;
-}
-
-//3.
 /**
  * @brief 雙曲正切非均勻網格座標轉換巨集
  * * 核心網格轉換公式
@@ -102,7 +47,7 @@ inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double
     return j_cont;
 }
 
-//4.
+//2.
 /**
  * @brief 計算非均勻網格伸縮參數 a
  * * 使用二分法求解伸縮參數，使最小網格間距等於 minSize
@@ -112,7 +57,7 @@ inline double Inverse_tanh_index(double xi_val, double L, double MinSize, double
  * @see tanhFunction
  */
 double GetNonuniParameter() {
-    double total = LZ - HillFunction( 0.0 ) - minSize;
+    double total = LZ - 0.0  - minSize;
     double a_temp[2] = {0.1, 1.0};
     double a_mid;
 
@@ -135,7 +80,7 @@ double GetNonuniParameter() {
 }
 
 
-//5.
+//3.
 /**
  * @brief 六階 Lagrange 插值基底函數
  * * 計算在位置 pos 處，以 x_i 為插值節點的 Lagrange 基底函數值
@@ -176,7 +121,7 @@ void RelationXi(int k , double L , double MinSize , double a , int N , double* R
     RelationXi[6] = tanhFunction( L , MinSize , a, j+3 , N) - MinSize/2.0;
 }
 
-//6.
+//4.
 /**
  * @brief 產生六階 Lagrange 插值預配置權重陣列
  * * 計算並儲存七個插值節點的 Lagrange 權重係數
@@ -211,7 +156,6 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-//此為錯誤配值權重，因為hyperbolic tangent 為非線性映射關係 
 void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
     const int layer_stride = NY6 * NZ6;
     const int base = index_xi + r * layer_stride;
@@ -224,361 +168,7 @@ void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , in
     XiPara[6][base] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    
 }//pos_xi為換算過後的無因次化Z座標 
 
-//7.0度去向邊界計算點
-/**
- * @brief 判斷是否為左山丘的 +y 方向物理空間邊界計算點
- * * 考察任意物理空間計算點是否為曲面邊界的邊界點
- * ? 判斷標準：以曲面邊界為本體，往 +y 方向考察半格移動距離 (minSize)
- * ? 若移動後會進入山丘內部，則為邊界計算點
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return true 為 +y 方向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- * ! 考察範圍：左下角方形區域 pos_y: [0, HillHalfWidth], pos_z: [0, 1]
- * @see Left_q_yPlus(), IsRightHill_Boundary_yMinus()
- */
-bool IsLeftHill_Boundary_yPlus(double y , double z){
-    // * 第一步先初步篩選範圍：左下角方形區域
-    if( y < 0.0 || y > HillHalfWidth || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{// ? 第二步判斷，往左移動會撞倒代表現在高度在移動後座標點之山丘下方
-        if( z <= HillFunction(y- minSize) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
 
-//8.180度去向邊界計算點
-/**
- * @brief 判斷是否為右山丘的 -y 方向物理空間邊界計算點 
- * * 判斷往 -y 方向移動一個 minSize 後是否會進入右山丘內部
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return true 為 -y 方向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- * ! 考察範圍：右下角方形區域 pos_y: [LY-HillHalfWidth, LY], pos_z: [0, 1]
- * @see Right_q_yMinus(), IsLeftHill_Boundary_yPlus()
- */
-bool IsRightHill_Boundary_yMinus(double y , double z){
-    // * 第一步先初步篩選範圍：右下角方形區域
-    if( y < (LY - HillHalfWidth) || y > LY || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{// ? 第二步判斷，往右移動會撞倒代表現在高度在移動後座標點之山丘下方 
-        if( z <= HillFunction(y + minSize) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-
-//9.45度去向邊界計算點
-/**
- * @brief 判斷是否為左山丘的 45 度斜向物理空間邊界計算點
- * * 判斷往 (-Y, -Z) 方向 (即 45 度斜下方) 移動後是否會進入左山丘內部
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return true 為 45 度斜向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
- * @see Left_q_Diagonal45(), IsRightHill_Boundary_Diagonal135()
- */
-bool IsLeftHill_Boundary_Diagonal45(double y , double z){
-    // * 第一步先初步篩選範圍：左下角方形區域
-    if( y < 0.0 || y > HillHalfWidth || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{
-        // * 移動後的位置
-        double y_new = y - minSize;
-        double z_new = z - minSize;
-        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
-        if( z_new <= HillFunction(y_new) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-
-//10.135度去向邊界計算點*
-/**
- * @brief 判斷是否為右山丘的 135 度斜向物理空間邊界計算點 
- * * 判斷往 (+Y, -Z) 方向 (即 135 度斜下方) 移動後是否會進入右山丘內部
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return true 為 135 斜向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
- * @see Right_q_Diagonal135(), IsLeftHill_Boundary_Diagonal45()
- */
-bool IsRightHill_Boundary_Diagonal135(double y , double z){
-    // * 第一步先初步篩選範圍：右下角方形區域
-    if( y < (LY - HillHalfWidth) || y > LY || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{
-        // * 移動後的位置
-        double y_new = y + minSize;
-        double z_new = z - minSize;
-        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
-        if( z_new <= HillFunction(y_new) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-//11.-45度去向邊界計算點
-/**
- * @brief 判斷是否為左山丘的 -45 度斜向物理空間邊界計算點
- *
- * * 判斷往 (-Y, +Z) 方向 (即 -45 度斜上方) 移動後是否會進入左山丘內部
- * * 對應到格子速度方向 (+Y, -Z) 的「來源點」是否落在固體內（山丘斜率 > 1 時可能發生）
- *
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- *
- * @return true 為 -45 度斜向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- *
- * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
- * @see IsRightHill_Boundary_DiagonalMinus135()
- */
-bool IsLeftHill_Boundary_DiagonalMinus45(double y , double z){
-    // * 第一步先初步篩選範圍：左下角方形區域
-    if( y < 0.0 || y > HillHalfWidth || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{
-        // * 移動後的位置
-        const double y_new = y - minSize;
-        const double z_new = z + minSize;
-        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
-        if( z_new <= HillFunction(y_new) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-
-//12.-135度去向邊界計算點
-/**
- * @brief 判斷是否為右山丘的 -135 度斜向物理空間邊界計算點
- *
- * * 判斷往 (+Y, +Z) 方向 (即 -135 度斜上方) 移動後是否會進入右山丘內部
- * * 對應到格子速度方向 (-Y, -Z) 的「來源點」是否落在固體內（山丘斜率 > 1 時可能發生）
- *
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- *
- * @return true 為 -135 度斜向邊界計算點，可套用 BFL 邊界條件
- * @return false 非邊界計算點
- *
- * ! 移動距離為 minSize (Y 和 Z 方向各移動 minSize)
- * @see IsLeftHill_Boundary_DiagonalMinus45()
- */
-bool IsRightHill_Boundary_DiagonalMinus135(double y , double z){
-    // * 第一步先初步篩選範圍：右下角方形區域
-    if( y < (LY - HillHalfWidth) || y > LY || z < HillFunction(y) || z > 1.0 ){
-        return false; // ! 第一步篩選未通過
-    }else{
-        // * 移動後的位置
-        const double y_new = y + minSize;
-        const double z_new = z + minSize;
-        // 判斷移動後是否進入山丘內部 (z_new <= 曲面高度)
-        if( z_new <= HillFunction(y_new) ){
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-
-//13.
-/**
- * @brief 計算左山丘 +y 方向的 BFL 邊界條件 q 值
- * * 計算 +y 方向邊界計算點到曲面壁面的無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! q = |y - y_wall| / minSize，用於 BFL 插值邊界條件
- * @see IsLeftHill_Boundary_yPlus(), HillFunction_Inverse_Left()
- */
-double Left_q_yPlus(double y , double z){
-    if(!IsLeftHill_Boundary_yPlus(y, z)){
-        return -1.0; // ! 非邊界點返回-1
-    }// * 返回負值作為錯誤之邊界條件實施判據，因為距離沒有負值
-    // * 計算 q 值：計算點到曲面的 Y 方向距離 / 格子大小
-    return fabs(y - HillFunction_Inverse_Left(z)) / minSize;
-}
-
-//14.
-/**
- * @brief 計算右山丘 -y 方向的 BFL 邊界條件 q 值
- * * 計算 -y 方向邊界計算點到曲面壁面的無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! q = |y - y_wall| / minSize，用於 BFL 插值邊界條件
- * @see IsRightHill_Boundary_yMinus(), HillFunction_Inverse_Right()
- */
-double Right_q_yMinus(double y , double z){
-    if(!IsRightHill_Boundary_yMinus(y, z)){
-        return -1.0; // ! 非邊界點返回-1
-    }
-    // * 計算 q 值：計算點到曲面的 Y 方向距離 / 格子大小
-    return fabs(y - HillFunction_Inverse_Right(z)) / minSize;
-}
-
-//15.
-/**
- * @brief 計算左山丘 45 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 45 度斜線與山丘曲面的交點，計算無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! 45 度射線方程：z = y + (z0 - y0)
- * @see IsLeftHill_Boundary_Diagonal45()
- */
-double Left_q_Diagonal45(double y , double z){
-    if(!IsLeftHill_Boundary_Diagonal45(y , z)){
-        return -1.0 ; // ! 非邊界點返回-1
-    }
-    double y_target ;
-    // * 利用區間搜尋法尋找y_target ; 
-    double y_temp[2] = {y-minSize ,y} ; 
-    //y[0] = y_minSize ; y[1] = y ; 
-    double y_middle = 0.0 ;
-    double z_middle = 0.0 ; //在45度射線上相對應y_middle的z座標
-    double Length_z = 0.0 ;
-    do{
-        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
-        z_middle = y_middle + (z-y) ; 
-        Length_z = fabs(z_middle - HillFunction(y_middle));
-        if(HillFunction(y_middle) > z_middle){
-            //將y_middle往右移動
-            y_temp[0] = y_middle;
-        }else{
-            //將y_middle往左移動
-            y_temp[1] = y_middle;
-            
-        }
-    }while(Length_z >= 1e-12) ;
-    y_target = y_middle ;
-    return fabs(y - y_target) / minSize ;
-}
-
-//16.
-/**
- * @brief 計算右山丘 135 度斜向的 BFL 邊界條件 q 值 
- * * 使用二分法求解 135 度斜線與山丘曲面的交點，計算無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! 135 度射線方程：z = -y + (z0 + y0)
- * @see IsRightHill_Boundary_Diagonal135()
- */
-double Right_q_Diagonal135(double y , double z){
-    if(!IsRightHill_Boundary_Diagonal135(y , z)){
-        return -1.0 ; // ! 非邊界點返回-1
-    }
-    double y_target ;
-    // * 利用區間搜尋法尋找y_target ;
-    double y_temp[2] = {y , y+minSize} ;
-    //y[0] = y ; y[1] = y+minSize ;
-    double y_middle = 0.0 ;
-    double z_middle = 0.0 ; //在135度射線上相對應y_middle的z座標
-    double Length_z = 0.0 ;
-    do{
-        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
-        z_middle = -y_middle + (z+y) ; // 135度射線：z = -y + (z0+y0)
-        Length_z = fabs(z_middle - HillFunction(y_middle));
-        if(HillFunction(y_middle) > z_middle){
-            //將y_middle往左移動
-            y_temp[1] = y_middle;
-        }else{
-            //將y_middle往右移動
-            y_temp[0] = y_middle;
-        }
-    }while(Length_z >= 1e-12) ;
-    y_target = y_middle ;
-    return fabs(y - y_target) / minSize ;
-}
-
-//17.
-/**
- * @brief 計算左山丘 -45 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 -45 度斜線與山丘曲面的交點，計算無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! -45 度射線方程：z = -y + (z0 + y0)
- * @see IsLeftHill_Boundary_DiagonalMinus45()
- */
-double Left_q_DiagonalMinus45(double y , double z){
-    if(!IsLeftHill_Boundary_DiagonalMinus45(y , z)){
-        return -1.0 ; // ! 非邊界點返回-1
-    }
-    double y_target ;
-    // * 利用區間搜尋法尋找y_target ;
-    double y_temp[2] = {y-minSize ,y} ;
-    //y[0] = y-minSize ; y[1] = y ;
-    double y_middle = 0.0 ;
-    double z_middle = 0.0 ; //在-45度射線上相對應y_middle的z座標
-    double Length_z = 0.0 ;
-    do{
-        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
-        z_middle = -y_middle + (z+y) ; // -45度射線：z = -y + (z0+y0)
-        Length_z = fabs(z_middle - HillFunction(y_middle));
-        if(HillFunction(y_middle) > z_middle){
-            //將y_middle往左移動（左丘：y越小，HillFunction越大）
-            y_temp[1] = y_middle;
-        }else{
-            //將y_middle往右移動
-            y_temp[0] = y_middle;
-        }
-    }while(Length_z >= 1e-12) ;
-    y_target = y_middle ;
-    return fabs(y - y_target) / minSize ;
-}
-
-//18.
-/**
- * @brief 計算右山丘 -135 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 -135 度斜線與山丘曲面的交點，計算無因次距離 q
- * @param y Y 座標 (流向)
- * @param z Z 座標 (法向)
- * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
- * ! -135 度射線方程：z = y + (z0 - y0)
- * @see IsRightHill_Boundary_DiagonalMinus135()
- */
-double Right_q_DiagonalMinus135(double y , double z){
-    if(!IsRightHill_Boundary_DiagonalMinus135(y , z)){
-        return -1.0 ; // ! 非邊界點返回-1
-    }
-    double y_target ;
-    // * 利用區間搜尋法尋找y_target ;
-    double y_temp[2] = {y , y+minSize} ;
-    //y[0] = y ; y[1] = y+minSize ;
-    double y_middle = 0.0 ;
-    double z_middle = 0.0 ; //在-135度射線上相對應y_middle的z座標
-    double Length_z = 0.0 ;
-    do{
-        y_middle = (y_temp[0] + y_temp[1]) / 2.0;
-        z_middle = y_middle + (z-y) ; // -135度射線：z = y + (z0-y0)
-        Length_z = fabs(z_middle - HillFunction(y_middle));
-        if(HillFunction(y_middle) > z_middle){
-            //將y_middle往右移動（右丘：y越大，HillFunction越大）
-            y_temp[0] = y_middle;
-        }else{
-            //將y_middle往左移動
-            y_temp[1] = y_middle;
-        }
-    }while(Length_z >= 1e-12) ;
-    y_target = y_middle ;
-    return fabs(y - y_target) / minSize ;
-}
 
 
 #endif

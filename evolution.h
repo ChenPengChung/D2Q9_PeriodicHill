@@ -119,12 +119,28 @@ for(int j = 3 ; j < NY6-3 ; j++){
         F0_in = f0_old[idx_xi];
         //F2 ; 
         if(k == 3){//邊界處理
-            F2_in = f4_old[idx_xi] ; //bounce-back
+            F2_in = f4_old[idx_xi] ; //half-way bounce-back
         }else{
-            //
+            F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            if(t <= 100 ; t % 10 == 0){
+                cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
+            }
         }
         //F4 :
-        //F1 ; 
+        if(k == NZ6-4){//邊界處理
+            F4_in = f2_old[idx_xi] ; //half-way bounce-back
+        }else{
+            F4_Intrpl7(f4_old, j, k, CellZ_F4 , j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+            if(t <= 100 ; t % 10 == 0){
+                cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
+            }
+        }
+        //需要加入曲面處理...
+        //F1 :
+        // F1,F3: Y方向 streaming，需要週期性 wrap
+            int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
+            int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
+            F1_in = f1_old[jm1*NZ6 + k];
         //F3 ; 
         //F5 ; 
         //F6 ; 
@@ -188,7 +204,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
             // 內部區域：正常插值
             F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
             F3_Intrpl3(f3_old,j,k,CellZ_F1,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-            F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            
             F4_Intrpl7(f4_old, j, k, CellZ_F4, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
             Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F2, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
             Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);

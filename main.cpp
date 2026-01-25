@@ -29,6 +29,7 @@ using namespace std;
 double rho[NY6 * NZ6];           // 密度場
 double v[NY6 * NZ6];             // Y方向速度（主流場方向）
 double w[NY6 * NZ6];             // Z方向速度（垂直壁面方向）
+int t  ;
 //-----------------------------------------------------------------------------
 // 2.2 分佈函數 (D2Q9)
 // 使用雙緩衝區：f_old 讀取, f_new 寫入，每步交換
@@ -547,7 +548,7 @@ int main() {
     );
     
     cout.flush();
-    for(int t = 0; t < loop; t++) {
+    for(t = 0; t < loop; t++) {
         if(t % 10 == 0) { 
             double rho_check = CheckMassConservation(rho, t);
             if(std::isnan(rho_check) || std::isinf(rho_check)) {

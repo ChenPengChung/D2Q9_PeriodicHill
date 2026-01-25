@@ -83,26 +83,36 @@ void GenerateMesh_Z() {
 
 void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int k , int* cell_z)
 {   
+    
     //void RelationXi(double pos_y , double pos_z , int k , int j ,  double* cell_z , double a)
     //假設 CellZ_F1,2,3,4,5,6,7,8 已經寫進去
    //y方向為三點版本
     double RelationXi_0[7] ; //(j-1)
+    double LT0 = LZ - HillFunction(y_global[j-1]) - minSize;
+    double pos_z1 = (pos_z - 0.5*minSize - HillFunction(y_global[j-1])) / LT0; // 無因次化目標點
     for(int i = 0 ; i <7 ; i++){
-        RelationXi_0[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+        RelationXi_0[i] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+        RelationXi_0[i] = (RelationXi_0[i] - HillFunction( y_global[j-1] ) - 0.5*minSize) / LT0 ; //轉換為無因次化Z座標
     }
     //配置該點第一套Z方向內插權重
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_0 , 0 , NZ6*j+k ); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z1 , RelationXi_0 , 0 , NZ6*j+k ); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
     double RelationXi_1[7] ; //(j-0)
+    double LT1 = LZ - HillFunction(y_global[j]) - minSize;
+    double pos_z2 = (pos_z - 0.5*minSize - HillFunction(y_global[j])) / LT1; // 無因次化目標點
      for(int i = 0 ; i <7 ; i++){
         RelationXi_1[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 1 * NY6*NZ6] + i ] ;
+        RelationXi_1[i] = (RelationXi_1[i] - HillFunction( y_global[j] ) - 0.5*minSize) / LT1 ; //轉換為無因次化Z座標
     }
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_1 , 1 , NZ6*j+k ); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , NZ6*j+k ); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
     
     double RelationXi_2[7] ; //(j+1)
+    double LT2 = LZ - HillFunction(y_global[j+1]) - minSize;
+    double pos_z3 = (pos_z - 0.5*minSize - HillFunction(y_global[j+1])) / LT2; // 無因次化目標點
     for(int i = 0 ; i <7 ; i++){
-        RelationXi_2[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+        RelationXi_2[i] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+        RelationXi_2[i] = (RelationXi_2[i] - HillFunction( y_global[j+1] ) - 0.5*minSize) / LT2 ; //轉換為無因次化Z座標
     }
-    GetParameter_6th2( XiPara_h, pos_z , RelationXi_2 , 2 , NZ6*j+k ); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_z3 , RelationXi_2 , 2 , NZ6*j+k ); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
 }
 
 //降階版本 
@@ -119,7 +129,7 @@ void GetIntrplParameter_Xi() {
     // 為避免越界，對於 k >= NZ6-16 的點不進行插值參數計算
     // 這些點在 evolution.h 中會使用簡單的 streaming 替代插值
     for( int j = 3; j < NY6-3; j++ ){
-        for( int k = 4; k < NZ6-16;  k++ ){
+        for( int k = 4; k < NZ6-4;  k++ ){
             // F1 (+Y): 從 (y-Δ, z) 來，z 方向無偏移
             //寫進去 CellZ_F1 : 
             RelationXi( y_global[j]-minSize , z_global[j*NZ6+k] , k , j ,  CellZ_F1 , nonuni_a);

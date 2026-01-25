@@ -176,6 +176,9 @@ void RelationXi(double pos_y , double pos_z , int k , int j ,  int* cell_z , dou
         //寫入三個 相鄰 y座標的Z座標起始點 
         //===============================//
         //寫入cell_z[idx_xi+0] , cell_z[idx_xi+1] , cell_z[idx_xi+2]作為起始點，共同點目標內插分的Z_global相同
+        //防呆 
+        if(j<4) j = j + NY6-7 ;
+        if(j>NY6-5) j = j - (NY6-7) ;
         double pos_z0 = pos_z -  0.5*minSize - HillFunction(y_global[j-1]); 
         double pos_z1 = pos_z -  0.5*minSize - HillFunction(y_global[j]); 
         double pos_z2 = pos_z -  0.5*minSize - HillFunction(y_global[j+1]); 
@@ -187,9 +190,11 @@ void RelationXi(double pos_y , double pos_z , int k , int j ,  int* cell_z , dou
         double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
         double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) );//a 為 非均勻網格伸縮參數
         //往下找第一個物理空間計算點 編號     //設置限制 
-        int k_0 = (int)floor( index_z0+3); if (k_0 <= 6) k_0 = 6 ; if(k_0 >= NZ6-7) k_0 = NZ6-7;
-        int k_1 = (int)floor( index_z1+3); if (k_1 <= 6) k_1 = 6 ; if(k_1 >= NZ6-7) k_1 = NZ6-7;
-        int k_2 = (int)floor( index_z2+3); if (k_2 <= 6) k_2 = 6 ; if(k_2 >= NZ6-7) k_2 = NZ6-7;
+        // 調整：讓插值點落在 stencil 的中間（位置 3 附近）以提高穩定性
+        // k_start = round(index) + 3 - 3 = round(index)，這樣插值點在 stencil[3] 附近
+        int k_0 = (int)round( index_z0+3) - 3; if (k_0 <= 6) k_0 = 6 ; if(k_0 >= NZ6-10) k_0 = NZ6-10;
+        int k_1 = (int)round( index_z1+3) - 3; if (k_1 <= 6) k_1 = 6 ; if(k_1 >= NZ6-10) k_1 = NZ6-10;
+        int k_2 = (int)round( index_z2+3) - 3; if (k_2 <= 6) k_2 = 6 ; if(k_2 >= NZ6-10) k_2 = NZ6-10;
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
         cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
         cell_z[NZ6*j+k + 1 * NY6*NZ6] = k_1;

@@ -143,43 +143,53 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // 上邊界 (k >= NZ6-7=149): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
         // 注意：F1,F3 只有 Y 方向偏移，Z 方向不變，但 stencil 仍可能越界
         
-        if( k <= 5 ) {
-            // 下邊界附近
-            // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ < 3 會越界
-            // 使用簡單的 streaming 替代插值
+        // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
+        // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
+        bool y_boundary = (j <= 5) || (j >= NY6-6);
+        bool z_lower = (k <= 15);
+        bool z_upper = (k >= NZ6-35);  // k >= 121
+        
+        if( z_lower || z_upper || y_boundary ) {
+            // 邊界附近：使用簡單的 streaming 替代插值
             
-            // F1,F3: Z 不變
-            F1_in = f1_old[(j-1)*NZ6 + k];  // 從 y-1 位置直接取值
-            F3_in = f3_old[(j+1)*NZ6 + k];  // 從 y+1 位置直接取值
+            // F1,F3: Y方向 streaming，需要週期性 wrap
+            int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
+            int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
+            F1_in = f1_old[jm1*NZ6 + k];
+            F3_in = f3_old[jp1*NZ6 + k];
             
-            // F2,F5,F6: 使用 bounce-back（來源在下邊界外）
-            F2_in = f4_old[idx_xi];
-            F5_in = f7_old[idx_xi];
-            F6_in = f8_old[idx_xi];
-            
-            // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值，使用簡單 streaming
-            F4_in = f4_old[j*NZ6 + k+1];    // 從 z+1 位置直接取值
-            F7_in = f7_old[(j+1)*NZ6 + k+1];  // 從 (y+1,z+1) 取值
-            F8_in = f8_old[(j-1)*NZ6 + k+1];  // 從 (y-1,z+1) 取值
-            
-        } else if( k >= NZ6-16 ) {
-            // 上邊界附近 (k>=140)
-            // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ+6 >= NZ6-3 會越界
-            // 使用簡單的 streaming 替代插值
-            
-            // F1,F3: Z 不變
-            F1_in = f1_old[(j-1)*NZ6 + k];  // 從 y-1 位置直接取值
-            F3_in = f3_old[(j+1)*NZ6 + k];  // 從 y+1 位置直接取值
-            
-            // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值，使用簡單 streaming
-            F2_in = f2_old[j*NZ6 + k-1];    // 從 z-1 位置直接取值
-            F5_in = f5_old[(j-1)*NZ6 + k-1];  // 從 (y-1,z-1) 取值
-            F6_in = f6_old[(j+1)*NZ6 + k-1];  // 從 (y+1,z-1) 取值
-            
-            // F4,F7,F8: 使用 bounce-back（來源在上邊界外）
-            F4_in = f2_old[idx_xi];
-            F7_in = f5_old[idx_xi];
-            F8_in = f6_old[idx_xi];
+            // 根據 Z 位置處理 F2,F4,F5,F6,F7,F8
+            if( z_lower ) {
+                // Z下邊界：F2,F5,F6 使用 bounce-back (因為來源在下邊界外)
+                F2_in = f4_old[idx_xi];
+                F5_in = f7_old[idx_xi];
+                F6_in = f8_old[idx_xi];
+                
+                // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
+                F4_in = f4_old[j*NZ6 + k+1];
+                F7_in = f7_old[jp1*NZ6 + k+1];
+                F8_in = f8_old[jm1*NZ6 + k+1];
+                
+            } else if( z_upper ) {
+                // Z上邊界：F4,F7,F8 使用 bounce-back (因為來源在上邊界外)
+                F4_in = f2_old[idx_xi];
+                F7_in = f5_old[idx_xi];
+                F8_in = f6_old[idx_xi];
+                
+                // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
+                F2_in = f2_old[j*NZ6 + k-1];
+                F5_in = f5_old[jm1*NZ6 + k-1];
+                F6_in = f6_old[jp1*NZ6 + k-1];
+                
+            } else {
+                // Y邊界但非Z邊界：使用簡單 streaming
+                F2_in = f2_old[j*NZ6 + k-1];
+                F4_in = f4_old[j*NZ6 + k+1];
+                F5_in = f5_old[jm1*NZ6 + k-1];
+                F6_in = f6_old[jp1*NZ6 + k-1];
+                F7_in = f7_old[jp1*NZ6 + k+1];
+                F8_in = f8_old[jm1*NZ6 + k+1];
+            }
             
         } else {
             // 內部區域：正常插值
@@ -194,17 +204,19 @@ for(int j = 3 ; j < NY6-3 ; j++){
         }
 
 
-        // 除錯：檢查是否有異常值（暫時放寬閾值以觀察趨勢）
+        // 診斷代碼：在 t=150 附近檢查異常值
         double rho_local = F0_in + F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in;
-        if(rho_local > 5.0 || rho_local < 0.0 || std::isnan(rho_local)) {
+        if(rho_local > 2.0 || rho_local < 0.5 || std::isnan(rho_local)) {
             static int error_count = 0;
-            if(error_count < 10) {
+            if(error_count < 20) {
+                bool in_lower = (k <= 15);
+                bool in_upper = (k >= NZ6-35);
+                bool in_ybnd = (j <= 4) || (j >= NY6-5);
                 std::cout << "ABNORMAL at j=" << j << " k=" << k 
+                          << " region=" << (in_lower ? "LOWER" : (in_upper ? "UPPER" : (in_ybnd ? "YBND" : "INTERNAL")))
                           << " rho=" << rho_local
-                          << " F0=" << F0_in << " F1=" << F1_in << " F2=" << F2_in 
-                          << " F3=" << F3_in << " F4=" << F4_in
-                          << " F5=" << F5_in << " F6=" << F6_in 
-                          << " F7=" << F7_in << " F8=" << F8_in << std::endl;
+                          << " F=[" << F0_in << "," << F1_in << "," << F2_in << "," << F3_in << "," << F4_in
+                          << "," << F5_in << "," << F6_in << "," << F7_in << "," << F8_in << "]" << std::endl;
                 error_count++;
             }
         }

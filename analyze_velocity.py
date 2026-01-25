@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 
-output_dir = r"c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill.worktrees\Edit3-New_Cellz_Array\output"
+output_dir = r"c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill\output"
 fig_dir = os.path.join(output_dir, "figures")
 os.makedirs(fig_dir, exist_ok=True)
 

@@ -232,8 +232,7 @@ inline void FreeAllWeightArrays() {
     XiBFLParaF7_buf.shrink_to_fit();
     XiBFLParaF8_buf.clear();
     XiBFLParaF8_buf.shrink_to_fit();
-
-    std::cout << "✓ Memory has been released!" << std::endl;
+    std::cout << "Memory has been released!" << std::endl;
 }
 
 

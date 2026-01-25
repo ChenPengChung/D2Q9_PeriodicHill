@@ -162,18 +162,40 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
     return Lagrange; 
 }
 
-//給我一個編號，產生該Y值所對應的七個無因次化座標
-void RelationXi(int k , double L , double MinSize , double a , int N , double* RelationXi ){
-    int j = k-3 ; 
-    if (j <3)  j =3 ;
-    if (j > N-4) j = N-4 ;
-    RelationXi[0] = tanhFunction( L , MinSize , a, j-3 , N) - MinSize/2.0;
-    RelationXi[1] = tanhFunction( L , MinSize , a, j-2 , N) - MinSize/2.0;
-    RelationXi[2] = tanhFunction( L , MinSize , a, j-1 , N) - MinSize/2.0;
-    RelationXi[3] = tanhFunction( L , MinSize , a, j , N) - MinSize/2.0;
-    RelationXi[4] = tanhFunction( L , MinSize , a, j+1 , N) - MinSize/2.0;
-    RelationXi[5] = tanhFunction( L , MinSize , a, j+2 , N) - MinSize/2.0;
-    RelationXi[6] = tanhFunction( L , MinSize , a, j+3 , N) - MinSize/2.0;
+
+void RelationXi(double pos_y , double pos_z , int k , int j ,  double* cell_z , double a){//double* RelazationXi 為輸出七點座標
+    if (k<=3){
+        //防呆設計
+        cout << "Error: k value need to be larger than 3 !" << endl;
+        exit(1); //k  = 3 進行差值，則山坡區域將產生外插問題
+    }else{
+        //因為在lAGRANGE 插值中，需要以相同z座標(有因次含山丘版本)最為基準，由左邊二點與右邊一點取y方向之三點格式內插
+        //令內插目標點的z座標 為 pos_z
+        //該Y座標的z方向計算點所包圍的長度為L
+        //目標: [pos_z]->[j]->[k]
+        //寫入三個 相鄰 y座標的Z座標起始點 
+        //===============================//
+        //寫入cell_z[idx_xi+0] , cell_z[idx_xi+1] , cell_z[idx_xi+2]作為起始點，共同點目標內插分的Z_global相同
+        double pos_z0 = pos_z -  0.5*minSize - HillFunction(y_global[j-1]); 
+        double pos_z1 = pos_z -  0.5*minSize - HillFunction(y_global[j]); 
+        double pos_z2 = pos_z -  0.5*minSize - HillFunction(y_global[j+1]); 
+        double L0 = LZ - HillFunction(y_global[j-1]) - minSize;
+        double L1 = LZ - HillFunction(y_global[j]) - minSize;
+        double L2 = LZ - HillFunction(y_global[j+1]) - minSize;
+        //計算該高度在不同y值上的編號
+        double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) );
+        double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
+        double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) );//a 為 非均勻網格伸縮參數
+        //往下找第一個物理空間計算點 編號     //設置限制 
+        int k_0 = (int)floor( index_z0+3); if (k_0 <= 6) k_0 = 6 ; if(k_0 >= NZ6-7) k_0 = NZ6-7;
+        int k_1 = (int)floor( index_z1+3); if (k_1 <= 6) k_1 = 6 ; if(k_1 >= NZ6-7) k_1 = NZ6-7;
+        int k_2 = (int)floor( index_z2+3); if (k_2 <= 6) k_2 = 6 ; if(k_2 >= NZ6-7) k_2 = NZ6-7;
+        //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
+        cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
+        cell_z[NZ6*j+k + 1 * NY6*NZ6] = k_1;
+        cell_z[NZ6*(j)+k + 2 * NY6*NZ6] = k_2;
+        //相鄰y列上的Z座標起始編號 寫入完成 !!
+    }
 }
 
 //6.

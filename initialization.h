@@ -82,96 +82,10 @@ void GenerateMesh_Z() {
 
 
 void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k )
-{   //index_xi , j.  k:為當前座標點 
-    //CellZ_out[idx_xi] : 為當前座標點的內插成員起始點Z座標
-    //越界防呆
-    if(j<3) j = j + NY6-7 ;
-    if(j>NY6-4) j = j - (NY6-7) ;
-    //Z方向係數編號系統(第二格)  = (j+relation)*NZ6 + k  ; relation:1~7
-    double L = LZ - HillFunction(pos_y) - minSize;
-    //每一個y位置而言每一個計算間都不一樣
-    double pos_xi =  (pos_z - (HillFunction(pos_y)+minSize/2.0)) ;
-    const double a = nonuni_a; // 已在 GenerateMesh_Z 中計算
-    //求解目標點的編號(映射回均勻系統)
-    double j_cont = Inverse_tanh_index( pos_xi , L , minSize , a , (NZ6-7) );
-
-    //Z方向成員起始編號
-    //在 ISLBM 中，stencil 需要包圍來源點的 k 索引
-    //使用 j_cont-3 作為起點，使得來源點落在 stencil 的中間位置 (位置 3)
-    //這樣 stencil 覆蓋約 k_src-3 到 k_src+3，共 7 個點
-    //
-    //重要修正：cell_z1 應該基於 j_cont（映射後的連續座標）而不是傳入的 k
-    //因為不同方向的 Fi 有不同的來源位置偏移：
-    //  F2 (+Z): 來源在 z-Δ → j_cont 較小
-    //  F4 (-Z): 來源在 z+Δ → j_cont 較大，可能接近或超出邊界
-    //
-    //需要加上 buffer 區域偏移 (+3) 來得到實際的 k 索引
+{   
+    //void RelationXi(double pos_y , double pos_z , int k , int j ,  double* cell_z , double a)
     
-
-    //y方向為七點版本
-    /*/給我一個double 給出相對應七個內插的無因次化座標
-    double RelationXi_0[7] ; //(j-3)
-    double LT = LZ - HillFunction(y_global[j-3]) - minSize;
-    double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
-    
-    double RelationXi_1[7] ; //(j-2)
-    LT = LZ - HillFunction(y_global[j-2]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
-    
-    double RelationXi_2[7] ; //(j-1)
-    LT = LZ - HillFunction(y_global[j-1]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
-    
-    double RelationXi_3[7] ; //(j)
-    LT = LZ - HillFunction(y_global[j]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_3);//寫入第四套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_3 , 3 , index_xi); //XiPara_h[0][index_xi + 3*NY6*NZ6] ~ XiPara_h[6][index_xi + 3*NY6*NZ6]
-
-    double RelationXi_4[7] ; //(j+1)
-    LT = LZ - HillFunction(y_global[j+1]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_4);//寫入第五套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2, RelationXi_4 , 4 , index_xi); //XiPara_h[0][index_xi + 4*NY6*NZ6] ~ XiPara_h[6][index_xi + 4*NY6*NZ6]
-
-    double RelationXi_5[7] ; //(j+2)
-    LT = LZ - HillFunction(y_global[j+2]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_5);//寫入第六套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_5 , 5 , index_xi); //XiPara_h[0][index_xi + 5*NY6*NZ6] ~ XiPara_h[6][index_xi + 5*NY6*NZ6]
-   
-    double RelationXi_6[7] ; //(j+3)
-    LT = LZ - HillFunction(y_global[j+3]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(j_cont, LT , minSize , a , (NZ6-7) , RelationXi_6);//寫入第七套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_6 , 6 , index_xi); //XiPara_h[0][index_xi + 6*NY6*NZ6] ~ XiPara_h[6][index_xi + 6*NY6*NZ6]*/
-    
-    //y方向為三點版本
-    double RelationXi_0[7] ; //(j-1)
-    double LT = LZ - HillFunction(y_global[j-1]) - minSize;
-    double pos_z2 =  tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_0);//寫入第一套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_0 , 0 , index_xi); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
-    
-    double RelationXi_1[7] ; //(j-0)
-    LT = LZ - HillFunction(y_global[j-0]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(k, LT , minSize , a , (NZ6-7) , RelationXi_1);//寫入第二套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_1 , 1 , index_xi); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
-    
-    double RelationXi_2[7] ; //(j+1)
-    LT = LZ - HillFunction(y_global[j+1]) - minSize;
-    pos_z2 = tanhFunction( LT, minSize, a, j_cont , (NZ6-7) ) - minSize/2.0;
-    RelationXi(k , LT , minSize , a , (NZ6-7) , RelationXi_2);//寫入第三套垂直方向無因次化Z陣列
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 2 , index_xi); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
 }
-
 //降階版本 
 void GetIntrplParameter_Y() {
     for( int j = 3; j < NY6-3; j++ ){

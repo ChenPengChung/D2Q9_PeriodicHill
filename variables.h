@@ -6,8 +6,8 @@
 #define     LY     (9.0)
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
-#define     NY      200 
-#define     NZ      150
+#define     NY      400 
+#define     NZ      200
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)
@@ -23,17 +23,22 @@
 #define     Uniform_In_Zdir     0
 //定義無因次化長度上限
 #define LXi (10.0)
-//雷諾數
-#define Re 1 
+
 //模擬迴圈上限值
 #define loop 1000000
-/**********Secondary Parameter********************/
-#define dt (minSize) 
-#define cs (1.0/1.732050807568877)
-//Parameters of periodic hills Using MRT operator    
-#define     omega_2     1.2
-#define     omega_7     1.2
-#define     niu         (1/3.)*(1/omega_7 - 0.5 )
-//以山坡高度流場的特徵長度，計算特徵速度
-#define     Uref        (Re*niu)
+
+//=== 關鍵修改：正確的 Re 參數設計 ===
+#define Re          50                              // 目標雷諾數
+#define Uref        0.05                            // 固定特徵速度 (Ma < 0.1)
+#define L_char      1.0                             // 特徵長度 (山坡高度 h)
+#define niu         (Uref * L_char / (double)Re)    // 黏滯係數
+#define tau         (3.0*niu + 0.5)                 // 鬆弛時間
+#define omega_7     (1.0 / tau)                     // 剪切鬆弛參數
+#define omega_2     1.2                             // 能量鬆弛（可調）
+
+//=== 次要參數 ===
+#define dt          minSize
+#define cs          (1.0/1.732050807568877)
+
+
 #endif

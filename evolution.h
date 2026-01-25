@@ -147,7 +147,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
         bool y_boundary = (j <= 5) || (j >= NY6-6);
         bool z_lower = (k <= 15);
-        bool z_upper = (k >= NZ6-35);  // k >= 121
+        bool z_upper = (k >= NZ6-22);  // k >= 121
         
         if( z_lower || z_upper || y_boundary ) {
             // 邊界附近：使用簡單的 streaming 替代插值

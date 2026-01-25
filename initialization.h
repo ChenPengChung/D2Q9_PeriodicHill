@@ -30,7 +30,7 @@ void InitialUsingDftFunc() {
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
         //離散化\ 宏觀\ 外立\ 場的初始化initilaoization of the discrete macroscopic force term
-        Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*1.0; //降低外力係數，原本是 5.0
+        Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //降低外力係數，原本是 5.0
         Force[1] = 0.0;  // Z 方向無外力
 }
 //建立Y(主流場方向)方向之均勻網格系統

@@ -152,12 +152,18 @@ double GetNonuniParameter() {
  * @return Lagrange 基底函數值
  * @see GetParameter_6th()
  */
-//降階版本
-double Lagrange_2nd(double pos , double x_i , double x1 , double x2 ){
+//線性外插
+double Extrapolation(double pos , double x1 , double x2 , double x3 , double x4 , double x5 , double x6 , double f0 , double f1 ){
+    double Extrapolation = ( (pos - x1)/(x2 - x1) )*( f1 - f0 ) + f0 ;
+    return Extrapolation; 
+}
+
+//夾層
+double Lagrange_2nd(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2);
     return Lagrange; 
 }
-
+//內層
 double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2)*(pos - x3)/(x_i - x3)*(pos - x4)/(x_i - x4)*(pos - x5)/(x_i - x5)*(pos - x6)/(x_i - x6);
     return Lagrange; 
@@ -197,9 +203,9 @@ void RelationXi(double pos_y , double pos_z , int j , int k ,  int* cell_z , dou
         //j-1:外插|三點內插|七點內插|三點內插|外插----
         //j  :外插|三點內插|七點內插|三點內插|外插----
         //j+1:外插|三點內插|七點內插|三點內插|外插----
-        if (index_z0 < 3) {k_0 = 3 ; /*兩點外插出去*/} else if (index_z0 > NZ6-4) {k_0 =  NZ6-5 ;} else if (index_z0 < 6) {k_0 = (int)floor(index_z0) ;} else if (index_z0 > NZ6-7) {k_0 = (int)ceil(index_z0) -2;} else{k_0 = k_0-3 ; }
-        if (index_z1 < 3) {k_1 = 3 ; /*兩點外插出去*/} else if (index_z1 > NZ6-4) {k_1 =  NZ6-5 ;} else if (index_z1 < 6) {k_1 = (int)floor(index_z1) ;} else if (index_z1 > NZ6-7) {k_1 = (int)ceil(index_z1) -2;} else{k_1 = k_1-3 ; }
-        if (index_z2 < 3) {k_2 = 3 ; /*兩點外插出去*/} else if (index_z2 > NZ6-4) {k_2 =  NZ6-5 ;} else if (index_z2 < 6) {k_2 = (int)floor(index_z2) ;} else if (index_z2 > NZ6-7) {k_2 = (int)ceil(index_z2) -2;} else{k_2 = k_2-3 ; }
+        if (index_z0 < 3) {k_0 = 3 ; /*兩點外插出去*/} else if (index_z0 > NZ6-4) {k_0 =  NZ6-5 ;} else if (index_z0 < 6) {k_0 = (int)floor(index_z0) ;} else if (index_z0 > NZ6-7) {k_0 = (int)ceil(index_z0) -2-4;} else{k_0 = k_0-3 ; }
+        if (index_z1 < 3) {k_1 = 3 ; /*兩點外插出去*/} else if (index_z1 > NZ6-4) {k_1 =  NZ6-5 ;} else if (index_z1 < 6) {k_1 = (int)floor(index_z1) ;} else if (index_z1 > NZ6-7) {k_1 = (int)ceil(index_z1) -2-4;} else{k_1 = k_1-3 ; }
+        if (index_z2 < 3) {k_2 = 3 ; /*兩點外插出去*/} else if (index_z2 > NZ6-4) {k_2 =  NZ6-5 ;} else if (index_z2 < 6) {k_2 = (int)floor(index_z2) ;} else if (index_z2 > NZ6-7) {k_2 = (int)ceil(index_z2) -2-4;} else{k_2 = k_2-3 ; } //-2為真正的起點 -4為統一往上編號所需，參與內插的點為4,5,6  
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
         cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
         cell_z[NZ6*j+k   + 1 * NY6*NZ6] = k_1;

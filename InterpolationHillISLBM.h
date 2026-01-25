@@ -97,11 +97,12 @@ do { \
 
 
 
+//註解:權重根據起點判斷選擇性為 0
 //如下定義為D2Q9模型的F5,F6,F7,F8 (斜向) - 需要 Y 和 Z 
 // 注意: cell_z 儲存的是 k_start，需要加上 y 列偏移
 #define Y_XI_Intrpl3(f, F_in, j, k, cell_z , idx_y, idx_xi, y_0, y_1, y_2, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { /*降階版本*/\
-    const int base0 = (j-1)*nface + cell_z[idx_xi+0*NY6*NZ6]; \
+    const int base0 = (j-1)*nface + cell_z[idx_xi+0*NY6*NZ6]; /*在哪一個y層+起點座標*/\
     const int base1 = j*nface + cell_z[idx_xi+1*NY6*NZ6]; \
     const int base2 = (j+1)*nface + cell_z[idx_xi+2*NY6*NZ6]; \
     F_in = Intrpl3( \

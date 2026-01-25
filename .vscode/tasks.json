@@ -38,7 +38,7 @@
                 "-fopenmp",
                 "${workspaceFolder}/main.cpp",
                 "-o",
-                "${workspaceFolder}/main.exe"
+                "E:/D2Q9_PeriodicHill/bin/main.exe"
             ],
             "options": {
                 "shell": {

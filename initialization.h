@@ -196,47 +196,30 @@ void GetIntrplParameter_Xi() {
     // 這些點在 evolution.h 中會使用簡單的 streaming 替代插值
     for( int j = 3; j < NY6-3; j++ ){
         for( int k = 4; k < NZ6-4;  k++ ){
-            // F1 (+Y): 從 (y-Δ, z) 來，z 方向無偏移
+            
             //寫進去 CellZ_F1(3個起點): 
-            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k] , j , k ,  CellZ_F1 , nonuni_a);
-            //CellZ_F1 已填滿可以進行操作
+            RelationXi(z_global[j*NZ6+k]         , j , k ,  CellZ_F1 , nonuni_a);
+            //寫進去 CellZ_F2 :
+            RelationXi(z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F2 , nonuni_a);
+             //寫進去 CellZ_F4 :
+            RelationXi(z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F4 , nonuni_a);
+            // F1 (+Y): 從 (y-Δ, z) 來，z 方向無偏移
             GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j , k,  CellZ_F1);
             // F2 (0,+Z): 從 (y, z-Δ) 來
-            //寫進去 CellZ_F2 :
-            RelationXi( y_global[j] , z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F2 , nonuni_a);
-            //CellZ_F2 已填滿可以進行操作
-            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j , k,  CellZ_F2);
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize ,y_global[j],         j , k,  CellZ_F2);
             // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移
-            //寫進去 CellZ_F3 :
-            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k] , j , k ,  CellZ_F3 , nonuni_a);
-            //CellZ_F3 已填滿可以進行操作
             GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j , k,  CellZ_F1);
             // F4 (0,-Z): 從 (y, z+Δ) 來
-            //寫進去 CellZ_F4 :
-            RelationXi( y_global[j] , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F4 , nonuni_a);
-            //CellZ_F4 已填滿可以進行操作
             GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         j , k,  CellZ_F4);
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
-            //寫進去 CellZ_F5 :
-            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F5 , nonuni_a);
-            //CellZ_F5 已填滿可以進行操作
             GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j , k,  CellZ_F2);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
-            //寫進去 CellZ_F6 :
-            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F6 , nonuni_a);
-            //CellZ_F6 已填滿可以進行操作
             GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j , k,  CellZ_F2);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
-            //寫進去 CellZ_F7 :
-            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F7 , nonuni_a);
-            //CellZ_F7 已填滿可以進行操作
             GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j , k,  CellZ_F4);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
-            //寫進去 CellZ_F8 :
-            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F8 , nonuni_a);
-            //CellZ_F8 已填滿可以進行操作
             GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j , k,  CellZ_F4);
-    }}
+}}
 }
 
 void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {

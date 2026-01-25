@@ -170,7 +170,7 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 }
 
 
-void RelationXi(double pos_y , double pos_z , int j , int k ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
+void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
     //pos_z可能為 k的Z値 + minSize 或 k - minSize
     if (k<3){
         //防呆設計

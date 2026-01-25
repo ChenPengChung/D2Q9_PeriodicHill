@@ -11,6 +11,7 @@
  * * - BFL 邊界條件判斷函數
  */
 #include <cmath>
+#include <fstream>
 #include "variables.h"
 #include "model.h"
 using namespace std;
@@ -163,7 +164,7 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 }
 
 
-void RelationXi(double pos_y , double pos_z , int k , int j ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
+void RelationXi(double pos_y , double pos_z , int j , int k ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
     if (k<=3){
         //防呆設計
         cout << "Error: k value need to be larger than 3 !" << endl;

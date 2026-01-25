@@ -118,6 +118,8 @@ const int NDTFRC = 10000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
 const int outputInterval_VTK = 1000;     // VTK 檔案輸出間隔（步數）
 const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
+ofstream  Boundary_Node ; //記錄各個分佈函數在曲面邊界處理下的點
+ofstream  Danger_Interpolation_Point ; //記錄插值過程中發生危險插值的點
 //=============================================================================
 // [區塊 3] 引入依賴全域變數的標頭檔
 //=============================================================================
@@ -208,6 +210,294 @@ void swapDistributions() {
         memcpy(f_old[dir], f_new[dir], sizeof(double) * NY6 * NZ6);
     }
 }
+//4.4寫入取曲面邊界點
+void Wright_Boundary_Node(){
+   //根據不同分佈函數寫入曲面邊界點 
+   //Left Hill ? //Distribution Function // points
+    Boundary_Node.open("Boundary_Node.txt");
+    Boundary_Node << "============================================================" << endl ; 
+    Boundary_Node << "Left Hill Boundary Node (F1 , F5 ) "<< endl ; 
+    Boundary_Node << "============================================================" << endl ; 
+    
+    // F1 邊界點
+    Boundary_Node << "F1:" << endl ;
+    int count = 0;
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 3 ; k <= NZ6-4 ; k++){
+            if(IsLeftHill_Boundary_yPlus(y_global[j] , z_global[j * NZ6 + k])){
+                Boundary_Node << "(" << setw(3) << j << "," << setw(3) << k << ") ";
+                count++;
+                if(count % 10 == 0) Boundary_Node << endl;  // 每10個換行
+            }
+        }
+    }
+    if(count % 10 != 0) Boundary_Node << endl;  // 最後換行
+    
+    // F5 邊界點
+    Boundary_Node << endl << "F5:" << endl ;
+    count = 0;
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 3 ; k <= NZ6-4 ; k++){
+            if(IsLeftHill_Boundary_Diagonal45(y_global[j] , z_global[j * NZ6 + k])){
+                Boundary_Node << "(" << setw(3) << j << "," << setw(3) << k << ") ";
+                count++;
+                if(count % 10 == 0) Boundary_Node << endl;
+            }
+        }
+    }
+    if(count % 10 != 0) Boundary_Node << endl;
+    
+    Boundary_Node << endl << "============================================================" << endl ; 
+    Boundary_Node << "Right Hill Boundary Node (F3 , F6 ) " << endl ;
+    Boundary_Node << "============================================================" << endl ; 
+    
+    // F3 邊界點
+    Boundary_Node << "F3:" << endl ;
+    count = 0;
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 3 ; k <= NZ6-4 ; k++){
+            if(IsRightHill_Boundary_yMinus(y_global[j] , z_global[j * NZ6 + k])){
+                Boundary_Node << "(" << setw(3) << j << "," << setw(3) << k << ") ";
+                count++;
+                if(count % 10 == 0) Boundary_Node << endl;
+            }
+        }
+    }
+    if(count % 10 != 0) Boundary_Node << endl;
+    
+    // F6 邊界點
+    Boundary_Node << endl << "F6:" << endl ;
+    count = 0;
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 3 ; k <= NZ6-4 ; k++){
+            if(IsRightHill_Boundary_Diagonal135(y_global[j] , z_global[j * NZ6 + k])){
+                Boundary_Node << "(" << setw(3) << j << "," << setw(3) << k << ") ";
+                count++;
+                if(count % 10 == 0) Boundary_Node << endl;
+            }
+        }
+    }
+    if(count % 10 != 0) Boundary_Node << endl;
+    
+    Boundary_Node.close() ; 
+}
+//4.5寫入危險插值點
+void Wright_Danger_Interpolation_Point(){
+    //根據不同分佈函數寫入曲面邊界點 
+    //Calculate dangerous interpolation points
+    Danger_Interpolation_Point.open("Danger_Interpolation_Point.txt");
+    
+    // ========== F2, F5, F6: z_global + minSize ==========
+    Danger_Interpolation_Point << "============================================================" << endl ; 
+    Danger_Interpolation_Point << "z_global + minSize (F2, F5, F6)" << endl ; 
+    Danger_Interpolation_Point << "============================================================" << endl ; 
+    
+    // 收集三類數據
+    vector<pair<int,int>> z0_only, z2_only, both;
+    vector<double> z0_only_val, z2_only_val, both_z0_val, both_z2_val;
+    
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 4 ; k <= NZ6-4 ; k++){
+            double pos_z0 = z_global[NZ6*j+k] + minSize - 0.5*minSize - HillFunction(y_global[j-1]); 
+            double pos_z2 = z_global[NZ6*j+k] + minSize - 0.5*minSize - HillFunction(y_global[j+1]); 
+            double L0 = LZ - HillFunction(y_global[j-1]) - minSize;
+            double L2 = LZ - HillFunction(y_global[j+1]) - minSize;
+            double index_z0 = Inverse_tanh_index(pos_z0, L0, minSize, nonuni_a, (NZ6-7)) + 3;
+            double index_z2 = Inverse_tanh_index(pos_z2, L2, minSize, nonuni_a, (NZ6-7)) + 3;
+            
+            bool z0_in_range = (index_z0 > 3.0 && index_z0 < 6.0);
+            bool z2_in_range = (index_z2 > 3.0 && index_z2 < 6.0);
+            
+            if(!z0_in_range && !z2_in_range) continue; // 兩個都不在範圍內，跳過
+            
+            if(z0_in_range && !z2_in_range){
+                z0_only.push_back(make_pair(j,k));
+                z0_only_val.push_back(index_z0);
+            } else if(!z0_in_range && z2_in_range){
+                z2_only.push_back(make_pair(j,k));
+                z2_only_val.push_back(index_z2);
+            } else { // 兩個都在範圍內
+                both.push_back(make_pair(j,k));
+                both_z0_val.push_back(index_z0);
+                both_z2_val.push_back(index_z2);
+            }
+        }
+    }
+    
+    // 輸出三列標題
+    Danger_Interpolation_Point << "| Point(j,k) | index_z0(j-1) || Point(j,k) | index_z2(j+1) || Point(j,k) | index_z0 && z2  |" << endl;
+    Danger_Interpolation_Point << "---------------------------------------------------------------------------------------------" << endl;
+    
+    // 輸出數據
+    size_t max_rows = max({z0_only.size(), z2_only.size(), both.size()});
+    for(size_t i = 0; i < max_rows; i++){
+        // 第一列：只有 z0 在範圍內
+        if(i < z0_only.size()){
+            Danger_Interpolation_Point << "| (" << setw(3) << z0_only[i].first << "," << setw(3) << z0_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z0_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "|           |               ||";
+        }
+        
+        // 第二列：只有 z2 在範圍內
+        if(i < z2_only.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << z2_only[i].first << "," << setw(3) << z2_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z2_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "           |               ||";
+        }
+        
+        // 第三列：兩個都在範圍內
+        if(i < both.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << both[i].first << "," << setw(3) << both[i].second << ") | " 
+                << setw(6) << fixed << setprecision(3) << both_z0_val[i] << "," 
+                << setw(6) << fixed << setprecision(3) << both_z2_val[i] << " |";
+        } else {
+            Danger_Interpolation_Point << "           |                 |";
+        }
+        
+        Danger_Interpolation_Point << endl;
+    }
+    
+    // ========== F1, F3: z_global ==========
+    Danger_Interpolation_Point << endl << "============================================================" << endl ; 
+    Danger_Interpolation_Point << "z_global (F1, F3)" << endl ;
+    Danger_Interpolation_Point << "============================================================" << endl ; 
+    
+    // 清空並重新收集數據
+    z0_only.clear(); z2_only.clear(); both.clear();
+    z0_only_val.clear(); z2_only_val.clear(); both_z0_val.clear(); both_z2_val.clear();
+    
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 4 ; k <= NZ6-4 ; k++){
+            double pos_z0 = z_global[NZ6*j+k] - 0.5*minSize - HillFunction(y_global[j-1]); 
+            double pos_z2 = z_global[NZ6*j+k] - 0.5*minSize - HillFunction(y_global[j+1]); 
+            double L0 = LZ - HillFunction(y_global[j-1]) - minSize;
+            double L2 = LZ - HillFunction(y_global[j+1]) - minSize;
+            double index_z0 = Inverse_tanh_index(pos_z0, L0, minSize, nonuni_a, (NZ6-7))+3;
+            double index_z2 = Inverse_tanh_index(pos_z2, L2, minSize, nonuni_a, (NZ6-7))+3;
+            
+            bool z0_in_range = (index_z0 > 3.0 && index_z0 < 6.0);
+            bool z2_in_range = (index_z2 > 3.0 && index_z2 < 6.0);
+            
+            if(!z0_in_range && !z2_in_range) continue;
+            
+            if(z0_in_range && !z2_in_range){
+                z0_only.push_back(make_pair(j,k));
+                z0_only_val.push_back(index_z0);
+            } else if(!z0_in_range && z2_in_range){
+                z2_only.push_back(make_pair(j,k));
+                z2_only_val.push_back(index_z2);
+            } else {
+                both.push_back(make_pair(j,k));
+                both_z0_val.push_back(index_z0);
+                both_z2_val.push_back(index_z2);
+            }
+        }
+    }
+    
+    Danger_Interpolation_Point << "| Point(j,k) | index_z0(j-1) || Point(j,k) | index_z2(j+1) || Point(j,k) | index_z0 && z2  |" << endl;
+    Danger_Interpolation_Point << "---------------------------------------------------------------------------------------------" << endl;
+    
+    max_rows = max({z0_only.size(), z2_only.size(), both.size()});
+    for(size_t i = 0; i < max_rows; i++){
+        if(i < z0_only.size()){
+            Danger_Interpolation_Point << "| (" << setw(3) << z0_only[i].first << "," << setw(3) << z0_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z0_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "|            |               ||";
+        }
+        
+        if(i < z2_only.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << z2_only[i].first << "," << setw(3) << z2_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z2_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "            |               ||";
+        }
+        
+        if(i < both.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << both[i].first << "," << setw(3) << both[i].second << ") | " 
+                << setw(6) << fixed << setprecision(3) << both_z0_val[i] << "," 
+                << setw(6) << fixed << setprecision(3) << both_z2_val[i] << " |";
+        } else {
+            Danger_Interpolation_Point << "            |                 |";
+        }
+        
+        Danger_Interpolation_Point << endl;
+    }
+    
+    // ========== F4, F7, F8: z_global - minSize ==========
+    Danger_Interpolation_Point << endl << "============================================================" << endl ; 
+    Danger_Interpolation_Point << "z_global - minSize (F4, F7, F8)" << endl ;
+    Danger_Interpolation_Point << "============================================================" << endl ; 
+    
+    // 清空並重新收集數據
+    z0_only.clear(); z2_only.clear(); both.clear();
+    z0_only_val.clear(); z2_only_val.clear(); both_z0_val.clear(); both_z2_val.clear();
+    
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+        for(int k = 4 ; k <= NZ6-4 ; k++){
+            double pos_z0 = z_global[NZ6*j+k] - minSize - 0.5*minSize - HillFunction(y_global[j-1]); 
+            double pos_z2 = z_global[NZ6*j+k] - minSize - 0.5*minSize - HillFunction(y_global[j+1]); 
+            double L0 = LZ - HillFunction(y_global[j-1]) - minSize;
+            double L2 = LZ - HillFunction(y_global[j+1]) - minSize;
+            double index_z0 = Inverse_tanh_index(pos_z0, L0, minSize, nonuni_a, (NZ6-7))+3;
+            double index_z2 = Inverse_tanh_index(pos_z2, L2, minSize, nonuni_a, (NZ6-7))+3;
+            
+            bool z0_in_range = (index_z0 > 3.0 && index_z0 < 6.0);
+            bool z2_in_range = (index_z2 > 3.0 && index_z2 < 6.0);
+            
+            if(!z0_in_range && !z2_in_range) continue;
+            
+            if(z0_in_range && !z2_in_range){
+                z0_only.push_back(make_pair(j,k));
+                z0_only_val.push_back(index_z0);
+            } else if(!z0_in_range && z2_in_range){
+                z2_only.push_back(make_pair(j,k));
+                z2_only_val.push_back(index_z2);
+            } else {
+                both.push_back(make_pair(j,k));
+                both_z0_val.push_back(index_z0);
+                both_z2_val.push_back(index_z2);
+            }
+        }
+    }
+    
+    Danger_Interpolation_Point << "| Point(j,k) | index_z0(j-1) || Point(j,k) | index_z2(j+1) || Point(j,k) | index_z0 && z2  |" << endl;
+    Danger_Interpolation_Point << "---------------------------------------------------------------------------------------------" << endl;
+    
+    max_rows = max({z0_only.size(), z2_only.size(), both.size()});
+    for(size_t i = 0; i < max_rows; i++){
+        if(i < z0_only.size()){
+            Danger_Interpolation_Point << "| (" << setw(3) << z0_only[i].first << "," << setw(3) << z0_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z0_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "|           |               ||";
+        }
+        
+        if(i < z2_only.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << z2_only[i].first << "," << setw(3) << z2_only[i].second << ") | " 
+                << setw(13) << fixed << setprecision(6) << z2_only_val[i] << " ||";
+        } else {
+            Danger_Interpolation_Point << "           |               ||";
+        }
+        
+        if(i < both.size()){
+            Danger_Interpolation_Point << " (" << setw(3) << both[i].first << "," << setw(3) << both[i].second << ") | " 
+                << setw(6) << fixed << setprecision(3) << both_z0_val[i] << "," 
+                << setw(6) << fixed << setprecision(3) << both_z2_val[i] << " |";
+        } else {
+            Danger_Interpolation_Point << "           |                 |";
+        }
+        
+        Danger_Interpolation_Point << endl;
+    }
+    
+    Danger_Interpolation_Point.close() ; 
+}
+
+
+
 //=============================================================================
 // [區塊 5] 主程式
 //=============================================================================
@@ -224,6 +514,8 @@ int main() {
     cout << "Generating mesh..." << endl ;
     GenerateMesh_Y();
     GenerateMesh_Z();
+    Wright_Boundary_Node() ; //確認曲面邊界點 
+    Wright_Danger_Interpolation_Point() ; //確認危險插值點
     //步驟 4 :預計算插值權重
     cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();

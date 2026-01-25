@@ -87,16 +87,16 @@ extern double Q5_h[NY6 * NZ6];          // F5 邊界點的 q 值
 extern double Q6_h[NY6 * NZ6];          // F6 邊界點的 q 值
 
 //=============================================================================
-// Stencil 起點索引（基於來源點位置預先計算）
+// Stencil 起點索引（基於來源點位置預先計算）F1F3 : 與本點同高度 F256 : 與本點低一個minSize F478 : 與本點高一個minSize
 //=============================================================================
 extern int CellZ_F1[3*NY6 * NZ6];         // F1 方向的 Z stencil 起點
 extern int CellZ_F2[3*NY6 * NZ6];         // F2 方向的 Z stencil 起點
-extern int CellZ_F3[3*NY6 * NZ6];         // F3 方向的 Z stencil 起點
-extern int CellZ_F4[3*NY6 * NZ6];         // F3 方向的 Z stencil 起點
-extern int CellZ_F5[3*NY6 * NZ6];         // F5 方向的 Z stencil 起點
-extern int CellZ_F6[3*NY6 * NZ6];         // F6 方向的 Z stencil 起點
-extern int CellZ_F7[3*NY6 * NZ6];         // F7 方向的 Z stencil 起點
-extern int CellZ_F8[3*NY6 * NZ6];         // F8 方向的 Z stencil 起點
+//extern int CellZ_F3[3*NY6 * NZ6];       // F3 方向的 Z stencil 起點
+extern int CellZ_F4[3*NY6 * NZ6];         // F4 方向的 Z stencil 起點
+//extern int CellZ_F5[3*NY6 * NZ6];       // F5 方向的 Z stencil 起點
+//extern int CellZ_F6[3*NY6 * NZ6];       // F6 方向的 Z stencil 起點
+//extern int CellZ_F7[3*NY6 * NZ6];       // F7 方向的 Z stencil 起點
+//extern int CellZ_F8[3*NY6 * NZ6];       // F8 方向的 Z stencil 起點
 //=============================================================================
 //每一個分佈函數因為曲面座標左一右一格有不同stencill起點 
 #endif // GLOBALVARIABLES_H

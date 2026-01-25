@@ -107,48 +107,41 @@ for(int j = 3 ; j < NY6-3 ; j++){
     for(int k = 3 ; k < NZ6-3 ; k++){
         int idx_xi = j *NZ6 + k ;
         int idx ; //出現在 interpolationHillISLBM.h 巨集定義內的中間變數idx
-         
         //宣告物理空間計算點的碰撞前插值後一般態分佈函數
         double F0_in,  F1_in,  F2_in,  F3_in,  F4_in,  F5_in,  F6_in,  F7_in,  F8_in ;   
         //MRT Variables
         double m0, m1, m2, m3, m4, m5, m6, m7, m8;
         double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;
-
-        //1.Interpolation and Streaming
-        //使用預計算的 stencil 起點（基於來源點位置計算，與 RelationXi 一致）
-        //
         int cell_z = k-3;
         if( k <= 6 )    cell_z = 3;
         if( k >= NZ6-7) cell_z = NZ6-10;
-        /*F0_Intrpl7(f0_old, j, k);
-        F1_Intrpl7(f1_old,j,k,j-3,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-        F3_Intrpl7(f3_old,j,k,j-3,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-        F2_Intrpl7(f2_old, j,k, j-3, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-        F4_Intrpl7(f4_old, j, k, j-3, cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-        Y_XI_Intrpl7(f5_old, F5_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-        Y_XI_Intrpl7(f6_old, F6_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-        Y_XI_Intrpl7(f7_old, F7_in, j, k, j-3, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2,Y2_3,Y2_4,Y2_5,Y2_6, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-        Y_XI_Intrpl7(f8_old, F8_in, j, k, j-3, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2,Y0_3,Y0_4,Y0_5,Y0_6, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);*/
-        
-        //降階版本
+
         F0_in = f0_old[idx_xi];
+        //F2 ; 
+        if(k == 3){//邊界處理
+            F2_in = f4_old[idx_xi] ; //bounce-back
+        }else{
+            //
+        }
+        //F4 :
+        //F1 ; 
+        //F3 ; 
+        //F5 ; 
+        //F6 ; 
+        //F7 ;
+        //F8 ; 
         
-        // 對 Z 方向邊界使用條件式處理：
-        // 7-point Xi stencil 需要 k_start 到 k_start+6 範圍內的有效資料
-        // 當 cellZ_F* + 6 >= NZ6 - 3 時，會存取到上邊界 buffer 區
-        // 當 cellZ_F* < 3 時，會存取到下邊界 buffer 區
-        // 使用 half-way bounce-back 代替插值以避免外推問題
-        
-        // 下邊界 (k <= 5): F2,F5,F6 的來源位置可能落在下邊界 buffer 區
-        // 上邊界 (k >= NZ6-7=149): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
-        // 注意：F1,F3 只有 Y 方向偏移，Z 方向不變，但 stencil 仍可能越界
-        
-        // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
-        // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
-        bool y_boundary = (j <= 5) || (j >= NY6-6);
-        bool z_lower = (k <= 15);
-        bool z_upper = (k >= NZ6-22);  // k >= 121
-        
+
+
+
+
+
+
+
+
+
+        //分類標準 : 一個一個分佈函數分開來判斷?? 
+
         if( z_lower || z_upper || y_boundary ) {
             // 邊界附近：使用簡單的 streaming 替代插值
             
@@ -194,32 +187,17 @@ for(int j = 3 ; j < NY6-3 ; j++){
         } else {
             // 內部區域：正常插值
             F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-            F3_Intrpl3(f3_old,j,k,CellZ_F3,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            F3_Intrpl3(f3_old,j,k,CellZ_F1,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
             F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
             F4_Intrpl7(f4_old, j, k, CellZ_F4, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F5, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-            Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F6, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-            Y_XI_Intrpl3(f7_old, F7_in, j, k, CellZ_F7, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-            Y_XI_Intrpl3(f8_old, F8_in, j, k, CellZ_F8, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F2, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, CellZ_F4, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, CellZ_F4, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
         }
 
 
-        // 診斷代碼：在 t=150 附近檢查異常值
-        double rho_local = F0_in + F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in;
-        if(rho_local > 2.0 || rho_local < 0.5 || std::isnan(rho_local)) {
-            static int error_count = 0;
-            if(error_count < 20) {
-                bool in_lower = (k <= 15);
-                bool in_upper = (k >= NZ6-35);
-                bool in_ybnd = (j <= 4) || (j >= NY6-5);
-                std::cout << "ABNORMAL at j=" << j << " k=" << k 
-                          << " region=" << (in_lower ? "LOWER" : (in_upper ? "UPPER" : (in_ybnd ? "YBND" : "INTERNAL")))
-                          << " rho=" << rho_local
-                          << " F=[" << F0_in << "," << F1_in << "," << F2_in << "," << F3_in << "," << F4_in
-                          << "," << F5_in << "," << F6_in << "," << F7_in << "," << F8_in << "]" << std::endl;
-                error_count++;
-            }
-        }
+        
 
         //2.Special case of Streaming Step : Boundry Treatment
         //(1.)Halhf-way Bounce-Back Boundary Condition
@@ -304,9 +282,62 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         //3.質量修正
-        
         F0_in = F0_in + rho_modify[0];
+        //診斷代碼：在 t=150 附近檢查異常值
+        double rho_local = F0_in + F1_in + F2_in + F3_in + F4_in + F5_in + F6_in + F7_in + F8_in;
+        if(rho_local > 2.0 || rho_local < 0.5 || std::isnan(rho_local)) {
+            static int error_count = 0;
+            if(error_count < 20) {
+                bool in_lower = (k <= 15);
+                bool in_upper = (k >= NZ6-35);
+                bool in_ybnd = (j <= 4) || (j >= NY6-5);
+                std::cout << "ABNORMAL at j=" << j << " k=" << k 
+                          << " region=" << (in_lower ? "LOWER" : (in_upper ? "UPPER" : (in_ybnd ? "YBND" : "INTERNAL")))
+                          << " rho=" << rho_local
+                          << " F=[" << F0_in << "," << F1_in << "," << F2_in << "," << F3_in << "," << F4_in
+                          << "," << F5_in << "," << F6_in << "," << F7_in << "," << F8_in << "]" << std::endl;
+                error_count++;
+            }
+        }
         //4.計算equilibirium distribution function 
         double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 
         double v1 = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
@@ -325,7 +356,6 @@ for(int j = 3 ; j < NY6-3 ; j++){
         m_vector;
         meq;
         collision;
-
         //6.在此時間步更新物理間計算點的碰撞後插值後一般態分佈函數
         f0_new[idx_xi] = F0_in;
         f1_new[idx_xi] = F1_in;
@@ -336,7 +366,6 @@ for(int j = 3 ; j < NY6-3 ; j++){
         f6_new[idx_xi] = F6_in;
         f7_new[idx_xi] = F7_in;
         f8_new[idx_xi] = F8_in;
-
         //7.更新宏觀量
         rho_d[idx_xi] = rho_s;
         v[idx_xi] = v1;

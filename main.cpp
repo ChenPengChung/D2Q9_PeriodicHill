@@ -289,7 +289,7 @@ void Wright_Danger_Interpolation_Point(){
     
     // ========== F2, F5, F6: z_global + minSize ==========
     Danger_Interpolation_Point << "============================================================" << endl ; 
-    Danger_Interpolation_Point << "z_global + minSize (F2, F5, F6)" << endl ; 
+    Danger_Interpolation_Point << "z_global + minSize (F4, F7, F8)" << endl ; 
     Danger_Interpolation_Point << "============================================================" << endl ; 
     
     // 收集三類數據
@@ -428,7 +428,7 @@ void Wright_Danger_Interpolation_Point(){
     
     // ========== F4, F7, F8: z_global - minSize ==========
     Danger_Interpolation_Point << endl << "============================================================" << endl ; 
-    Danger_Interpolation_Point << "z_global - minSize (F4, F7, F8)" << endl ;
+    Danger_Interpolation_Point << "z_global - minSize (F2, F5, F6)" << endl ;
     Danger_Interpolation_Point << "============================================================" << endl ; 
     
     // 清空並重新收集數據

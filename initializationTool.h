@@ -165,7 +165,8 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 
 
 void RelationXi(double pos_y , double pos_z , int j , int k ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
-    if (k<=3){
+    //pos_z可能為 k的Z値 + minSize 或 k - minSize
+    if (k<3){
         //防呆設計
         cout << "Error: k value need to be larger than 3 !" << endl;
         exit(1); //k  = 3 進行差值，則山坡區域將產生外插問題
@@ -190,15 +191,18 @@ void RelationXi(double pos_y , double pos_z , int j , int k ,  int* cell_z , dou
         double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) );
         double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
         double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) );//a 為 非均勻網格伸縮參數
-        //往下找第一個物理空間計算點 編號     //設置限制 
-        // 調整：讓插值點落在 stencil 的中間（位置 3 附近）以提高穩定性
-        // k_start = round(index) + 3 - 3 = round(index)，這樣插值點在 stencil[3] 附近
-        int k_0 = (int)round( index_z0+3) - 3; if (k_0 <= 6) k_0 = 6 ; if(k_0 >= NZ6-10) k_0 = NZ6-10;
-        int k_1 = (int)round( index_z1+3) - 3; if (k_1 <= 6) k_1 = 6 ; if(k_1 >= NZ6-10) k_1 = NZ6-10;
-        int k_2 = (int)round( index_z2+3) - 3; if (k_2 <= 6) k_2 = 6 ; if(k_2 >= NZ6-10) k_2 = NZ6-10;
+        int k_0 , k_1 , k_2 ; 
+        //找最接近物理空間計算點 編號  //Danger Zone 起點判斷 
+        //剩下區域用七點內插，所以結構為---
+        //j-1:外插|三點內插|七點內插|三點內插|外插----
+        //j  :外插|三點內插|七點內插|三點內插|外插----
+        //j+1:外插|三點內插|七點內插|三點內插|外插----
+        if (index_z0 < 3) {k_0 = 3 ; /*兩點外插出去*/} else if (index_z0 > NZ6-4) {k_0 =  NZ6-5 ;} else if (index_z0 < 6) {k_0 = (int)floor(index_z0) ;} else if (index_z0 > NZ6-7) {k_0 = (int)ceil(index_z0) -2;} else{k_0 = k_0-3 ; }
+        if (index_z1 < 3) {k_1 = 3 ; /*兩點外插出去*/} else if (index_z1 > NZ6-4) {k_1 =  NZ6-5 ;} else if (index_z1 < 6) {k_1 = (int)floor(index_z1) ;} else if (index_z1 > NZ6-7) {k_1 = (int)ceil(index_z1) -2;} else{k_1 = k_1-3 ; }
+        if (index_z2 < 3) {k_2 = 3 ; /*兩點外插出去*/} else if (index_z2 > NZ6-4) {k_2 =  NZ6-5 ;} else if (index_z2 < 6) {k_2 = (int)floor(index_z2) ;} else if (index_z2 > NZ6-7) {k_2 = (int)ceil(index_z2) -2;} else{k_2 = k_2-3 ; }
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
         cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
-        cell_z[NZ6*j+k + 1 * NY6*NZ6] = k_1;
+        cell_z[NZ6*j+k   + 1 * NY6*NZ6] = k_1;
         cell_z[NZ6*(j)+k + 2 * NY6*NZ6] = k_2;
         //相鄰y列上的Z座標起始編號 寫入完成 !!
     }

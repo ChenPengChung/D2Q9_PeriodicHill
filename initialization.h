@@ -145,7 +145,7 @@ void GetIntrplParameter_Xi() {
             //寫進去 CellZ_F3 :
             RelationXi( y_global[j]+minSize , z_global[j*NZ6+k] , j , k ,  CellZ_F3 , nonuni_a);
             //CellZ_F3 已填滿可以進行操作
-            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j , k,  CellZ_F3);
+            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j , k,  CellZ_F1);
             // F4 (0,-Z): 從 (y, z+Δ) 來
             //寫進去 CellZ_F4 :
             RelationXi( y_global[j] , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F4 , nonuni_a);
@@ -155,22 +155,22 @@ void GetIntrplParameter_Xi() {
             //寫進去 CellZ_F5 :
             RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F5 , nonuni_a);
             //CellZ_F5 已填滿可以進行操作
-            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j , k,  CellZ_F5);
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j , k,  CellZ_F2);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
             //寫進去 CellZ_F6 :
             RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]-minSize , j , k ,  CellZ_F6 , nonuni_a);
             //CellZ_F6 已填滿可以進行操作
-            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j , k,  CellZ_F6);
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j , k,  CellZ_F2);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
             //寫進去 CellZ_F7 :
             RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F7 , nonuni_a);
             //CellZ_F7 已填滿可以進行操作
-            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j , k,  CellZ_F7);
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j , k,  CellZ_F4);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
             //寫進去 CellZ_F8 :
             RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]+minSize , j , k ,  CellZ_F8 , nonuni_a);
             //CellZ_F8 已填滿可以進行操作
-            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j , k,  CellZ_F8);
+            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j , k,  CellZ_F4);
     }}
 }
 

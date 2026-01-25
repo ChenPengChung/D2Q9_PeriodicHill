@@ -153,13 +153,13 @@ double GetNonuniParameter() {
  * @see GetParameter_6th()
  */
 //線性外插
-double Extrapolation(double pos , double x1 , double x2 , double x3 , double x4 , double x5 , double x6 , double f0 , double f1 ){
-    double Extrapolation = ( (pos - x1)/(x2 - x1) )*( f1 - f0 ) + f0 ;
-    return Extrapolation; 
+double Extrapolation(double pos , double x1 , double x2 ){
+    double a = ( (pos - x1)/(x2 - x1) ) ; 
+    return a; 
 }
 
 //夾層
-double Lagrange_2nd(double pos , double x_i , double x1 , double x2 , double x3 , double x4 , double x5 , double x6){
+double Lagrange_2nd(double pos , double x_i , double x1 , double x2 ){
     double Lagrange = (pos - x1)/(x_i - x1)*(pos - x2)/(x_i - x2);
     return Lagrange; 
 }
@@ -234,7 +234,20 @@ void GetParameter_2nd(
     Para_h[0][i] = Lagrange_2nd(Position, Pos[n],   Pos[n+1], Pos[n+2]);
     Para_h[1][i] = Lagrange_2nd(Position, Pos[n+1], Pos[n],   Pos[n+2]);
     Para_h[2][i] = Lagrange_2nd(Position, Pos[n+2], Pos[n],   Pos[n+1]);
-    
+}
+void GetParameter_2ndlow(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+    const int layer_stride = NY6 * NZ6;
+    const int base = index_xi + r * layer_stride;
+    XiPara[0][base] = Lagrange_2nd(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] ); 
+    XiPara[1][base] = Lagrange_2nd(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] ); 
+    XiPara[2][base] = Lagrange_2nd(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] );     
+}
+void GetParameter_2ndhigh(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+    const int layer_stride = NY6 * NZ6;
+    const int base = index_xi + r * layer_stride;
+    XiPara[0][base] = Lagrange_2nd(pos_z, RelationXi[4],  RelationXi[5],  RelationXi[6] ); 
+    XiPara[1][base] = Lagrange_2nd(pos_z, RelationXi[5],  RelationXi[4],  RelationXi[6] ); 
+    XiPara[2][base] = Lagrange_2nd(pos_z, RelationXi[6],  RelationXi[4],  RelationXi[5] );     
 }
 void GetParameter_6th(
     double *Para_h[7],      double Position,
@@ -249,10 +262,33 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-
-void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
+void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int j , int k  , int index_z0){
     const int layer_stride = NY6 * NZ6;
-    const int base = index_xi + r * layer_stride;
+    const int base = j*NZ6 + k + r * layer_stride;
+    if (index_z0 < 3){
+    //線性外插 
+    XiPara[0][base] =  1-Extrapolation(pos_z , RelationXi[0] , RelationXi[1] ) ;
+    XiPara[1][base] =  Extrapolation(pos_z , RelationXi[0] , RelationXi[1] ) ;
+    for(int i = 2 ; i <=6 ; i++) {XiPara[i][base] = 0.0 ;} 
+    }
+    else if (index_z0 > NZ6-4){
+    for(int i = 0 ; i <=4 ; i++) {XiPara[i][base] = 0.0 ;}     
+    XiPara[5][base] =  Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
+    XiPara[6][base] =  1-Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
+    }  
+    else if (index_z0 < 6){
+    for(int i = 3 ; i <=6 ; i++) {XiPara[i][base] = 0.0 ;} 
+    XiPara[0][base] =  Lagrange_2nd(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] ); 
+    XiPara[1][base] =  Lagrange_2nd(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] ); 
+    XiPara[2][base] =  Lagrange_2nd(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] );
+    } 
+    else if (index_z0 > NZ6-7){
+    for(int i = 0 ; i <=3 ; i++) {XiPara[i][base] = 0.0 ;} 
+    XiPara[4][base] =  Lagrange_2nd(pos_z, RelationXi[4],  RelationXi[5],  RelationXi[6] ); 
+    XiPara[5][base] =  Lagrange_2nd(pos_z, RelationXi[5],  RelationXi[4],  RelationXi[6] );
+    XiPara[6][base] =  Lagrange_2nd(pos_z, RelationXi[6],  RelationXi[4],  RelationXi[5] );
+    }
+    else {
     XiPara[0][base] = Lagrange_6th(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[1][base] = Lagrange_6th(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
     XiPara[2][base] = Lagrange_6th(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] , RelationXi[3], RelationXi[4], RelationXi[5], RelationXi[6]); 
@@ -260,7 +296,7 @@ void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , in
     XiPara[4][base] = Lagrange_6th(pos_z, RelationXi[4],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[5], RelationXi[6]); 
     XiPara[5][base] = Lagrange_6th(pos_z, RelationXi[5],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[6]); 
     XiPara[6][base] = Lagrange_6th(pos_z, RelationXi[6],  RelationXi[0],  RelationXi[1] , RelationXi[2], RelationXi[3], RelationXi[4], RelationXi[5]);    
-}//pos_xi為換算過後的無因次化Z座標 
+}}//pos_xi為換算過後的無因次化Z座標 
 
 //7.0度去向邊界計算點
 /**

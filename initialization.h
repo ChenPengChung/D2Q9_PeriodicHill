@@ -81,11 +81,30 @@ void GenerateMesh_Z() {
 
 
 
-void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int index_xi, int j, int k )
+void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int k , int* cell_z)
 {   
     //void RelationXi(double pos_y , double pos_z , int k , int j ,  double* cell_z , double a)
+    //假設 CellZ_F1,2,3,4,5,6,7,8 已經寫進去
+   //y方向為三點版本
+    double RelationXi_0[7] ; //(j-1)
+    for(int i = 0 ; i <7 ; i++){
+        RelationXi_0[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+    }
+    //配置該點第一套Z方向內插權重
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_0 , 0 , NZ6*j+k ); //XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    double RelationXi_1[7] ; //(j-0)
+     for(int i = 0 ; i <7 ; i++){
+        RelationXi_1[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 1 * NY6*NZ6] + i ] ;
+    }
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_1 , 1 , NZ6*j+k ); //XiPara_h[0][index_xi + 1*NY6*NZ6] ~ XiPara_h[6][index_xi + 1*NY6*NZ6]
     
+    double RelationXi_2[7] ; //(j+1)
+    for(int i = 0 ; i <7 ; i++){
+        RelationXi_2[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+    }
+    GetParameter_6th2( XiPara_h, pos_z , RelationXi_2 , 2 , NZ6*j+k ); //XiPara_h[0][index_xi + 2*NY6*NZ6] ~ XiPara_h[6][index_xi + 2*NY6*NZ6]
 }
+
 //降階版本 
 void GetIntrplParameter_Y() {
     for( int j = 3; j < NY6-3; j++ ){
@@ -96,24 +115,51 @@ void GetIntrplParameter_Y() {
 
 
 void GetIntrplParameter_Xi() {
+    // 注意：7-point stencil 需要訪問 cellZ 到 cellZ+6
+    // 為避免越界，對於 k >= NZ6-16 的點不進行插值參數計算
+    // 這些點在 evolution.h 中會使用簡單的 streaming 替代插值
     for( int j = 3; j < NY6-3; j++ ){
-        for( int k = 3; k < NZ6-3;  k++ ){
-            //F1~F8應該要用用同一組Z方向內插成員 
-            GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j*NZ6+k , j,  k);
+        for( int k = 4; k < NZ6-16;  k++ ){
+            // F1 (+Y): 從 (y-Δ, z) 來，z 方向無偏移
+            //寫進去 CellZ_F1 : 
+            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k] , k , j ,  CellZ_F1 , nonuni_a);
+            //CellZ_F1 已填滿可以進行操作
+            GetXiParameter( XiParaF1_h,  z_global[j*NZ6+k],         y_global[j]-minSize, j , k,  CellZ_F1);
             // F2 (0,+Z): 從 (y, z-Δ) 來
-            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j*NZ6+k , j,  k);
+            //寫進去 CellZ_F2 :
+            RelationXi( y_global[j] , z_global[j*NZ6+k]-minSize , k , j ,  CellZ_F2 , nonuni_a);
+            //CellZ_F2 已填滿可以進行操作
+            GetXiParameter( XiParaF2_h,  z_global[j*NZ6+k]-minSize , y_global[j],        j , k,  CellZ_F2);
             // F3 (-Y,0): 從 (y+Δ, z) 來，z 方向無偏移
-            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j*NZ6+k , j,  k);
+            //寫進去 CellZ_F3 :
+            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k] , k , j ,  CellZ_F3 , nonuni_a);
+            //CellZ_F3 已填滿可以進行操作
+            GetXiParameter( XiParaF3_h,  z_global[j*NZ6+k],         y_global[j]+minSize, j , k,  CellZ_F3);
             // F4 (0,-Z): 從 (y, z+Δ) 來
-            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         j*NZ6+k , j,  k);
+            //寫進去 CellZ_F4 :
+            RelationXi( y_global[j] , z_global[j*NZ6+k]+minSize , k , j ,  CellZ_F4 , nonuni_a);
+            //CellZ_F4 已填滿可以進行操作
+            GetXiParameter( XiParaF4_h,  z_global[j*NZ6+k]+minSize, y_global[j],         j , k,  CellZ_F4);
             // F5 (+Y,+Z): 從 (y-Δ, z-Δ) 來
-            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
+            //寫進去 CellZ_F5 :
+            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]-minSize , k , j ,  CellZ_F5 , nonuni_a);
+            //CellZ_F5 已填滿可以進行操作
+            GetXiParameter( XiParaF5_h,  z_global[j*NZ6+k]-minSize, y_global[j]-minSize, j , k,  CellZ_F5);
             // F6 (-Y,+Z): 從 (y+Δ, z-Δ) 來
-            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j*NZ6+k , j,  k);
+            //寫進去 CellZ_F6 :
+            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]-minSize , k , j ,  CellZ_F6 , nonuni_a);
+            //CellZ_F6 已填滿可以進行操作
+            GetXiParameter( XiParaF6_h,  z_global[j*NZ6+k]-minSize, y_global[j]+minSize, j , k,  CellZ_F6);
             // F7 (-Y,-Z): 從 (y+Δ, z+Δ) 來
-            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j*NZ6+k , j,  k);
+            //寫進去 CellZ_F7 :
+            RelationXi( y_global[j]+minSize , z_global[j*NZ6+k]+minSize , k , j ,  CellZ_F7 , nonuni_a);
+            //CellZ_F7 已填滿可以進行操作
+            GetXiParameter( XiParaF7_h,  z_global[j*NZ6+k]+minSize, y_global[j]+minSize, j , k,  CellZ_F7);
             // F8 (+Y,-Z): 從 (y-Δ, z+Δ) 來
-            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j*NZ6+k , j,  k);
+            //寫進去 CellZ_F8 :
+            RelationXi( y_global[j]-minSize , z_global[j*NZ6+k]+minSize , k , j ,  CellZ_F8 , nonuni_a);
+            //CellZ_F8 已填滿可以進行操作
+            GetXiParameter( XiParaF8_h,  z_global[j*NZ6+k]+minSize, y_global[j]-minSize, j , k,  CellZ_F8);
     }}
 }
 
@@ -134,8 +180,9 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 // BFL 反彈點在 +Y 方向: y + delta, z 不變
                 //GetParameter_6th(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-3);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
                 //降階版本
-                GetParameter_2nd(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-1);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
-                GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1,  j*NZ6+k , j,  k) ;
+                //GetParameter_2nd(YBFLParaF3_h, y_global[j]+delta1, y_global , j , j-1);//F3代表的意思是此權重陣列配合的對象是F3 利用F3來更新F1
+                //GetXiParameter(XiBFLParaF3_h, z_global[j*NZ6+k], y_global[j]+delta1,  j*NZ6+k , j,  k) ;
+                //目前先採用 線性內插
                 Q1_h[j*NZ6+k] = q1;
             }
 
@@ -147,8 +194,8 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 // BFL 反彈點在 -Y 方向: y - delta, z 不變
                 //GetParameter_6th(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-3);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
                 //降階版本
-                GetParameter_2nd(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-1);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
-                GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3,  j*NZ6+k , j,  k);
+                //GetParameter_2nd(YBFLParaF1_h, y_global[j]-delta3, y_global, j , j-1);//F1代表的意思是此權重陣列配合的對象是F1 利用F1來更新F3
+                //GetXiParameter(XiBFLParaF1_h, z_global[j*NZ6+k], y_global[j]-delta3,  j*NZ6+k , j,  k);
                 Q3_h[j*NZ6+k] = q3;
             }
 
@@ -160,8 +207,8 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 // BFL 反彈點在 (+Y,+Z) 方向: y + delta, z + delta
                 //GetParameter_6th(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-3);
                 //降階版本
-                GetParameter_2nd(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-1);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
-                GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5,  j*NZ6+k , j,  k);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
+                //GetParameter_2nd(YBFLParaF7_h, y_global[j]+delta5, y_global, j, j-1);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
+                //GetXiParameter(XiBFLParaF7_h, z_global[j*NZ6+k]+delta5, y_global[j]+delta5,  j*NZ6+k , j,  k);//F7代表的意思是此權重陣列配合的對象是F7 利用F7來更新F5
                 Q5_h[j*NZ6+k] = q5;
             }
 
@@ -173,8 +220,8 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
                 // BFL 反彈點在 (-Y,+Z) 方向: y - delta, z + delta
                 //GetParameter_6th(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-3);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
                 //降階版本
-                GetParameter_2nd(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-1);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
-                GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6,  j*NZ6+k , j,  k);
+                //GetParameter_2nd(YBFLParaF8_h, y_global[j]-delta6, y_global, j, j-1);//F8代表的意思是此權重陣列配合的對象是F8 利用F8來更新F6
+                //GetXiParameter(XiBFLParaF8_h, z_global[j*NZ6+k]+delta6, y_global[j]-delta6,  j*NZ6+k , j,  k);
                 Q6_h[j*NZ6+k] = q6;
             }
         }

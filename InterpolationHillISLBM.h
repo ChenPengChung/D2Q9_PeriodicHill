@@ -21,13 +21,13 @@
 // idx_f: f 的基底索引 = j_c * nface + k_c (stencil 起點)
 // idx_xi: Xi 權重的基底索引 = j * nface + k (目標點)
 // Xi權重存取: xi_w[idx_xi + row*NY6*nface], w=0~6 權重編號, row=0~6 y方向線編號
-#define F1_Intrpl3(f,j,k,j_c,k_c,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
-do { /*降階版本*/\
-    const int idx_f = j_c * nface + k_c; /*j_c = j-1 ; k_c = ???? */\
+//2026.01.25 將 j_c , k_c 改成 cell_z內插成起始陣列 
+#define F1_Intrpl3(f,j,k,cell_z,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
+do { /*降階版本*/ /*先插 Xi 方向，再插 Y 方向*/\
     F1_in = Intrpl3( \
-        Intrpl7( f[idx_f],             xi_0[idx_xi+0*NY6*nface], f[idx_f+1],             xi_1[idx_xi+0*NY6*nface], f[idx_f+2],             xi_2[idx_xi+0*NY6*nface], f[idx_f+3],             xi_3[idx_xi+0*NY6*nface], f[idx_f+4],             xi_4[idx_xi+0*NY6*nface], f[idx_f+5],             xi_5[idx_xi+0*NY6*nface], f[idx_f+6],             xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
-        Intrpl7( f[idx_f+1*nface],     xi_0[idx_xi+1*NY6*nface], f[idx_f+1*nface+1],     xi_1[idx_xi+1*NY6*nface], f[idx_f+1*nface+2],     xi_2[idx_xi+1*NY6*nface], f[idx_f+1*nface+3],     xi_3[idx_xi+1*NY6*nface], f[idx_f+1*nface+4],     xi_4[idx_xi+1*NY6*nface], f[idx_f+1*nface+5],     xi_5[idx_xi+1*NY6*nface], f[idx_f+1*nface+6],     xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
-        Intrpl7( f[idx_f+2*nface],     xi_0[idx_xi+2*NY6*nface], f[idx_f+2*nface+1],     xi_1[idx_xi+2*NY6*nface], f[idx_f+2*nface+2],     xi_2[idx_xi+2*NY6*nface], f[idx_f+2*nface+3],     xi_3[idx_xi+2*NY6*nface], f[idx_f+2*nface+4],     xi_4[idx_xi+2*NY6*nface], f[idx_f+2*nface+5],     xi_5[idx_xi+2*NY6*nface], f[idx_f+2*nface+6],     xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
+        Intrpl7( f[cell_z[idx_xi+0*NY6*NZ6]],xi_0[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+1],xi_1[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+2],xi_2[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+3],xi_3[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+4],xi_4[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+5],xi_5[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+6],xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+1*NY6*NZ6]],xi_0[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+1],xi_1[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+2],xi_2[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+3],xi_3[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+4],xi_4[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+5],xi_5[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+6],xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+2*NY6*NZ6]],xi_0[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+1],xi_1[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+2],xi_2[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+3],xi_3[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+4],xi_4[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+5],xi_5[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+6],xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
     ); \
 } while(0)
 
@@ -46,13 +46,12 @@ do { \
 } while(0)
 
 //如下定義對應D2Q9模型的F3 (-Y方向)
-#define F3_Intrpl3(f,j,k,j_c,k_c,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
+#define F3_Intrpl3(f,j,k,cell_z,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
 do { /*降階版本*/\
-    const int idx_f = j_c * nface + k_c; /*j_c = j-1 ; k_c = ???? */\
     F3_in = Intrpl3( \
-        Intrpl7( f[idx_f],             xi_0[idx_xi+0*NY6*nface], f[idx_f+1],             xi_1[idx_xi+0*NY6*nface], f[idx_f+2],             xi_2[idx_xi+0*NY6*nface], f[idx_f+3],             xi_3[idx_xi+0*NY6*nface], f[idx_f+4],             xi_4[idx_xi+0*NY6*nface], f[idx_f+5],             xi_5[idx_xi+0*NY6*nface], f[idx_f+6],             xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
-        Intrpl7( f[idx_f+1*nface],     xi_0[idx_xi+1*NY6*nface], f[idx_f+1*nface+1],     xi_1[idx_xi+1*NY6*nface], f[idx_f+1*nface+2],     xi_2[idx_xi+1*NY6*nface], f[idx_f+1*nface+3],     xi_3[idx_xi+1*NY6*nface], f[idx_f+1*nface+4],     xi_4[idx_xi+1*NY6*nface], f[idx_f+1*nface+5],     xi_5[idx_xi+1*NY6*nface], f[idx_f+1*nface+6],     xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
-        Intrpl7( f[idx_f+2*nface],     xi_0[idx_xi+2*NY6*nface], f[idx_f+2*nface+1],     xi_1[idx_xi+2*NY6*nface], f[idx_f+2*nface+2],     xi_2[idx_xi+2*NY6*nface], f[idx_f+2*nface+3],     xi_3[idx_xi+2*NY6*nface], f[idx_f+2*nface+4],     xi_4[idx_xi+2*NY6*nface], f[idx_f+2*nface+5],     xi_5[idx_xi+2*NY6*nface], f[idx_f+2*nface+6],     xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
+        Intrpl7( f[cell_z[idx_xi+0*NY6*NZ6]],xi_0[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+1],xi_1[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+2],xi_2[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+3],xi_3[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+4],xi_4[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+5],xi_5[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+6],xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+1*NY6*NZ6]],xi_0[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+1],xi_1[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+2],xi_2[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+3],xi_3[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+4],xi_4[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+5],xi_5[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+6],xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+2*NY6*NZ6]],xi_0[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+1],xi_1[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+2],xi_2[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+3],xi_3[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+4],xi_4[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+5],xi_5[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+6],xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
     ); \
 } while(0)
 #define F3_Intrpl7(f,j,k,j_c,k_c,idx_y,idx_xi,y_0,y_1,y_2,y_3,y_4,y_5,y_6,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
@@ -70,27 +69,27 @@ do { \
 } while(0)
 
 //如下定義為D2Q9模型的F2 (+Z方向) - 只需要 Z 方向插值
-#define F2_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define F2_Intrpl7(f, j, k, cell_z , idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { \
-    const int idx_f = j * nface + k_c; \
-    F2_in = Intrpl7( f[idx_f], xi_0[idx_xi+1*NY6*nface], f[idx_f+1], xi_1[idx_xi+1*NY6*nface], f[idx_f+2], xi_2[idx_xi+1*NY6*nface], f[idx_f+3], xi_3[idx_xi+1*NY6*nface], f[idx_f+4], xi_4[idx_xi+1*NY6*nface], f[idx_f+5], xi_5[idx_xi+1*NY6*nface], f[idx_f+6], xi_6[idx_xi+1*NY6*nface] ); \
+    F2_in = Intrpl7( f[cell_z[idx_xi+1*NY6*NZ6]],xi_0[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+1],xi_1[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+2],xi_2[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+3],xi_3[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+4],xi_4[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+5],xi_5[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+6],xi_6[idx_xi+1*NY6*nface] ); \
 } while(0)
+
 
 //如下定義為D2Q9模型的F4 (-Z方向) - 只需要 Z 方向插值
-#define F4_Intrpl7(f, j, k, j_c, k_c, idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define F4_Intrpl7(f, j, k,  cell_z , idx_y, idx_xi, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { \
-    const int idx_f = j * nface + k_c; \
-    F4_in = Intrpl7( f[idx_f], xi_0[idx_xi+1*NY6*nface], f[idx_f+1], xi_1[idx_xi+1*NY6*nface], f[idx_f+2], xi_2[idx_xi+1*NY6*nface], f[idx_f+3], xi_3[idx_xi+1*NY6*nface], f[idx_f+4], xi_4[idx_xi+1*NY6*nface], f[idx_f+5], xi_5[idx_xi+1*NY6*nface], f[idx_f+6], xi_6[idx_xi+1*NY6*nface] ); \
+    F4_in = Intrpl7( f[cell_z[idx_xi+1*NY6*NZ6]],xi_0[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+1],xi_1[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+2],xi_2[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+3],xi_3[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+4],xi_4[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+5],xi_5[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+6],xi_6[idx_xi+1*NY6*nface] ); \
 } while(0)
 
+
+
 //如下定義為D2Q9模型的F5,F6,F7,F8 (斜向) - 需要 Y 和 Z 
-#define Y_XI_Intrpl3(f, F_in, j, k, j_c, k_c, idx_y, idx_xi, y_0, y_1, y_2, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
+#define Y_XI_Intrpl3(f, F_in, j, k, cell_z , idx_y, idx_xi, y_0, y_1, y_2, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { /*降階版本*/\
-    const int idx_f = j_c * nface + k_c; /*j_c = j-1 ; k_c = ???? */\
     F_in = Intrpl3( \
-        Intrpl7( f[idx_f],             xi_0[idx_xi+0*NY6*nface], f[idx_f+1],             xi_1[idx_xi+0*NY6*nface], f[idx_f+2],             xi_2[idx_xi+0*NY6*nface], f[idx_f+3],             xi_3[idx_xi+0*NY6*nface], f[idx_f+4],             xi_4[idx_xi+0*NY6*nface], f[idx_f+5],             xi_5[idx_xi+0*NY6*nface], f[idx_f+6],             xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
-        Intrpl7( f[idx_f+1*nface],     xi_0[idx_xi+1*NY6*nface], f[idx_f+1*nface+1],     xi_1[idx_xi+1*NY6*nface], f[idx_f+1*nface+2],     xi_2[idx_xi+1*NY6*nface], f[idx_f+1*nface+3],     xi_3[idx_xi+1*NY6*nface], f[idx_f+1*nface+4],     xi_4[idx_xi+1*NY6*nface], f[idx_f+1*nface+5],     xi_5[idx_xi+1*NY6*nface], f[idx_f+1*nface+6],     xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
-        Intrpl7( f[idx_f+2*nface],     xi_0[idx_xi+2*NY6*nface], f[idx_f+2*nface+1],     xi_1[idx_xi+2*NY6*nface], f[idx_f+2*nface+2],     xi_2[idx_xi+2*NY6*nface], f[idx_f+2*nface+3],     xi_3[idx_xi+2*NY6*nface], f[idx_f+2*nface+4],     xi_4[idx_xi+2*NY6*nface], f[idx_f+2*nface+5],     xi_5[idx_xi+2*NY6*nface], f[idx_f+2*nface+6],     xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
+        Intrpl7( f[cell_z[idx_xi+0*NY6*NZ6]],xi_0[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+1],xi_1[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+2],xi_2[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+3],xi_3[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+4],xi_4[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+5],xi_5[idx_xi+0*NY6*nface],f[cell_z[idx_xi+0*NY6*NZ6]+6],xi_6[idx_xi+0*NY6*nface] ), y_0[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+1*NY6*NZ6]],xi_0[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+1],xi_1[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+2],xi_2[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+3],xi_3[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+4],xi_4[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+5],xi_5[idx_xi+1*NY6*nface],f[cell_z[idx_xi+1*NY6*NZ6]+6],xi_6[idx_xi+1*NY6*nface] ), y_1[idx_y], \
+        Intrpl7( f[cell_z[idx_xi+2*NY6*NZ6]],xi_0[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+1],xi_1[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+2],xi_2[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+3],xi_3[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+4],xi_4[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+5],xi_5[idx_xi+2*NY6*nface],f[cell_z[idx_xi+2*NY6*NZ6]+6],xi_6[idx_xi+2*NY6*nface] ), y_2[idx_y] \
     ); \
 } while(0)
 

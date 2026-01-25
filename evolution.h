@@ -140,7 +140,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // 使用 half-way bounce-back 代替插值以避免外推問題
         
         // 下邊界 (k <= 5): F2,F5,F6 的來源位置可能落在下邊界 buffer 區
-        // 上邊界 (k >= NZ6-6=150): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
+        // 上邊界 (k >= NZ6-7=149): F4,F7,F8 的來源位置可能落在上邊界 buffer 區
         // 注意：F1,F3 只有 Y 方向偏移，Z 方向不變，但 stencil 仍可能越界
         
         if( k <= 5 ) {
@@ -162,8 +162,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
             F7_in = f7_old[(j+1)*NZ6 + k+1];  // 從 (y+1,z+1) 取值
             F8_in = f8_old[(j-1)*NZ6 + k+1];  // 從 (y-1,z+1) 取值
             
-        } else if( k >= NZ6-6 ) {
-            // 上邊界附近 (k>=150)
+        } else if( k >= NZ6-16 ) {
+            // 上邊界附近 (k>=140)
             // 7-point stencil 會存取 cellZ 到 cellZ+6，如果 cellZ+6 >= NZ6-3 會越界
             // 使用簡單的 streaming 替代插值
             
@@ -183,14 +183,14 @@ for(int j = 3 ; j < NY6-3 ; j++){
             
         } else {
             // 內部區域：正常插值
-            F1_Intrpl3(f1_old,j,k,j-1,cell_z,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-            F3_Intrpl3(f3_old,j,k,j-1,cell_z,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-            F2_Intrpl7(f2_old, j,k, j-1, cell_z, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-            F4_Intrpl7(f4_old, j, k, j-1,cell_z, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            Y_XI_Intrpl3(f5_old, F5_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-            Y_XI_Intrpl3(f6_old, F6_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-            Y_XI_Intrpl3(f7_old, F7_in, j, k, j-1, cell_z, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-            Y_XI_Intrpl3(f8_old, F8_in, j, k, j-1, cell_z, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+            F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+            F3_Intrpl3(f3_old,j,k,CellZ_F3,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
+            F4_Intrpl7(f4_old, j, k, CellZ_F4, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F5, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F6, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, CellZ_F7, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, CellZ_F8, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
         }
 
 

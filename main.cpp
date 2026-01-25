@@ -152,6 +152,15 @@ void initializeArrays() {
     memset(Q3_h, 0, sizeof(Q3_h));
     memset(Q5_h, 0, sizeof(Q5_h));
     memset(Q6_h, 0, sizeof(Q6_h));
+    // CellZ stencil 起點索引
+    memset(CellZ_F1, 0, sizeof(CellZ_F1));
+    memset(CellZ_F2, 0, sizeof(CellZ_F2));
+    memset(CellZ_F3, 0, sizeof(CellZ_F3));
+    memset(CellZ_F4, 0, sizeof(CellZ_F4));
+    memset(CellZ_F5, 0, sizeof(CellZ_F5));
+    memset(CellZ_F6, 0, sizeof(CellZ_F6));
+    memset(CellZ_F7, 0, sizeof(CellZ_F7));
+    memset(CellZ_F8, 0, sizeof(CellZ_F8));
     // 外力
     Force[0] = 0.0;
     Force[1] = 0.0;
@@ -196,11 +205,7 @@ void printStatistics(int step) {
 //-----------------------------------------------------------------------------
 void swapDistributions() {
     for(int dir = 0; dir < 9; dir++) {
-        for(int idx = 0; idx < NY6 * NZ6; idx++) {
-            double temp = f_old[dir][idx];
-            f_old[dir][idx] = f_new[dir][idx];
-            f_new[dir][idx] = temp;
-        }
+        memcpy(f_old[dir], f_new[dir], sizeof(double) * NY6 * NZ6);
     }
 }
 //=============================================================================
@@ -241,6 +246,14 @@ int main() {
     //-------------------------------------------------------------------------
     cout << "Starting time loop..." << endl ;
     cout << "loop = " << loop << endl ;
+    
+    // 初始化週期性邊界條件（在第一次 stream_collide 前執行）
+    periodicSW(
+        f_old[0], f_old[1], f_old[2], f_old[3], f_old[4],
+        f_old[5], f_old[6], f_old[7], f_old[8],
+        v, w, rho
+    );
+    
     cout.flush();
     for(int t = 0; t < loop; t++) {
         if(t % 10 == 0) { 

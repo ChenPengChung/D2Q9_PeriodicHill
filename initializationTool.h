@@ -163,7 +163,7 @@ double Lagrange_6th(double pos , double x_i , double x1 , double x2 , double x3 
 }
 
 
-void RelationXi(double pos_y , double pos_z , int k , int j ,  double* cell_z , double a){//double* RelazationXi 為輸出七點座標
+void RelationXi(double pos_y , double pos_z , int k , int j ,  int* cell_z , double a){//double* RelazationXi 為輸出七點座標
     if (k<=3){
         //防呆設計
         cout << "Error: k value need to be larger than 3 !" << endl;
@@ -233,7 +233,7 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-//此為錯誤配值權重，因為hyperbolic tangent 為非線性映射關係 
+
 void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int index_xi){
     const int layer_stride = NY6 * NZ6;
     const int base = index_xi + r * layer_stride;

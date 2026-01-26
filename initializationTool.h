@@ -210,7 +210,7 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         } else if (index_z0 > NZ6-4) {
             k_0 = NZ6-5;
         } else if (index_z0 < 6) {
-            k_0 = (int)floor(index_z0);
+            k_0 = (int)round(index_z0);
         } else if (index_z0 > NZ6-7) {
             k_0 = (int)ceil(index_z0) - 6; // ceil - 2 - 4 -> ceil -6
         } else {
@@ -222,7 +222,7 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         } else if (index_z1 > NZ6-4) {
             k_1 = NZ6-5;
         } else if (index_z1 < 6) {
-            k_1 = (int)floor(index_z1);
+            k_1 = (int)round(index_z1);
         } else if (index_z1 > NZ6-7) {
             k_1 = (int)ceil(index_z1) - 6;
         } else {
@@ -234,7 +234,7 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         } else if (index_z2 > NZ6-4) {
             k_2 = NZ6-5;
         } else if (index_z2 < 6) {
-            k_2 = (int)floor(index_z2);
+            k_2 = (int)round(index_z2);
         } else if (index_z2 > NZ6-7) {
             k_2 = (int)ceil(index_z2) - 6;
         } else {

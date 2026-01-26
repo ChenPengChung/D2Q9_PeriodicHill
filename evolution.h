@@ -113,7 +113,7 @@ void stream_collide(
     double *f0_new, double *f1_new, double *f2_new, double *f3_new, double *f4_new, double *f5_new, double *f6_new, double *f7_new, double *f8_new, 
     //Ｙ方向預配置連乘權重一維連續記憶體
     double *Y0_0,  double *Y0_1, double *Y0_2,  //double *Y0_3,  double *Y0_4,  double *Y0_5,  double *Y0_6,  //(處理F1,F5,F8等等y方向插值問題)
-    double *Y2_0,  double *Y2_1,  double *Y2_2,  //double *Y2_3,  double *Y2_4,  double *Y2_5,  double *Y2_6, //(處理F3,F6,F7等等y方向插值問題)
+    double *Y2_0,  double *Y2_1, double *Y2_2,  //double *Y2_3,  double *Y2_4,  double *Y2_5,  double *Y2_6, //(處理F3,F6,F7等等y方向插值問題)
     //Z方向預配置連乘權重一維連續記憶體
     double* XiF1_0, double* XiF1_1, double* XiF1_2, double* XiF1_3, double* XiF1_4, double* XiF1_5, double* XiF1_6,
     double* XiF2_0, double* XiF2_1, double* XiF2_2, double* XiF2_3, double* XiF2_4, double* XiF2_5, double* XiF2_6,
@@ -154,7 +154,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         int idx_xi = j *NZ6 + k ;
         int idx ; //出現在 interpolationHillISLBM.h 巨集定義內的中間變數idx
         //宣告物理空間計算點的碰撞前插值後一般態分佈函數
-        double F0_in,  F1_in,  F2_in,  F3_in,  F4_in,  F5_in,  F6_in,  F7_in,  F8_in ;   
+        double F0_in = 0.0, F1_in = 0.0, F2_in = 0.0, F3_in = 0.0, F4_in = 0.0, F5_in = 0.0, F6_in = 0.0, F7_in = 0.0, F8_in = 0.0;   
         //MRT Variables
         double m0, m1, m2, m3, m4, m5, m6, m7, m8;
         double meq0, meq1, meq2, meq3, meq4, meq5, meq6, meq7, meq8;

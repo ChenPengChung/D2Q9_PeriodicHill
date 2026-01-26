@@ -197,15 +197,47 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) );
         double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
         double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) );//a 為 非均勻網格伸縮參數
-        int k_0 , k_1 , k_2 ; 
+        int k_0 = 0, k_1 = 0, k_2 = 0; 
         //找最接近物理空間計算點 編號  //Danger Zone 起點判斷 
         //剩下區域用七點內插，所以結構為---
         //j-1:外插|三點內插|七點內插|三點內插|外插----
         //j  :外插|三點內插|七點內插|三點內插|外插----
         //j+1:外插|三點內插|七點內插|三點內插|外插----
-        if (index_z0 < 3) {k_0 = 3 ; /*兩點外插出去*/} else if (index_z0 > NZ6-4) {k_0 =  NZ6-5 ;} else if (index_z0 < 6) {k_0 = (int)floor(index_z0) ;} else if (index_z0 > NZ6-7) {k_0 = (int)ceil(index_z0) -2-4;} else{k_0 = k_0-3 ; }
-        if (index_z1 < 3) {k_1 = 3 ; /*兩點外插出去*/} else if (index_z1 > NZ6-4) {k_1 =  NZ6-5 ;} else if (index_z1 < 6) {k_1 = (int)floor(index_z1) ;} else if (index_z1 > NZ6-7) {k_1 = (int)ceil(index_z1) -2-4;} else{k_1 = k_1-3 ; }
-        if (index_z2 < 3) {k_2 = 3 ; /*兩點外插出去*/} else if (index_z2 > NZ6-4) {k_2 =  NZ6-5 ;} else if (index_z2 < 6) {k_2 = (int)floor(index_z2) ;} else if (index_z2 > NZ6-7) {k_2 = (int)ceil(index_z2) -2-4;} else{k_2 = k_2-3 ; } //-2為真正的起點 -4為統一往上編號所需，參與內插的點為4,5,6  
+        if (index_z0 < 3) {
+            k_0 = 3; /*兩點外插出去*/
+        } else if (index_z0 > NZ6-4) {
+            k_0 = NZ6-5;
+        } else if (index_z0 < 6) {
+            k_0 = (int)floor(index_z0);
+        } else if (index_z0 > NZ6-7) {
+            k_0 = (int)ceil(index_z0) - 6; // ceil - 2 - 4 -> ceil -6
+        } else {
+            k_0 = (int)floor(index_z0) - 3; // 正確地以 index 減 3 作為起點
+        }
+
+        if (index_z1 < 3) {
+            k_1 = 3;
+        } else if (index_z1 > NZ6-4) {
+            k_1 = NZ6-5;
+        } else if (index_z1 < 6) {
+            k_1 = (int)floor(index_z1);
+        } else if (index_z1 > NZ6-7) {
+            k_1 = (int)ceil(index_z1) - 6;
+        } else {
+            k_1 = (int)floor(index_z1) - 3;
+        }
+
+        if (index_z2 < 3) {
+            k_2 = 3;
+        } else if (index_z2 > NZ6-4) {
+            k_2 = NZ6-5;
+        } else if (index_z2 < 6) {
+            k_2 = (int)floor(index_z2);
+        } else if (index_z2 > NZ6-7) {
+            k_2 = (int)ceil(index_z2) - 6;
+        } else {
+            k_2 = (int)floor(index_z2) - 3; // -2為真正的起點 -4為統一往上編號所需
+        }
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
         cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
         cell_z[NZ6*j+k   + 1 * NY6*NZ6] = k_1;
@@ -508,7 +540,7 @@ double Right_q_yMinus(double y , double z){
 //15.
 /**
  * @brief 計算左山丘 45 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 45 度斜線與山丘曲面的交點，計算無因次距離 q
+ * * 使用二分法求解 45 度射線與山丘曲面的交點，計算無因次距離 q
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
@@ -546,7 +578,7 @@ double Left_q_Diagonal45(double y , double z){
 //16.
 /**
  * @brief 計算右山丘 135 度斜向的 BFL 邊界條件 q 值 
- * * 使用二分法求解 135 度斜線與山丘曲面的交點，計算無因次距離 q
+ * * 使用二分法求解 135 度射線與山丘曲面的交點，計算無因次距離 q
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
@@ -583,7 +615,7 @@ double Right_q_Diagonal135(double y , double z){
 //17.
 /**
  * @brief 計算左山丘 -45 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 -45 度斜線與山丘曲面的交點，計算無因次距離 q
+ * * 使用二分法求解 -45 度射線與山丘曲面的交點，計算無因次距離 q
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0
@@ -620,7 +652,7 @@ double Left_q_DiagonalMinus45(double y , double z){
 //18.
 /**
  * @brief 計算右山丘 -135 度斜向的 BFL 邊界條件 q 值
- * * 使用二分法求解 -135 度斜線與山丘曲面的交點，計算無因次距離 q
+ * * 使用二分法求解 -135 度射線與山丘曲面的交點，計算無因次距離 q
  * @param y Y 座標 (流向)
  * @param z Z 座標 (法向)
  * @return q 值 (0 < q < 1)，若非邊界點則返回 -1.0

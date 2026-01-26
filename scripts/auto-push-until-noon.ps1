@@ -5,14 +5,14 @@ $repoPath = "c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill"
 $pythonExe = "C:/Users/88697.CHENPENGCHUNG12/D2Q9_PeriodicHill/.venv/Scripts/python.exe"
 $analyzeScript = "c:/Users/88697.CHENPENGCHUNG12/D2Q9_PeriodicHill/analyze_velocity.py"
 $intervalMinutes = 30
-$stopHour = 12
+$stopHour = 15
 
 Write-Host "========================================"
 Write-Host "Auto Analysis and Push Script"
 Write-Host "========================================"
 Write-Host "Repo: $repoPath"
 Write-Host "Interval: Every $intervalMinutes minutes"
-Write-Host "Stop at: 12:00 noon"
+Write-Host "Stop at: 15:00 (3 PM)"
 $startTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 Write-Host "Start time: $startTime"
 Write-Host "========================================"
@@ -29,7 +29,7 @@ while ($true) {
     if ($currentHour -ge $stopHour) {
         Write-Host ""
         Write-Host "========================================"
-        Write-Host "Reached 12:00, stopping automatic tasks"
+        Write-Host "Reached 15:00 (3 PM), stopping automatic tasks"
         Write-Host "Total cycles: $cycleCount"
         $endTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         Write-Host "End time: $endTime"

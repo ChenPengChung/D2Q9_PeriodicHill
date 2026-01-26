@@ -62,6 +62,50 @@ double CheckMassConservation(double* rho_d, int step) {
     return rho_avg;
 }
 
+//y方向週期邊界條件 
+void periodicSW(
+    double* f0_new, double* f1_new, double* f2_new, double* f3_new, double* f4_new, double* f5_new, double* f6_new, double* f7_new, double* f8_new
+    ,double* v, double* w, double* rho_d
+){//SW:Stream-Wise
+    //目的：複製 Y 方向的 buffer Layer，實現週期性邊界
+    //只複製 Z 方向的有效計算區域 (k=3 ~ NZ6-4)
+    for(int k = 3 ; k < NZ6-3 ; k++){
+        for(int i = 0 ; i <= 2 ; i++){
+            //右邊左側buffer layer
+            int idx_right = (i+NY6-6)*NZ6 + k ;
+            int buffer_left = i*NZ6 + k ;
+            f0_new[buffer_left] = f0_new[idx_right] ;
+            f1_new[buffer_left] = f1_new[idx_right] ;
+            f2_new[buffer_left] = f2_new[idx_right] ;
+            f3_new[buffer_left] = f3_new[idx_right] ;
+            f4_new[buffer_left] = f4_new[idx_right] ;
+            f5_new[buffer_left] = f5_new[idx_right] ;
+            f6_new[buffer_left] = f6_new[idx_right] ;
+            f7_new[buffer_left] = f7_new[idx_right] ;
+            f8_new[buffer_left] = f8_new[idx_right] ;
+            v[buffer_left] = v[idx_right] ;
+            w[buffer_left] = w[idx_right] ;
+            rho_d[buffer_left] = rho_d[idx_right] ;
+            //左邊右側buffer layer
+            int idx_left = (i+3)*NZ6 + k ;
+            int buffer_right = (i+NY6-3)*NZ6 + k ;
+            f0_new[buffer_right] = f0_new[idx_left] ;
+            f1_new[buffer_right] = f1_new[idx_left] ;
+            f2_new[buffer_right] = f2_new[idx_left] ;
+            f3_new[buffer_right] = f3_new[idx_left] ;
+            f4_new[buffer_right] = f4_new[idx_left] ;
+            f5_new[buffer_right] = f5_new[idx_left] ;
+            f6_new[buffer_right] = f6_new[idx_left] ;
+            f7_new[buffer_right] = f7_new[idx_left] ;
+            f8_new[buffer_right] = f8_new[idx_left] ;
+            v[buffer_right] = v[idx_left] ;
+            w[buffer_right] = w[idx_left] ;
+            rho_d[buffer_right] = rho_d[idx_left] ;
+        }
+    }
+}
+
+
 void stream_collide(
     //f_old:上一個時間步所更新的物理空間計算點的碰撞後插值前一般態分佈函數
      double *f0_old, double *f1_old, double *f2_old, double *f3_old, double *f4_old, double *f5_old, double *f6_old, double *f7_old, double *f8_old,
@@ -102,6 +146,8 @@ void stream_collide(
     int nface = NZ6 ;
     //計算密度修正量(各點相同)
     ComputeMassCorrection( rho_d, rho_modify) ; //第一步:先更新密度場修正量(各點相同)(更新方法:與密度為1的場比較)
+    //施加週期性邊界條件
+    periodicSW(f0_old, f1_old, f2_old, f3_old, f4_old, f5_old, f6_old, f7_old, f8_old, v, w, rho_d);//因為用舊值做操作 
     //1.函數內直接開始執行雙重for迴圈
 for(int j = 3 ; j < NY6-3 ; j++){
     for(int k = 3 ; k < NZ6-3 ; k++){
@@ -119,131 +165,33 @@ for(int j = 3 ; j < NY6-3 ; j++){
         F0_in = f0_old[idx_xi];
         //F2 ; 
         if(k == 3){//邊界處理
-            F2_in = f4_old[idx_xi] ; //half-way bounce-back
+            F2_in = f4_old[idx_xi] ; //half-way bounce-back: for straight wall 
         }else{
             F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-            if(t <= 100 ; t % 10 == 0){
+            if(t <= 100 && t % 410 == 0){
                 cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
             }
         }
         //F4 :
         if(k == NZ6-4){//邊界處理
-            F4_in = f2_old[idx_xi] ; //half-way bounce-back
+            F4_in = f2_old[idx_xi] ; //half-way bounce-back: for straight wall 
         }else{
             F4_Intrpl7(f4_old, j, k, CellZ_F4 , j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            if(t <= 100 ; t % 10 == 0){
+            if(t <= 100 && t % 10 == 0){
                 cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
             }
         }
         //需要加入曲面處理...
-        //F1 :
-        // F1,F3: Y方向 streaming，需要週期性 wrap
-            int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
-            int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
-            F1_in = f1_old[jm1*NZ6 + k];
-        //F3 ; 
-        //F5 ; 
-        //F6 ; 
-        //F7 ;
-        //F8 ; 
-        
-
-
-
-
-
-
-
-
-
-        //分類標準 : 一個一個分佈函數分開來判斷?? 
-
-        if( z_lower || z_upper || y_boundary ) {
-            // 邊界附近：使用簡單的 streaming 替代插值
-            
-            // F1,F3: Y方向 streaming，需要週期性 wrap
-            int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
-            int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
-            F1_in = f1_old[jm1*NZ6 + k];
-            F3_in = f3_old[jp1*NZ6 + k];
-            
-            // 根據 Z 位置處理 F2,F4,F5,F6,F7,F8
-            if( z_lower ) {
-                // Z下邊界：F2,F5,F6 使用 bounce-back (因為來源在下邊界外)
-                F2_in = f4_old[idx_xi];
-                F5_in = f7_old[idx_xi];
-                F6_in = f8_old[idx_xi];
-                
-                // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
-                F4_in = f4_old[j*NZ6 + k+1];
-                F7_in = f7_old[jp1*NZ6 + k+1];
-                F8_in = f8_old[jm1*NZ6 + k+1];
-                
-            } else if( z_upper ) {
-                // Z上邊界：F4,F7,F8 使用 bounce-back (因為來源在上邊界外)
-                F4_in = f2_old[idx_xi];
-                F7_in = f5_old[idx_xi];
-                F8_in = f6_old[idx_xi];
-                
-                // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
-                F2_in = f2_old[j*NZ6 + k-1];
-                F5_in = f5_old[jm1*NZ6 + k-1];
-                F6_in = f6_old[jp1*NZ6 + k-1];
-                
-            } else {
-                // Y邊界但非Z邊界：使用簡單 streaming
-                F2_in = f2_old[j*NZ6 + k-1];
-                F4_in = f4_old[j*NZ6 + k+1];
-                F5_in = f5_old[jm1*NZ6 + k-1];
-                F6_in = f6_old[jp1*NZ6 + k-1];
-                F7_in = f7_old[jp1*NZ6 + k+1];
-                F8_in = f8_old[jm1*NZ6 + k+1];
-            }
-            
-        } else {
-            // 內部區域：正常插值
-            F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
-            F3_Intrpl3(f3_old,j,k,CellZ_F1,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
-            
-            F4_Intrpl7(f4_old, j, k, CellZ_F4, j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F2, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
-            Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-            Y_XI_Intrpl3(f7_old, F7_in, j, k, CellZ_F4, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
-            Y_XI_Intrpl3(f8_old, F8_in, j, k, CellZ_F4, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
-        }
-
-
-        
-
-        //2.Special case of Streaming Step : Boundry Treatment
-        //(1.)Halhf-way Bounce-Back Boundary Condition
-        // 注意：對於 k==3 和 k==NZ6-4，已在上面的插值條件式中處理
-        // 這裡保留對 k==3 的額外確認（最下邊界層）
-        if( k == 3 ){
-            F2_in = f4_old[idx_xi];
-            F5_in = f7_old[idx_xi];
-            F6_in = f8_old[idx_xi];
-        }
-        // 對於 k==NZ6-4 (k==152)，已在 k >= NZ6-6 條件中處理
-        
-        //2.BFL curvlinear boundary treatment
-        //透過BFLInitialization已經寫入q值到矩陣當中
-        //BFL 用的 stencil 起點（基於目標點位置，因為 BFL 權重是獨立計算的）
-        int cell_z_bfl = k-3;
-        if( k <= 6 ) cell_z_bfl = 3;
-        if( k >= NZ6-7 ) cell_z_bfl = NZ6-10;
-
-        //左丘邊界，更新F1
+        //F1 ; 
+        //左丘邊界，新F1
         if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
             double q1 = Q1_h[idx_xi] ;
             if(q1<0.5 && q1 >= 0 ){
-                /*//透過內插與Streaming更新F1
-                Y_XI_Intrpl7(f3_old, F1_in, j, k, j-3, cell_z_bfl, j, idx_xi,
-                YBFLF3_0,YBFLF3_1,YBFLF3_2,YBFLF3_3,YBFLF3_4,YBFLF3_5,YBFLF3_6,
-                XiBFLF3_0, XiBFLF3_1, XiBFLF3_2, XiBFLF3_3, XiBFLF3_4, XiBFLF3_5, XiBFLF3_6);*/
                 //改用一階精度線性內插
                 F1_in = (2*q1)*f3_old[idx_xi] + (1.0 - 2.0*q1)*f3_old[idx_xi+NZ6];
                 //這邊有一個問題：書上做插值的點為Lattice上的計算點但是這邊取的是物理空間計算點的點 
+                //加入發散警告：
+                if(F1_in > 100){cout << "F1_in BFL <0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;}
             }
             if(q1>0.5){//做線性內插
                 F1_in = (1.0/(2.0*q1))*f3_old[idx_xi] + ((2.0*q1-1.0)/(2.0*q1))*f1_old[idx_xi];
@@ -251,23 +199,29 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 //問題二：若插分的點要用鄰點新值，會有2個問題，
                 //第一，該點不在物理間網格點上，只在Lattice上，
                 //第二：就算你用的到Lattice上的值，本程式碼與沒有對他做紀錄，只有暫態變數記錄且該值也還沒更新，因為掃描方向從左至右 .....
+                if(F1_in > 100){cout << "F1_in BFL >0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;
             }
+        }else{
+            // 內部區域：正常插值
+            F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
         }
+        //F3 ;
         //右丘邊界，更新F3
         if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
             double q3 = Q3_h[idx_xi] ;
             if(q3<0.5 && q3 >= 0.0){
-                /*//透過內插與Streaming更新F3
-                Y_XI_Intrpl7(f1_old, F3_in, j, k, j-3, cell_z_bfl, j, idx_xi,
-                YBFLF1_0,YBFLF1_1,YBFLF1_2,YBFLF1_3,YBFLF1_4,YBFLF1_5,YBFLF1_6,
-                XiBFLF1_0, XiBFLF1_1, XiBFLF1_2, XiBFLF1_3, XiBFLF1_4, XiBFLF1_5, XiBFLF1_6);*/
                  //改用一階精度線性內插
                 F3_in = (2*q3)*f1_old[idx_xi] + (1.0 - 2.0*q3)*f1_old[idx_xi-NZ6];
+                if(F3_in > 100){cout << "F3_in BFL <0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
             }
             if(q3>0.5 ){
                 F3_in = (1.0/(2.0*q3))*f1_old[idx_xi] + ((2.0*q3-1.0)/(2.0*q3))*f3_old[idx_xi];
+                if(F3_in > 100){cout << "F3_in BFL >0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
             }
+        }else{
+            F3_Intrpl3(f3_old,j,k,CellZ_F1,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
         }
+        //F5 ;//隔開 曲面處理｜底平面處理｜內點處理
         //左丘邊界，更新F5
         if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
             double q5 = Q5_h[idx_xi] ;
@@ -278,64 +232,48 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);*/
                 //取右上左下線性內插
                 F5_in = (2*q5)*f7_old[idx_xi] + (1.0 - 2.0*q5)*f7_old[idx_xi+NZ6+1];//往右邊再往上
+                if(F5_in > 100){cout << "F5_in BFL <0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
             }
             if(q5>0.5){
                 F5_in = (1.0/(2.0*q5))*f7_old[idx_xi] + ((2.0*q5-1.0)/(2.0*q5))*f5_old[idx_xi];
+                if(F5_in > 100){cout << "F5_in BFL >0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
             }
+        }else if(k == 3){
+            F5_in = f7_old[idx_xi] ; //half-way bounce-back: for straight wall 
+        }else{
+            Y_XI_Intrpl3(f5_old, F5_in, j, k, CellZ_F2, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF5_0, XiF5_1, XiF5_2, XiF5_3, XiF5_4, XiF5_5, XiF5_6);
         }
+        //F6 ;
         //右丘邊界，更新F6
         if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
             double q6 = Q6_h[idx_xi] ;
             if(q6<0.5 && q6 >= 0.0){
-                /*//透過內插與Streaming更新F6
-                Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z_bfl, j, idx_xi,
-                YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,
-                XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);*/
                 //取左上右下線性內插
                 F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
+                if(F6_in > 100){cout << "F6_in BFL <0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
             }
             if(q6>0.5){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
+                if(F6_in > 100){cout << "F6_in BFL >0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
+            }
+        }else if(k == 3){
+                F6_in = f8_old[idx_xi] ; //half-way bounce-back: for straight wall 
+            }else{
+                Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        //F7:
+        if(k == NZ6-4){
+            F7_in = f5_old[idx_xi] ; //half-way bounce-back: for straight wall
+        }else{
+            Y_XI_Intrpl3(f7_old, F7_in, j, k, CellZ_F4, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF7_0, XiF7_1, XiF7_2, XiF7_3, XiF7_4, XiF7_5, XiF7_6);
+        }
+        //F8:
+        if(k == NZ6-4){
+            F8_in = f6_old[idx_xi] ; //half-way bounce-back: for straight wall
+        }else {
+            Y_XI_Intrpl3(f8_old, F8_in, j, k, CellZ_F4, j, idx_xi, Y0_0,Y0_1,Y0_2, XiF8_0, XiF8_1, XiF8_2, XiF8_3, XiF8_4, XiF8_5, XiF8_6);
+        }
         //3.質量修正
         F0_in = F0_in + rho_modify[0];
         //診斷代碼：在 t=150 附近檢查異常值
@@ -387,48 +325,6 @@ for(int j = 3 ; j < NY6-3 ; j++){
         v[idx_xi] = v1;
         w[idx_xi] = w1;
 }}}
-//y方向週期邊界條件 
-void periodicSW(
-    double* f0_new, double* f1_new, double* f2_new, double* f3_new, double* f4_new, double* f5_new, double* f6_new, double* f7_new, double* f8_new
-    ,double* v, double* w, double* rho_d
-){//SW:Stream-Wise
-    //目的：複製 Y 方向的 buffer Layer，實現週期性邊界
-    //只複製 Z 方向的有效計算區域 (k=3 ~ NZ6-4)
-    for(int k = 3 ; k < NZ6-3 ; k++){
-        for(int i = 0 ; i <= 2 ; i++){
-            //右邊左側buffer layer
-            int idx_right = (i+NY6-6)*NZ6 + k ;
-            int buffer_left = i*NZ6 + k ;
-            f0_new[buffer_left] = f0_new[idx_right] ;
-            f1_new[buffer_left] = f1_new[idx_right] ;
-            f2_new[buffer_left] = f2_new[idx_right] ;
-            f3_new[buffer_left] = f3_new[idx_right] ;
-            f4_new[buffer_left] = f4_new[idx_right] ;
-            f5_new[buffer_left] = f5_new[idx_right] ;
-            f6_new[buffer_left] = f6_new[idx_right] ;
-            f7_new[buffer_left] = f7_new[idx_right] ;
-            f8_new[buffer_left] = f8_new[idx_right] ;
-            v[buffer_left] = v[idx_right] ;
-            w[buffer_left] = w[idx_right] ;
-            rho_d[buffer_left] = rho_d[idx_right] ;
-            //左邊右側buffer layer
-            int idx_left = (i+3)*NZ6 + k ;
-            int buffer_right = (i+NY6-3)*NZ6 + k ;
-            f0_new[buffer_right] = f0_new[idx_left] ;
-            f1_new[buffer_right] = f1_new[idx_left] ;
-            f2_new[buffer_right] = f2_new[idx_left] ;
-            f3_new[buffer_right] = f3_new[idx_left] ;
-            f4_new[buffer_right] = f4_new[idx_left] ;
-            f5_new[buffer_right] = f5_new[idx_left] ;
-            f6_new[buffer_right] = f6_new[idx_left] ;
-            f7_new[buffer_right] = f7_new[idx_left] ;
-            f8_new[buffer_right] = f8_new[idx_left] ;
-            v[buffer_right] = v[idx_left] ;
-            w[buffer_right] = w[idx_left] ;
-            rho_d[buffer_right] = rho_d[idx_left] ;
-        }
-    }
-}
 
 //=============================================================================
 // 累積 Y 方向平均速度（每個時間步呼叫）

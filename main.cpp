@@ -304,13 +304,13 @@ int main() {
             XiParaF8_h[0], XiParaF8_h[1], XiParaF8_h[2], XiParaF8_h[3],
             XiParaF8_h[4], XiParaF8_h[5], XiParaF8_h[6],
             // BFL Y方向權重 F3 (7個)
-            YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], //YBFLParaF3_h[3], YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
+            YBFLParaF3_h[0], YBFLParaF3_h[1], YBFLParaF3_h[2], YBFLParaF3_h[3], YBFLParaF3_h[4], YBFLParaF3_h[5], YBFLParaF3_h[6],
             // BFL Y方向權重 F1 (7個)
-            YBFLParaF1_h[0], YBFLParaF1_h[1], YBFLParaF1_h[2], //YBFLParaF1_h[3], YBFLParaF1_h[4], YBFLParaF1_h[5], YBFLParaF1_h[6],
+            YBFLParaF1_h[0], YBFLParaF1_h[1], YBFLParaF1_h[2], YBFLParaF1_h[3], YBFLParaF1_h[4], YBFLParaF1_h[5], YBFLParaF1_h[6],
             // BFL Y方向權重 F7 (7個)
-            YBFLParaF7_h[0], YBFLParaF7_h[1], YBFLParaF7_h[2], //YBFLParaF7_h[3], YBFLParaF7_h[4], YBFLParaF7_h[5], YBFLParaF7_h[6],
+            YBFLParaF7_h[0], YBFLParaF7_h[1], YBFLParaF7_h[2], YBFLParaF7_h[3], YBFLParaF7_h[4], YBFLParaF7_h[5], YBFLParaF7_h[6],
             // BFL Y方向權重 F8 (7個)
-            YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], //YBFLParaF8_h[3],  YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
+            YBFLParaF8_h[0], YBFLParaF8_h[1], YBFLParaF8_h[2], YBFLParaF8_h[3],  YBFLParaF8_h[4], YBFLParaF8_h[5], YBFLParaF8_h[6],
             // BFL Xi方向權重 F3 (7個)
             XiBFLParaF3_h[0], XiBFLParaF3_h[1], XiBFLParaF3_h[2], XiBFLParaF3_h[3],
             XiBFLParaF3_h[4], XiBFLParaF3_h[5], XiBFLParaF3_h[6],

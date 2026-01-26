@@ -6,8 +6,8 @@
 #define     LY     (9.0)
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
-#define     NY      200 
-#define     NZ      150
+#define     NY      400 
+#define     NZ      400
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)
@@ -15,7 +15,7 @@
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
 //CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小
 //所以最小物理大小的CFL才是晶格大小，為minSize
-#define     CFL                 0.2
+#define     CFL                 0.6
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
 //非均勻網格之判斷式
 //1 : Yes,  0 : No

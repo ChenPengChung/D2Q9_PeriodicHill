@@ -80,10 +80,10 @@ void stream_collide(
     double* XiF7_0, double* XiF7_1, double* XiF7_2, double* XiF7_3, double* XiF7_4, double* XiF7_5, double* XiF7_6,
     double* XiF8_0, double* XiF8_1, double* XiF8_2, double* XiF8_3, double* XiF8_4, double* XiF8_5, double* XiF8_6,
     //BFL邊界條件(q<0.5)v下的y方向預配置連乘權重一維連續記憶體
-    double* YBFLF3_0, double* YBFLF3_1, double* YBFLF3_2, //double* YBFLF3_3, double* YBFLF3_4, double* YBFLF3_5, double* YBFLF3_6,
-    double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, //double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
-    double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, //double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
-    double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, //double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
+    double* YBFLF3_0, double* YBFLF3_1, double* YBFLF3_2, double* YBFLF3_3, double* YBFLF3_4, double* YBFLF3_5, double* YBFLF3_6,
+    double* YBFLF1_0, double* YBFLF1_1, double* YBFLF1_2, double* YBFLF1_3, double* YBFLF1_4, double* YBFLF1_5, double* YBFLF1_6,
+    double* YBFLF7_0, double* YBFLF7_1, double* YBFLF7_2, double* YBFLF7_3, double* YBFLF7_4, double* YBFLF7_5, double* YBFLF7_6,
+    double* YBFLF8_0, double* YBFLF8_1, double* YBFLF8_2, double* YBFLF8_3, double* YBFLF8_4, double* YBFLF8_5, double* YBFLF8_6,
     //BFL邊界條件(q<0.5)v下的z方向預配置連乘權重一維連續記憶體
     double* XiBFLF3_0, double* XiBFLF3_1, double* XiBFLF3_2, double* XiBFLF3_3, double* XiBFLF3_4, double* XiBFLF3_5, double* XiBFLF3_6,
     double* XiBFLF1_0, double* XiBFLF1_1, double* XiBFLF1_2, double* XiBFLF1_3, double* XiBFLF1_4, double* XiBFLF1_5, double* XiBFLF1_6,
@@ -145,9 +145,9 @@ for(int j = 3 ; j < NY6-3 ; j++){
         
         // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
-        bool y_boundary = (j <= 5) || (j >= NY6-6);
-        bool z_lower = (k <= 15);
-        bool z_upper = (k >= NZ6-35);  // k >= 121
+        bool y_boundary = (j <= 3) || (j >= NY6-4);
+        bool z_lower = (k <= 11);
+        bool z_upper = (k >= NZ6-10);  // k >= 121
         
         if( z_lower || z_upper || y_boundary ) {
             // 邊界附近：使用簡單的 streaming 替代插值
@@ -294,11 +294,14 @@ for(int j = 3 ; j < NY6-3 ; j++){
             double q6 = Q6_h[idx_xi] ;
             if(q6<0.5 && q6 >= 0.0){
                 /*//透過內插與Streaming更新F6
-                Y_XI_Intrpl7(f8_old, F6_in, j, k, j-3, cell_z_bfl, j, idx_xi,
+                Y_XI_Intrpl7(f8_old, F6_in, j, k, j-1, cell_z_bfl, j, idx_xi,
                 YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,
                 XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);*/
                 //取左上右下線性內插
-                F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
+                //F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
+                Y_XI_Intrpl3(f8_old, F6_in, j, k, CellZ_F8, j, idx_xi, 
+                YBFLF8_0,YBFLF8_1,YBFLF8_2 , 
+                XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);
             }
             if(q6>0.5){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];

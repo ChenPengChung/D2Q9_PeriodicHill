@@ -105,28 +105,28 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
     double RelationXi_0[7] ; //(j-1)
     if (index_z0 < 3) {
         for(int i = 2 ; i <=6 ; i++) {RelationXi_0[i] = 0.0 ;}  
-        RelationXi_0[0] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 0 ] ; 
-        RelationXi_0[1] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 1 ] ;}  
+        RelationXi_0[0] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 0 ] ; 
+        RelationXi_0[1] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 1 ] ;}  
     else if(index_z0 > NZ6-4){
         for(int i = 0 ; i <=4 ; i++) RelationXi_0[i] = 0.0 ; 
-        RelationXi_0[5] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 5 ] ;
-        RelationXi_0[6] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 6 ] ;
+        RelationXi_0[5] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 5 ] ;
+        RelationXi_0[6] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + 6 ] ;
     }else if(index_z0 < 6){
         for(int i = 3 ; i <=6 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
-            RelationXi_0[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+            RelationXi_0[i] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
         }}
     else if(index_z0 > NZ6-7){
         for(int i = 0 ; i <=3 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
-            RelationXi_0[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+            RelationXi_0[i] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
         }}
     else{
         for(int i = 0 ; i <7 ; i++){
-        RelationXi_0[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
+        RelationXi_0[i] = z_global[NZ6*(j-1) + cell_z[NZ6*(j)+k + 0 * NY6*NZ6] + i ] ;
     }}
     for(int i = 0 ; i <=6 ; i++){RelationXi_0[i] = (RelationXi_0[i] - HillFunction( y_global[j-1] ) - 0.5*minSize) / L0 ;} //轉換為無因次化Z座標 
-    GetParameter_6th2( XiPara_h, pos_z0 , RelationXi_0 , 0 , j , k , index_z0 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    GetParameter_6th2( XiPara_h, pos_xi0 , RelationXi_0 , 0 , j , k , index_z0 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
     //第二套權重陣列
     double RelationXi_1[7] ; //(j)
     if (index_z1 < 3) {
@@ -151,34 +151,34 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
         for(int i = 0 ; i <7 ; i++){
         RelationXi_1[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 1 * NY6*NZ6] + i ] ;
     }}
-    for(int i = 0 ; i <=6 ; i++){RelationXi_1[i] = (RelationXi_1[i] - HillFunction( y_global[j-1] ) - 0.5*minSize) / L0 ;} //轉換為無因次化Z座標 
-    GetParameter_6th2( XiPara_h, pos_z1 , RelationXi_1 , 0 , j , k , index_z1 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
-    //第一套權重陣列
+    for(int i = 0 ; i <=6 ; i++){RelationXi_1[i] = (RelationXi_1[i] - HillFunction( y_global[j] ) - 0.5*minSize) / L1 ;} //轉換為無因次化Z座標 
+    GetParameter_6th2( XiPara_h, pos_xi1 , RelationXi_1 , 1 , j , k , index_z1 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    //第三套權重陣列
     double RelationXi_2[7] ; //(j+1)
     if (index_z2 < 3) {
         for(int i = 2 ; i <=6 ; i++) {RelationXi_2[i] = 0.0 ;}  
-        RelationXi_2[0] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 0 ] ; 
-        RelationXi_2[1] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 1 ] ;}  
+        RelationXi_2[0] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 0 ] ; 
+        RelationXi_2[1] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 1 ] ;}  
     else if(index_z2 > NZ6-4){
         for(int i = 0 ; i <=4 ; i++) RelationXi_2[i] = 0.0 ; 
-        RelationXi_2[5] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 5 ] ;
-        RelationXi_2[6] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 6 ] ;
+        RelationXi_2[5] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 5 ] ;
+        RelationXi_2[6] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + 6 ] ;
     }else if(index_z2 < 6){
         for(int i = 3 ; i <=6 ; i++) RelationXi_2[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
-            RelationXi_2[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+            RelationXi_2[i] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
         }}
     else if(index_z2 > NZ6-7){
         for(int i = 0 ; i <=3 ; i++) RelationXi_2[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
-            RelationXi_2[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+            RelationXi_2[i] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
         }}
     else{
         for(int i = 0 ; i <7 ; i++){
-        RelationXi_2[i] = z_global[NZ6*j + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
+        RelationXi_2[i] = z_global[NZ6*(j+1) + cell_z[NZ6*(j)+k + 2 * NY6*NZ6] + i ] ;
     }}
-    for(int i = 0 ; i <=6 ; i++){RelationXi_2[i] = (RelationXi_2[i] - HillFunction( y_global[j-1] ) - 0.5*minSize) / L0 ;} //轉換為無因次化Z座標 
-    GetParameter_6th2( XiPara_h, pos_z2 , RelationXi_2 , 0 , j , k , index_z2 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
+    for(int i = 0 ; i <=6 ; i++){RelationXi_2[i] = (RelationXi_2[i] - HillFunction( y_global[j+1] ) - 0.5*minSize) / L2 ;} //轉換為無因次化Z座標 
+    GetParameter_6th2( XiPara_h, pos_xi2 , RelationXi_2 , 2 , j , k , index_z2 ); //配置第一套適應性內插權重 XiPara_h[0][index_xi + 0*NY6*NZ6] ~ XiPara_h[6][index_xi + 0*NY6*NZ6]
 }
 
 //降階版本 

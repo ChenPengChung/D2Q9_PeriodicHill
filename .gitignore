@@ -12,8 +12,13 @@
 *.vtk
 *.dat
 *.log
-output/
 main
+
+# Output directory - ignore VTK but keep figures
+output/*.vtk
+output/*.dat
+!output/figures/
+!output/figures/*.png
 *.dSYM/
 # CUDA compiled
 *.cubin

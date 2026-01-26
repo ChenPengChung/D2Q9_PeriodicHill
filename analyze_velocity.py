@@ -8,13 +8,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 
+# 嘗試導入 scipy，如果失敗則設置標記
+try:
+    from scipy.interpolate import griddata
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    print("Warning: scipy not available, streamlines will be skipped")
+
 output_dir = r"c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill\output"
 fig_dir = os.path.join(output_dir, "figures")
 os.makedirs(fig_dir, exist_ok=True)
 
-# Grid dimensions from VTK
-NY = 201  # Y points
-NZ = 150  # Z points
+# Grid dimensions from VTK (updated based on actual VTK file)
+# VTK 輸出順序: 外層 k (Z), 內層 j (Y)
+# 所以資料排列為: [(k=0,j=0), (k=0,j=1), ..., (k=0,j=400), (k=1,j=0), ...]
+NY = 401  # Y points (streamwise direction)
+NZ = 200  # Z points (vertical direction)
 
 # Physical dimensions
 Ly = 9.0   # Channel length in Y
@@ -36,6 +46,8 @@ def read_vtk_velocity(filepath):
         return None
     
     # Read velocity data (NY * NZ points)
+    # VTK 順序: 外層 k (Z), 內層 j (Y)
+    # 所以 reshape 順序是 (NZ, NY, 3)
     n_points = NY * NZ
     velocities = []
     for i in range(vel_start, vel_start + n_points):
@@ -44,6 +56,8 @@ def read_vtk_velocity(filepath):
             uy, uz, ux = float(parts[0]), float(parts[1]), float(parts[2])
             velocities.append([uy, uz, ux])
     
+    # VTK 資料順序: 先遍歷 Y (內層)，再遍歷 Z (外層)
+    # reshape 成 (NZ, NY, 3) 後，索引為 vel[k, j, :]
     return np.array(velocities).reshape(NZ, NY, 3)
 
 def read_vtk_coordinates(filepath):
@@ -65,6 +79,8 @@ def read_vtk_coordinates(filepath):
         return None, None
     
     # Read coordinates
+    # VTK DIMENSIONS 401 200 1 表示: 第一維度(401點)最快變化 = Y方向
+    # 資料排列: (j=0,k=0), (j=1,k=0), ..., (j=400,k=0), (j=0,k=1), ...
     coords = []
     for i in range(pts_start, pts_start + n_points):
         parts = lines[i].strip().split()
@@ -72,9 +88,10 @@ def read_vtk_coordinates(filepath):
             y, z, x = float(parts[0]), float(parts[1]), float(parts[2])
             coords.append([y, z])
     
+    # reshape 成 (NZ, NY, 2)，因為 k(Z) 是外層，j(Y) 是內層
     coords = np.array(coords).reshape(NZ, NY, 2)
-    Y = coords[:, :, 0]
-    Z = coords[:, :, 1]
+    Y = coords[:, :, 0]  # Y[k, j] = y 座標
+    Z = coords[:, :, 1]  # Z[k, j] = z 座標
     return Y, Z
 
 def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
@@ -213,19 +230,19 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
               scale=2, width=0.002, color='black', alpha=0.7)
     
     # Try to add streamlines (may fail if field is too complex)
-    try:
-        # Create regular grid for streamplot
-        y_reg = np.linspace(Y.min(), Y.max(), 100)
-        z_reg = np.linspace(Z.min(), Z.max(), 50)
-        Y_reg, Z_reg = np.meshgrid(y_reg, z_reg)
-        
-        from scipy.interpolate import griddata
-        Uy_reg = griddata((Y.flatten(), Z.flatten()), Uy.flatten(), (Y_reg, Z_reg), method='linear')
-        Uz_reg = griddata((Y.flatten(), Z.flatten()), Uz.flatten(), (Y_reg, Z_reg), method='linear')
-        
-        ax.streamplot(y_reg, z_reg, Uy_reg, Uz_reg, color='white', linewidth=0.5, density=1.5, arrowsize=0.5)
-    except:
-        pass  # Skip streamlines if scipy not available or interpolation fails
+    if SCIPY_AVAILABLE:
+        try:
+            # Create regular grid for streamplot
+            y_reg = np.linspace(Y.min(), Y.max(), 100)
+            z_reg = np.linspace(Z.min(), Z.max(), 50)
+            Y_reg, Z_reg = np.meshgrid(y_reg, z_reg)
+            
+            Uy_reg = griddata((Y.flatten(), Z.flatten()), Uy.flatten(), (Y_reg, Z_reg), method='linear')
+            Uz_reg = griddata((Y.flatten(), Z.flatten()), Uz.flatten(), (Y_reg, Z_reg), method='linear')
+            
+            ax.streamplot(y_reg, z_reg, Uy_reg, Uz_reg, color='white', linewidth=0.5, density=1.5, arrowsize=0.5)
+        except Exception as e:
+            print(f"  Streamlines skipped: {e}")
     
     ax.set_xlabel('Y (streamwise)')
     ax.set_ylabel('Z (vertical)')
@@ -294,9 +311,12 @@ def main():
     # Get list of VTK files sorted by timestep
     vtk_files = sorted(glob.glob(os.path.join(output_dir, "flow_*.vtk")))
     
-    if len(vtk_files) < 3:
-        print("Not enough VTK files for analysis")
+    if len(vtk_files) == 0:
+        print("No VTK files found in output directory")
         return
+    
+    if len(vtk_files) < 3:
+        print(f"Only {len(vtk_files)} VTK file(s) found, proceeding with available files...")
     
     print("=" * 60)
     print("Velocity Field Oscillation Analysis")
@@ -304,8 +324,9 @@ def main():
     print(f"Found {len(vtk_files)} VTK files")
     print(f"Grid: {NY} x {NZ} (Y x Z)")
     
-    # Analyze last few files
-    files_to_analyze = vtk_files[-6:]
+    # Analyze last few files (at least the latest one)
+    n_files = min(6, len(vtk_files))
+    files_to_analyze = vtk_files[-n_files:]
     
     print(f"\nAnalyzing files: {[os.path.basename(f) for f in files_to_analyze]}")
     
@@ -418,8 +439,10 @@ def main():
     print("=" * 60)
     
     # Use the last file for spatial analysis
-    last_vel = read_vtk_velocity(files_to_analyze[-1])
-    last_timestep = int(re.search(r'\d+', os.path.basename(files_to_analyze[-1])).group())
+    last_file = files_to_analyze[-1]
+    print(f"\nAnalyzing latest file: {os.path.basename(last_file)}")
+    last_vel = read_vtk_velocity(last_file)
+    last_timestep = int(re.search(r'\d+', os.path.basename(last_file)).group())
     
     if last_vel is not None and Y_coords is not None:
         # Generate visualization figures
@@ -490,7 +513,7 @@ def main():
         print("-" * 40)
         
         for j in range(0, NY, 10):
-            y_phys = j * 0.045  # Grid spacing in Y
+            y_phys = Y_coords[k_mid, j]  # 使用實際讀取的座標
             uy = last_vel[k_mid, j, 0]
             uz = last_vel[k_mid, j, 1]
             print(f"{j:>4} {y_phys:>8.3f} {uy:>12.6f} {uz:>12.6f}")
@@ -506,8 +529,8 @@ def main():
             negative_count = np.sum(uy_profile < 0)
             if negative_count > 0:
                 negative_indices = np.where(uy_profile < 0)[0]
-                y_start = negative_indices[0] * 0.045
-                y_end = negative_indices[-1] * 0.045
+                y_start = Y_coords[k, negative_indices[0]]  # 使用實際座標
+                y_end = Y_coords[k, negative_indices[-1]]    # 使用實際座標
                 print(f"k={k:>3}: Backflow region Y=[{y_start:.2f}, {y_end:.2f}], {negative_count} points")
             else:
                 print(f"k={k:>3}: No backflow detected")
@@ -515,6 +538,7 @@ def main():
     print("\n" + "=" * 60)
     print("Analysis Complete")
     print("=" * 60)
+    print(f"\nFigures saved to: {fig_dir}")
 
 if __name__ == "__main__":
     main()

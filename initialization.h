@@ -198,7 +198,7 @@ void GetIntrplParameter_Xi() {
     // 為避免越界，對於 k >= NZ6-16 的點不進行插值參數計算
     // 這些點在 evolution.h 中會使用簡單的 streaming 替代插值
     for( int j = 3; j < NY6-3; j++ ){
-        for( int k = 4; k < NZ6-4;  k++ ){
+        for( int k = 3; k < NZ6-3;  k++ ){
             
             //寫進去 CellZ_F1(3個起點): 
             RelationXi(z_global[j*NZ6+k]         , j , k ,  CellZ_F1 , nonuni_a);

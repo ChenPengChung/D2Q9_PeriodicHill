@@ -168,62 +168,86 @@ for(int j = 3 ; j < NY6-3 ; j++){
             F2_in = f4_old[idx_xi] ; //half-way bounce-back: for straight wall 
         }else{
             F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-            if(t <= 100 && t % 10 == 0){
-                if(F2_in > 100) cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
-            }
+            //if(t <= 100 && t % 10 == 0){
+                //if(F2_in > 100) cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
+            //}
         }
         //F4 :
         if(k == NZ6-4){//邊界處理
             F4_in = f2_old[idx_xi] ; //half-way bounce-back: for straight wall 
         }else{
             F4_Intrpl7(f4_old, j, k, CellZ_F4 , j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
-            if(t <= 100 && t % 10 == 0){
-               if(F4_in > 100)  cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
-            }
+            //if(t <= 100 && t % 10 == 0){
+               //if(F4_in > 100)  cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
+            //}
         }
         //需要加入曲面處理...
-        //F1 ; 
+        //F1 ;
         //左丘邊界，新F1
-        if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])){
+        if(k == 3){
+            // k=3 底部邊界：使用簡單 bounce-back 避免不穩定
+            F1_in = f3_old[idx_xi];
+        }else if(IsLeftHill_Boundary_yPlus(y_global[j], z_global[j*NZ6+k])  && Q1_h[idx_xi] > 0.0 ){
             double q1 = Q1_h[idx_xi] ;
             if(q1<0.5 && q1 >= 0 ){
                 //改用一階精度線性內插
                 F1_in = (2*q1)*f3_old[idx_xi] + (1.0 - 2.0*q1)*f3_old[idx_xi+NZ6];
-                //這邊有一個問題：書上做插值的點為Lattice上的計算點但是這邊取的是物理空間計算點的點 
-                //加入發散警告：
-                if(F1_in > 100){cout << "F1_in BFL <0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;}
-            }
-            if(q1>0.5){//做線性內插
+                //if(F1_in > 100){cout << "F1_in BFL <0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;}
+            }else if(q1>=0.5){
                 F1_in = (1.0/(2.0*q1))*f3_old[idx_xi] + ((2.0*q1-1.0)/(2.0*q1))*f1_old[idx_xi];
-                //問題一:遷移後在鄰點上的值不存在
-                //問題二：若插分的點要用鄰點新值，會有2個問題，
-                //第一，該點不在物理間網格點上，只在Lattice上，
-                //第二：就算你用的到Lattice上的值，本程式碼與沒有對他做紀錄，只有暫態變數記錄且該值也還沒更新，因為掃描方向從左至右 .....
-                if(F1_in > 100){cout << "F1_in BFL >0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;
+                //if(F1_in > 100){cout << "F1_in BFL >0.5 Diverge(F1_in , j , k ) "<< setw(6) << F1_in << " , " << j << " , " << k << endl;}
             }
         }else{
             // 內部區域：正常插值
             F1_Intrpl3(f1_old,j,k,CellZ_F1,j,idx_xi,Y0_0,Y0_1,Y0_2,XiF1_0,XiF1_1,XiF1_2,XiF1_3,XiF1_4,XiF1_5,XiF1_6);
+            // 診斷：檢查 k=20~30 區域的插值結果
+            static int diag_count_f1 = 0;
+            if(k >= 20 && k <= 30 && j <= 7 && diag_count_f1 < 30 && (F1_in > 1.0 || F1_in < -0.1)) {
+                int cz0 = CellZ_F1[idx_xi+0*NY6*NZ6];
+                int cz1 = CellZ_F1[idx_xi+1*NY6*NZ6];
+                int cz2 = CellZ_F1[idx_xi+2*NY6*NZ6];
+                std::cout << "F1_DIAG j=" << j << " k=" << k << " F1_in=" << F1_in
+                          << " cz=[" << cz0 << "," << cz1 << "," << cz2 << "]"
+                          << " y0=" << Y0_0[j] << " y1=" << Y0_1[j] << " y2=" << Y0_2[j]
+                          << " xi0_sum=" << (XiF1_0[idx_xi+0*NY6*nface]+XiF1_1[idx_xi+0*NY6*nface]+XiF1_2[idx_xi+0*NY6*nface]+XiF1_3[idx_xi+0*NY6*nface]+XiF1_4[idx_xi+0*NY6*nface]+XiF1_5[idx_xi+0*NY6*nface]+XiF1_6[idx_xi+0*NY6*nface])
+                          << std::endl;
+                diag_count_f1++;
+            }
         }
         //F3 ;
         //右丘邊界，更新F3
-        if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F3的邊界計算點
+        if(k == 3){
+            // k=3 底部邊界：使用簡單 bounce-back 避免不穩定
+            F3_in = f1_old[idx_xi];
+        }else if(IsRightHill_Boundary_yMinus(y_global[j], z_global[j*NZ6+k])  && Q3_h[idx_xi] > 0.0 ){//尋找專屬於F3的邊界計算點
             double q3 = Q3_h[idx_xi] ;
             if(q3<0.5 && q3 >= 0.0){
-                 //改用一階精度線性內插
+                //改用一階精度線性內插
                 F3_in = (2*q3)*f1_old[idx_xi] + (1.0 - 2.0*q3)*f1_old[idx_xi-NZ6];
-                if(F3_in > 100){cout << "F3_in BFL <0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
-            }
-            if(q3>0.5 ){
+                //if(F3_in > 100){cout << "F3_in BFL <0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
+            }else if(q3>=0.5){
                 F3_in = (1.0/(2.0*q3))*f1_old[idx_xi] + ((2.0*q3-1.0)/(2.0*q3))*f3_old[idx_xi];
-                if(F3_in > 100){cout << "F3_in BFL >0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
+                //if(F3_in > 100){cout << "F3_in BFL >0.5 Diverge(F3_in , j , k ) "<< setw(6) << F3_in << " , " << j << " , " << k << endl;}
             }
         }else{
             F3_Intrpl3(f3_old,j,k,CellZ_F1,j,idx_xi,Y2_0,Y2_1,Y2_2,XiF3_0,XiF3_1,XiF3_2,XiF3_3,XiF3_4,XiF3_5,XiF3_6);
+            // 診斷：檢查 k=20~30 區域的插值結果
+            static int diag_count_f3 = 0;
+            if(k >= 20 && k <= 30 && j <= 7 && diag_count_f3 < 30 && (F3_in > 1.0 || F3_in < -0.1)) {
+                int cz0 = CellZ_F1[idx_xi+0*NY6*NZ6];
+                int cz1 = CellZ_F1[idx_xi+1*NY6*NZ6];
+                int cz2 = CellZ_F1[idx_xi+2*NY6*NZ6];
+                std::cout << "F3_DIAG j=" << j << " k=" << k << " F3_in=" << F3_in
+                          << " cz=[" << cz0 << "," << cz1 << "," << cz2 << "]"
+                          << " y0=" << Y2_0[j] << " y1=" << Y2_1[j] << " y2=" << Y2_2[j]
+                          << " xi0_sum=" << (XiF3_0[idx_xi+0*NY6*nface]+XiF3_1[idx_xi+0*NY6*nface]+XiF3_2[idx_xi+0*NY6*nface]+XiF3_3[idx_xi+0*NY6*nface]+XiF3_4[idx_xi+0*NY6*nface]+XiF3_5[idx_xi+0*NY6*nface]+XiF3_6[idx_xi+0*NY6*nface])
+                          << std::endl;
+                diag_count_f3++;
+            }
         }
         //F5 ;//隔開 曲面處理｜底平面處理｜內點處理
         //左丘邊界，更新F5
-        if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F5的邊界計算點
+        if(IsLeftHill_Boundary_Diagonal45(y_global[j], z_global[j*NZ6+k])  && Q5_h[idx_xi] > 0.0 ){//尋找專屬於F5的邊界計算點
             double q5 = Q5_h[idx_xi] ;
             if(q5<0.5 && q5 >= 0.0){
                 /*//透過內插與Streaming更新F5
@@ -232,11 +256,11 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 XiBFLF7_0, XiBFLF7_1, XiBFLF7_2, XiBFLF7_3, XiBFLF7_4, XiBFLF7_5, XiBFLF7_6);*/
                 //取右上左下線性內插
                 F5_in = (2*q5)*f7_old[idx_xi] + (1.0 - 2.0*q5)*f7_old[idx_xi+NZ6+1];//往右邊再往上
-                if(F5_in > 100){cout << "F5_in BFL <0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
+                //if(F5_in > 100){cout << "F5_in BFL <0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
             }
             if(q5>0.5){
                 F5_in = (1.0/(2.0*q5))*f7_old[idx_xi] + ((2.0*q5-1.0)/(2.0*q5))*f5_old[idx_xi];
-                if(F5_in > 100){cout << "F5_in BFL >0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
+                //if(F5_in > 100){cout << "F5_in BFL >0.5 Diverge(F5_in , j , k ) "<< setw(6) << F5_in << " , " << j << " , " << k << endl;}
             }
         }else if(k == 3){
             F5_in = f7_old[idx_xi] ; //half-way bounce-back: for straight wall 
@@ -245,22 +269,21 @@ for(int j = 3 ; j < NY6-3 ; j++){
         }
         //F6 ;
         //右丘邊界，更新F6
-        if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])){//尋找專屬於F6的邊界計算點
+        if(IsRightHill_Boundary_Diagonal135(y_global[j], z_global[j*NZ6+k])  && Q6_h[idx_xi] > 0.0 ){//尋找專屬於F6的邊界計算點
             double q6 = Q6_h[idx_xi] ;
             if(q6<0.5 && q6 >= 0.0){
                 //取左上右下線性內插
                 F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
-                if(F6_in > 100){cout << "F6_in BFL <0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
+                //if(F6_in > 100){cout << "F6_in BFL <0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
             }
             if(q6>0.5){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
-                if(F6_in > 100){cout << "F6_in BFL >0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
+                //if(F6_in > 100){cout << "F6_in BFL >0.5 Diverge(F6_in , j , k ) "<< setw(6) << F6_in << " , " << j << " , " << k << endl;}
             }
         }else if(k == 3){
-                F6_in = f8_old[idx_xi] ; //half-way bounce-back: for straight wall 
-            }else{
-                Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
-            }
+            F6_in = f8_old[idx_xi] ; //half-way bounce-back: for straight wall 
+        }else{
+            Y_XI_Intrpl3(f6_old, F6_in, j, k, CellZ_F2, j, idx_xi, Y2_0,Y2_1,Y2_2, XiF6_0, XiF6_1, XiF6_2, XiF6_3, XiF6_4, XiF6_5, XiF6_6);
         }
         //F7:
         if(k == NZ6-4){

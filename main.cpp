@@ -646,12 +646,13 @@ int main() {
         // 5.2.6 輸出數據
         //---------------------------------------------------------------------
         // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
-        if(t % outputInterval_VTK == 0) {
-            cout << "==================================================================" << endl ; 
+        // 暫時停用 VTK 輸出以測試穩定性
+        /*if(t % outputInterval_VTK == 0) {
+            cout << "==================================================================" << endl ;
             cout << "\n=== time step t = " << t << " ===" << endl;
             cout << "Output VTK file and Statics Data..." << endl;
             OutputVTK(t, y_global, z_global, rho, v, w);
-        }
+        }*/
         // 終端統計輸出（較小間隔，用於監控模擬進度）
         if(t % outputInterval_Stats == 0) {
             //每 outputInterval_Stats 步輸出一次平均密度

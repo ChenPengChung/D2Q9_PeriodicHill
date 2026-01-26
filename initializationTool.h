@@ -181,18 +181,20 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         //令內插目標點的z座標 為 pos_z
         //該Y座標的z方向計算點所包圍的長度為L
         //目標: [pos_z]->[j]->[k]
-        //寫入三個 相鄰 y座標的Z座標起始點 
+        //寫入三個 相鄰 y座標的Z座標起始點
         //===============================//
         //寫入cell_z[idx_xi+0] , cell_z[idx_xi+1] , cell_z[idx_xi+2]作為起始點，共同點目標內插分的Z_global相同
-        //防呆 
-        if(j<4) j = j + NY6-7 ;
-        if(j>NY6-5) j = j - (NY6-7) ;
-        double pos_z0 = pos_z -  0.5*minSize - HillFunction(y_global[j-1]); 
-        double pos_z1 = pos_z -  0.5*minSize - HillFunction(y_global[j]); 
-        double pos_z2 = pos_z -  0.5*minSize - HillFunction(y_global[j+1]); 
-        double L0 = LZ - HillFunction(y_global[j-1]) - minSize;
-        double L1 = LZ - HillFunction(y_global[j]) - minSize;
-        double L2 = LZ - HillFunction(y_global[j+1]) - minSize;
+        //儲存索引使用原始 j，計算使用周期映射後的 j_calc
+        const int j_store = j;  // 保留原始 j 用於儲存
+        int j_calc = j;         // 用於計算 y_global 的週期映射
+        if(j_calc<4) j_calc = j_calc + NY6-7 ;
+        if(j_calc>NY6-5) j_calc = j_calc - (NY6-7) ;
+        double pos_z0 = pos_z -  0.5*minSize - HillFunction(y_global[j_calc-1]);
+        double pos_z1 = pos_z -  0.5*minSize - HillFunction(y_global[j_calc]);
+        double pos_z2 = pos_z -  0.5*minSize - HillFunction(y_global[j_calc+1]);
+        double L0 = LZ - HillFunction(y_global[j_calc-1]) - minSize;
+        double L1 = LZ - HillFunction(y_global[j_calc]) - minSize;
+        double L2 = LZ - HillFunction(y_global[j_calc+1]) - minSize;
         //計算該高度在不同y值上的編號
         double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) );
         double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
@@ -239,9 +241,10 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
             k_2 = (int)floor(index_z2) - 3; // -2為真正的起點 -4為統一往上編號所需
         }
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
-        cell_z[NZ6*(j)+k + 0 * NY6*NZ6] = k_0;
-        cell_z[NZ6*j+k   + 1 * NY6*NZ6] = k_1;
-        cell_z[NZ6*(j)+k + 2 * NY6*NZ6] = k_2;
+        //使用原始 j_store 作為儲存索引，確保不會因週期映射而錯位
+        cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] = k_0;
+        cell_z[NZ6*j_store+k   + 1 * NY6*NZ6] = k_1;
+        cell_z[NZ6*(j_store)+k + 2 * NY6*NZ6] = k_2;
         //相鄰y列上的Z座標起始編號 寫入完成 !!
     }
 }

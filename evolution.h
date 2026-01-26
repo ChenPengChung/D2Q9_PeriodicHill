@@ -168,8 +168,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
             F2_in = f4_old[idx_xi] ; //half-way bounce-back: for straight wall 
         }else{
             F2_Intrpl7(f2_old, j, k, CellZ_F2, j, idx_xi, XiF2_0, XiF2_1, XiF2_2, XiF2_3, XiF2_4, XiF2_5, XiF2_6);
-            if(t <= 100 && t % 410 == 0){
-                cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
+            if(t <= 100 && t % 10 == 0){
+                if(F2_in > 100) cout << "F2_in at (j,k)=(" << j << "," << k << ") : " << F2_in << endl;
             }
         }
         //F4 :
@@ -178,7 +178,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         }else{
             F4_Intrpl7(f4_old, j, k, CellZ_F4 , j, idx_xi, XiF4_0, XiF4_1, XiF4_2, XiF4_3, XiF4_4, XiF4_5, XiF4_6);
             if(t <= 100 && t % 10 == 0){
-                cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
+               if(F4_in > 100)  cout << "F4_in at (j,k)=(" << j << "," << k << ") : " << F4_in << endl;
             }
         }
         //需要加入曲面處理...

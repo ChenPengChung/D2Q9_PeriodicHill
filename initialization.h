@@ -101,9 +101,9 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
     double pos_xi1 = (pos_z1) / L1; // 無因次化目標點
     double pos_xi2 = (pos_z2) / L2; // 無因次化目標點
     //計算該高度在不同y值上的編號
-    double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , nonuni_a , (NZ6-7) );
-    double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , nonuni_a , (NZ6-7) );
-    double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , nonuni_a , (NZ6-7) );//a 為 非均勻網格伸縮參數
+    double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , nonuni_a , (NZ6-7) ) + 3;
+    double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , nonuni_a , (NZ6-7) ) + 3;
+    double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , nonuni_a , (NZ6-7) ) + 3;//a 為 非均勻網格伸縮參數
     //第一套權重陣列
     double RelationXi_0[7] ; //(j_calc-1)
     if (index_z0 < 3) {

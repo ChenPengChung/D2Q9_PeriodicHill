@@ -196,9 +196,9 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         double L1 = LZ - HillFunction(y_global[j_calc]) - minSize;
         double L2 = LZ - HillFunction(y_global[j_calc+1]) - minSize;
         //計算該高度在不同y值上的編號
-        double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) );
-        double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) );
-        double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) );//a 為 非均勻網格伸縮參數
+        double index_z0 = Inverse_tanh_index( pos_z0 , L0 , minSize , a , (NZ6-7) )+3;
+        double index_z1 = Inverse_tanh_index( pos_z1 , L1 , minSize , a , (NZ6-7) )+3;
+        double index_z2 = Inverse_tanh_index( pos_z2 , L2 , minSize , a , (NZ6-7) )+3;//a 為 非均勻網格伸縮參數
         int k_0 = 0, k_1 = 0, k_2 = 0; 
         //找最接近物理空間計算點 編號  //Danger Zone 起點判斷 
         //剩下區域用七點內插，所以結構為---

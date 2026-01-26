@@ -192,7 +192,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
         bool y_boundary = (j <= 3) || (j >= NY6-4);
-        bool z_lower = (k <= 11);
+        bool z_lower = (k <= 20);
         bool z_upper = (k >= NZ6-10);  // k >= 121
         
         if( z_lower || z_upper || y_boundary ) {

@@ -32,7 +32,7 @@
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (1.0 / tau)                     // 剪切鬆弛參數 ≈ 1.964 → 1.2 (更保守)
-#define     omega_2     1.5                             // 能量鬆弛（降至1.0提高穩定性）
+#define     omega_2     0.5                             // 能量鬆弛（降至1.0提高穩定性）
 //=== 次要參數 ===/
 #define     dt          minSize
 #define     cs          (1.0/1.732050807568877)

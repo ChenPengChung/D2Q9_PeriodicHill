@@ -20,20 +20,52 @@ output_dir = r"c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill\output"
 fig_dir = os.path.join(output_dir, "figures")
 os.makedirs(fig_dir, exist_ok=True)
 
-# Grid dimensions from VTK (updated based on actual VTK file)
-# VTK 輸出順序: 外層 k (Z), 內層 j (Y)
-# 所以資料排列為: [(k=0,j=0), (k=0,j=1), ..., (k=0,j=400), (k=1,j=0), ...]
-NY = 401  # Y points (streamwise direction)
-NZ = 200  # Z points (vertical direction)
+# =============================================================================
+# 網格尺寸將從 VTK 文件自動讀取，不再硬編碼
+# =============================================================================
 
-# Physical dimensions
-Ly = 9.0   # Channel length in Y
-Lz = 3.035 # Channel height in Z
+def read_vtk_dimensions(filepath):
+    """從 VTK 文件自動讀取網格尺寸 (DIMENSIONS 行)
+    
+    VTK STRUCTURED_GRID 格式:
+    DIMENSIONS nx ny nz
+    其中 nx = NY+1 (Y方向點數), ny = NZ (Z方向點數), nz = 1 (2D)
+    
+    Returns:
+        (NY, NZ): Y方向和Z方向的點數
+    """
+    with open(filepath, 'r') as f:
+        for line in f:
+            if line.startswith("DIMENSIONS"):
+                parts = line.strip().split()
+                # DIMENSIONS ny nz 1 → (ny, nz)
+                ny = int(parts[1])  # Y方向點數 (第一維度，最快變化)
+                nz = int(parts[2])  # Z方向點數 (第二維度)
+                return ny, nz
+    return None, None
 
-def read_vtk_velocity(filepath):
-    """Extract velocity field from VTK file"""
+def read_vtk_velocity(filepath, ny=None, nz=None):
+    """Extract velocity field from VTK file
+    
+    Args:
+        filepath: VTK 文件路徑
+        ny, nz: 可選的網格尺寸，如果不提供則自動讀取
+    """
     with open(filepath, 'r') as f:
         lines = f.readlines()
+    
+    # 如果未提供尺寸，從文件讀取
+    if ny is None or nz is None:
+        for line in lines:
+            if line.startswith("DIMENSIONS"):
+                parts = line.strip().split()
+                ny = int(parts[1])
+                nz = int(parts[2])
+                break
+    
+    if ny is None or nz is None:
+        print("Error: Could not determine grid dimensions")
+        return None
     
     # Find velocity section
     vel_start = None
@@ -45,25 +77,44 @@ def read_vtk_velocity(filepath):
     if vel_start is None:
         return None
     
-    # Read velocity data (NY * NZ points)
+    # Read velocity data (ny * nz points)
     # VTK 順序: 外層 k (Z), 內層 j (Y)
-    # 所以 reshape 順序是 (NZ, NY, 3)
-    n_points = NY * NZ
+    # 所以 reshape 順序是 (nz, ny, 3)
+    n_points = ny * nz
     velocities = []
     for i in range(vel_start, vel_start + n_points):
+        if i >= len(lines):
+            break
         parts = lines[i].strip().split()
         if len(parts) == 3:
             uy, uz, ux = float(parts[0]), float(parts[1]), float(parts[2])
             velocities.append([uy, uz, ux])
     
     # VTK 資料順序: 先遍歷 Y (內層)，再遍歷 Z (外層)
-    # reshape 成 (NZ, NY, 3) 後，索引為 vel[k, j, :]
-    return np.array(velocities).reshape(NZ, NY, 3)
+    # reshape 成 (nz, ny, 3) 後，索引為 vel[k, j, :]
+    return np.array(velocities).reshape(nz, ny, 3)
 
-def read_vtk_coordinates(filepath):
-    """Extract coordinates from VTK file"""
+def read_vtk_coordinates(filepath, ny=None, nz=None):
+    """Extract coordinates from VTK file
+    
+    Args:
+        filepath: VTK 文件路徑
+        ny, nz: 可選的網格尺寸，如果不提供則自動讀取
+    
+    Returns:
+        (Y, Z): Y座標陣列和Z座標陣列，shape 為 (nz, ny)
+    """
     with open(filepath, 'r') as f:
         lines = f.readlines()
+    
+    # 如果未提供尺寸，從文件讀取
+    if ny is None or nz is None:
+        for line in lines:
+            if line.startswith("DIMENSIONS"):
+                parts = line.strip().split()
+                ny = int(parts[1])
+                nz = int(parts[2])
+                break
     
     # Find POINTS section
     pts_start = None
@@ -79,27 +130,63 @@ def read_vtk_coordinates(filepath):
         return None, None
     
     # Read coordinates
-    # VTK DIMENSIONS 401 200 1 表示: 第一維度(401點)最快變化 = Y方向
-    # 資料排列: (j=0,k=0), (j=1,k=0), ..., (j=400,k=0), (j=0,k=1), ...
+    # VTK DIMENSIONS ny nz 1 表示: 第一維度(ny點)最快變化 = Y方向
+    # 資料排列: (j=0,k=0), (j=1,k=0), ..., (j=ny-1,k=0), (j=0,k=1), ...
     coords = []
     for i in range(pts_start, pts_start + n_points):
+        if i >= len(lines):
+            break
         parts = lines[i].strip().split()
         if len(parts) == 3:
             y, z, x = float(parts[0]), float(parts[1]), float(parts[2])
             coords.append([y, z])
     
-    # reshape 成 (NZ, NY, 2)，因為 k(Z) 是外層，j(Y) 是內層
-    coords = np.array(coords).reshape(NZ, NY, 2)
+    # reshape 成 (nz, ny, 2)，因為 k(Z) 是外層，j(Y) 是內層
+    coords = np.array(coords).reshape(nz, ny, 2)
     Y = coords[:, :, 0]  # Y[k, j] = y 座標
     Z = coords[:, :, 1]  # Z[k, j] = z 座標
     return Y, Z
 
-def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
-    """Generate comprehensive velocity field visualizations"""
+def safe_two_slope_norm(data, vcenter=0):
+    """Create TwoSlopeNorm safely, handling edge cases"""
+    vmin, vmax = data.min(), data.max()
+    
+    # Handle edge cases where TwoSlopeNorm would fail
+    if vmin >= vcenter:
+        # All values >= vcenter, use regular norm
+        return None
+    if vmax <= vcenter:
+        # All values <= vcenter, use regular norm
+        return None
+    if np.isnan(vmin) or np.isnan(vmax) or np.isinf(vmin) or np.isinf(vmax):
+        return None
+    
+    return TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
+
+def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
+    """Generate comprehensive velocity field visualizations
+    
+    Args:
+        vel: Velocity array (nz, ny, 3)
+        Y, Z: Coordinate arrays (nz, ny)
+        timestep: Time step number
+        fig_dir: Output directory for figures
+        ny, nz: Grid dimensions (auto-detected from vel if not provided)
+    """
+    # 從 vel 的 shape 自動獲取尺寸
+    if nz is None:
+        nz = vel.shape[0]
+    if ny is None:
+        ny = vel.shape[1]
     
     Uy = vel[:, :, 0]  # Streamwise velocity
     Uz = vel[:, :, 1]  # Vertical velocity
     Umag = np.sqrt(Uy**2 + Uz**2)
+    
+    # Check for divergence
+    is_diverged = np.max(np.abs(Uy)) > 10 or np.max(np.abs(Uz)) > 10
+    if is_diverged:
+        print(f"  ⚠️ WARNING: Simulation appears DIVERGED! Max|Uy|={np.max(np.abs(Uy)):.2f}, Max|Uz|={np.max(np.abs(Uz)):.2f}")
     
     # ================================================================
     # Figure 1: Full velocity field contours
@@ -108,7 +195,7 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     
     # Uy contour
     ax = axes[0]
-    norm_uy = TwoSlopeNorm(vmin=Uy.min(), vcenter=0, vmax=Uy.max())
+    norm_uy = safe_two_slope_norm(Uy, vcenter=0)
     c1 = ax.contourf(Y, Z, Uy, levels=50, cmap='RdBu_r', norm=norm_uy)
     ax.set_xlabel('Y (streamwise)')
     ax.set_ylabel('Z (vertical)')
@@ -118,7 +205,7 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     
     # Uz contour
     ax = axes[1]
-    norm_uz = TwoSlopeNorm(vmin=Uz.min(), vcenter=0, vmax=Uz.max())
+    norm_uz = safe_two_slope_norm(Uz, vcenter=0)
     c2 = ax.contourf(Y, Z, Uz, levels=50, cmap='RdBu_r', norm=norm_uz)
     ax.set_xlabel('Y (streamwise)')
     ax.set_ylabel('Z (vertical)')
@@ -144,9 +231,9 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     # ================================================================
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # Vertical centerline at different Y positions
-    y_indices = [10, 50, 100, 150, 190]
-    y_labels = ['Y=0.45 (Hill)', 'Y=2.25', 'Y=4.50 (Center)', 'Y=6.75', 'Y=8.55 (Hill)']
+    # Vertical centerline at different Y positions - 動態計算索引
+    y_indices = [max(0, ny//20), ny//5, ny//2, ny*3//4, min(ny-1, ny*19//20)]
+    y_labels = [f'j={j}' for j in y_indices]
     colors = plt.cm.viridis(np.linspace(0, 1, len(y_indices)))
     
     # Uy profile along Z
@@ -176,8 +263,12 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     ax.grid(True, alpha=0.3)
     
     # Horizontal centerline at different Z positions
-    k_indices = [10, 30, 50, 75, 100, 130]
-    k_labels = ['k=10 (Near wall)', 'k=30', 'k=50', 'k=75 (Mid)', 'k=100', 'k=130 (Upper)']
+    # Ensure indices are within bounds
+    k_max = nz - 10
+    k_indices = [k for k in [10, 30, 50, 75, 100, 130] if k < k_max]
+    if not k_indices:  # 如果網格太小
+        k_indices = [nz // 4, nz // 2, 3 * nz // 4]
+    k_labels = [f'k={k}' for k in k_indices]
     colors = plt.cm.plasma(np.linspace(0, 1, len(k_indices)))
     
     # Uy profile along Y
@@ -224,10 +315,17 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     c = ax.contourf(Y, Z, Umag, levels=30, cmap='coolwarm', alpha=0.7)
     plt.colorbar(c, ax=ax, label='|U|')
     
-    # Quiver plot
+    # Quiver plot with auto-scaling
+    Uy_sub = Uy[::skip_z, ::skip_y]
+    Uz_sub = Uz[::skip_z, ::skip_y]
+    # Auto-calculate scale based on velocity magnitude
+    vel_mag = np.sqrt(Uy_sub**2 + Uz_sub**2)
+    max_vel = np.percentile(vel_mag[vel_mag > 0], 95) if np.any(vel_mag > 0) else 1.0
+    quiver_scale = max(max_vel * 20, 0.1)  # Ensure minimum scale
+    
     ax.quiver(Y[::skip_z, ::skip_y], Z[::skip_z, ::skip_y], 
-              Uy[::skip_z, ::skip_y], Uz[::skip_z, ::skip_y],
-              scale=2, width=0.002, color='black', alpha=0.7)
+              Uy_sub, Uz_sub,
+              scale=quiver_scale, width=0.002, color='black', alpha=0.7)
     
     # Try to add streamlines (may fail if field is too complex)
     if SCIPY_AVAILABLE:
@@ -258,8 +356,8 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     # ================================================================
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # Y-direction differences at mid-height
-    k_mid = 75
+    # Y-direction differences at mid-height (使用動態 nz)
+    k_mid = nz // 2
     ax = axes[0, 0]
     uy_diff = np.diff(Uy[k_mid, :])
     ax.plot(Y[k_mid, :-1], uy_diff, 'b-', linewidth=1)
@@ -278,8 +376,8 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir):
     ax.set_title(f'Uz Differences Along Y (k={k_mid})')
     ax.grid(True, alpha=0.3)
     
-    # Z-direction differences at mid-Y
-    j_mid = 100
+    # Z-direction differences at mid-Y (使用動態 ny)
+    j_mid = ny // 2
     ax = axes[1, 0]
     uy_diff_z = np.diff(Uy[:, j_mid])
     ax.plot(Z[:-1, j_mid], uy_diff_z, 'b-', linewidth=1)
@@ -318,11 +416,17 @@ def main():
     if len(vtk_files) < 3:
         print(f"Only {len(vtk_files)} VTK file(s) found, proceeding with available files...")
     
+    # 從第一個 VTK 文件自動讀取網格尺寸
+    NY, NZ = read_vtk_dimensions(vtk_files[0])
+    if NY is None or NZ is None:
+        print("Error: Could not read grid dimensions from VTK file")
+        return
+    
     print("=" * 60)
     print("Velocity Field Oscillation Analysis")
     print("=" * 60)
     print(f"Found {len(vtk_files)} VTK files")
-    print(f"Grid: {NY} x {NZ} (Y x Z)")
+    print(f"Grid: {NY} x {NZ} (Y x Z) - Auto-detected from VTK")
     
     # Analyze last few files (at least the latest one)
     n_files = min(6, len(vtk_files))
@@ -335,21 +439,22 @@ def main():
     probe_velocities = []
     
     # Read coordinates from first file
-    Y_coords, Z_coords = read_vtk_coordinates(files_to_analyze[0])
+    Y_coords, Z_coords = read_vtk_coordinates(files_to_analyze[0], NY, NZ)
     
-    # Probe points: (k, j) - mid-channel, near hill, in wake
+    # Probe points: (k, j) - 動態計算基於實際網格尺寸
+    # 確保索引在有效範圍內
     probe_points = [
-        (75, 100, "Mid-channel center"),
-        (50, 30, "Near left hill"),
-        (100, 150, "Wake region"),
-        (130, 100, "Upper channel"),
+        (min(NZ*3//8, NZ-5), min(NY//4, NY-5), "Mid-channel center"),
+        (min(NZ//4, NZ-5), min(NY//10, NY-5), "Near left hill"),
+        (min(NZ//2, NZ-5), min(NY*3//8, NY-5), "Wake region"),
+        (min(NZ*2//3, NZ-5), min(NY//4, NY-5), "Upper channel"),
     ]
     
     for filepath in files_to_analyze:
         basename = os.path.basename(filepath)
         timestep = int(re.search(r'\d+', basename).group())
         
-        vel = read_vtk_velocity(filepath)
+        vel = read_vtk_velocity(filepath, NY, NZ)
         if vel is None:
             print(f"Failed to read {basename}")
             continue
@@ -441,13 +546,13 @@ def main():
     # Use the last file for spatial analysis
     last_file = files_to_analyze[-1]
     print(f"\nAnalyzing latest file: {os.path.basename(last_file)}")
-    last_vel = read_vtk_velocity(last_file)
+    last_vel = read_vtk_velocity(last_file, NY, NZ)
     last_timestep = int(re.search(r'\d+', os.path.basename(last_file)).group())
     
     if last_vel is not None and Y_coords is not None:
         # Generate visualization figures
         print("\nGenerating velocity field visualizations...")
-        plot_velocity_field(last_vel, Y_coords, Z_coords, last_timestep, fig_dir)
+        plot_velocity_field(last_vel, Y_coords, Z_coords, last_timestep, fig_dir, NY, NZ)
         
         # Check Y-direction pattern at mid-height
         k_mid = NZ // 2
@@ -478,14 +583,14 @@ def main():
     print("=" * 60)
     
     if last_vel is not None and Y_coords is not None:
-        # Y positions for centerline profiles (in lattice units)
-        # Periodic hill: Y from 0 to ~9, hill peaks at Y~0.5 and Y~8.5
+        # Y positions for centerline profiles - 動態計算基於實際網格尺寸
+        # 確保索引在有效範圍內
         y_positions = [
-            (10, "Y=0.45 (Left hill peak)"),
-            (50, "Y=2.25 (After hill)"),
-            (100, "Y=4.50 (Channel center)"),
-            (150, "Y=6.75 (Before right hill)"),
-            (190, "Y=8.55 (Right hill peak)"),
+            (min(NY//20, NY-1), "Y near left (Left hill peak)"),
+            (min(NY//5, NY-1), "Y = 1/5 (After hill)"),
+            (min(NY//2, NY-1), "Y = 1/2 (Channel center)"),
+            (min(NY*3//4, NY-1), "Y = 3/4 (Before right hill)"),
+            (min(NY*19//20, NY-1), "Y near right (Right hill peak)"),
         ]
         
         for j, y_label in y_positions:
@@ -493,8 +598,9 @@ def main():
             print(f"{'k':>4} {'Z':>8} {'Uy':>12} {'Uz':>12}")
             print("-" * 40)
             
-            # Print velocity profile at this Y position (every 10th point)
-            for k in range(5, NZ-5, 10):
+            # Print velocity profile at this Y position (every 10th point or scaled)
+            step = max(1, NZ // 20)  # 動態步長
+            for k in range(5, NZ-5, step):
                 # Estimate physical Z coordinate (tanh stretching)
                 z_ratio = k / NZ
                 z_phys = z_ratio * 3.035  # Approximate channel height
@@ -505,14 +611,15 @@ def main():
         
         # Horizontal centerline at mid-height
         print("\n" + "=" * 60)
-        print("Horizontal Centerline (Y-direction at mid-height k=75)")
+        print(f"Horizontal Centerline (Y-direction at mid-height k={NZ//2})")
         print("=" * 60)
         
-        k_mid = 75
+        k_mid = NZ // 2
         print(f"{'j':>4} {'Y':>8} {'Uy':>12} {'Uz':>12}")
         print("-" * 40)
         
-        for j in range(0, NY, 10):
+        step_y = max(1, NY // 20)  # 動態步長
+        for j in range(0, NY, step_y):
             y_phys = Y_coords[k_mid, j]  # 使用實際讀取的座標
             uy = last_vel[k_mid, j, 0]
             uz = last_vel[k_mid, j, 1]
@@ -524,7 +631,8 @@ def main():
         print("=" * 60)
         
         # Check for negative Uy (backflow) at different heights
-        for k in [10, 20, 30, 50]:
+        k_check = [k for k in [NZ//20, NZ//10, NZ//6, NZ//4] if k < NZ-5]
+        for k in k_check:
             uy_profile = last_vel[k, :, 0]
             negative_count = np.sum(uy_profile < 0)
             if negative_count > 0:

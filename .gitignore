@@ -1,6 +1,7 @@
-# macOS
+# macOS resource forks (always ignore everywhere)
 .DS_Store
 ._*
+**/._*
 
 # IDE (保留 settings.json)
 # .vscode/
@@ -14,12 +15,18 @@
 *.log
 main
 
-# Output directory - ignore VTK but keep figures
+# Output directory - ignore VTK but keep figures (not ._* files)
 output/*.vtk
 output/*.dat
 !output/figures/
 !output/figures/*.png
+# Explicitly ignore macOS resource forks in figures
+output/figures/._*
+
 *.dSYM/
 # CUDA compiled
 *.cubin
 *.ptx
+
+# Git internal junk (macOS resource forks in .git are handled separately)
+.git/objects/pack/._*

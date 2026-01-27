@@ -186,7 +186,7 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
     # Check for divergence
     is_diverged = np.max(np.abs(Uy)) > 10 or np.max(np.abs(Uz)) > 10
     if is_diverged:
-        print(f"  ⚠️ WARNING: Simulation appears DIVERGED! Max|Uy|={np.max(np.abs(Uy)):.2f}, Max|Uz|={np.max(np.abs(Uz)):.2f}")
+        print(f"  [!] WARNING: Simulation appears DIVERGED! Max|Uy|={np.max(np.abs(Uy)):.2f}, Max|Uz|={np.max(np.abs(Uz)):.2f}")
     
     # ================================================================
     # Figure 1: Full velocity field contours
@@ -406,8 +406,10 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
     return Uy, Uz, Umag
 
 def main():
-    # Get list of VTK files sorted by timestep
-    vtk_files = sorted(glob.glob(os.path.join(output_dir, "flow_*.vtk")))
+    # Get list of VTK files sorted by timestep (numerically, not alphabetically)
+    vtk_files = glob.glob(os.path.join(output_dir, "flow_*.vtk"))
+    # Sort by extracting the timestep number from filename
+    vtk_files = sorted(vtk_files, key=lambda f: int(re.search(r'flow_(\d+)\.vtk', os.path.basename(f)).group(1)))
     
     if len(vtk_files) == 0:
         print("No VTK files found in output directory")
@@ -515,9 +517,9 @@ def main():
         # Threshold for oscillation detection
         threshold = 1e-6
         if uy_max_var > threshold or uz_max_var > threshold:
-            print("\n⚠️  WARNING: Possible oscillations detected!")
+            print("\n[!] WARNING: Possible oscillations detected!")
         else:
-            print("\n✓ Velocity field appears stable (low variance)")
+            print("\n[OK] Velocity field appears stable (low variance)")
     
     # Print probe point analysis
     print("\n" + "=" * 60)
@@ -571,9 +573,9 @@ def main():
         
         # High frequency oscillation check (consecutive sign changes)
         if sign_changes > 50 or z_sign_changes > 30:
-            print("\n⚠️  WARNING: High frequency spatial oscillations detected!")
+            print("\n[!] WARNING: High frequency spatial oscillations detected!")
         else:
-            print("\n✓ No obvious striped pattern detected")
+            print("\n[OK] No obvious striped pattern detected")
     
     # ============================================================
     # Centerline velocity profiles

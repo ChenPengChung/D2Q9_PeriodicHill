@@ -16,7 +16,9 @@ except ImportError:
     SCIPY_AVAILABLE = False
     print("Warning: scipy not available, streamlines will be skipped")
 
-output_dir = r"c:\Users\88697.CHENPENGCHUNG12\D2Q9_PeriodicHill\output"
+# 自動偵測腳本所在目錄，設定輸出路徑
+script_dir = os.path.dirname(os.path.abspath(__file__))
+output_dir = os.path.join(script_dir, "output")
 fig_dir = os.path.join(output_dir, "figures")
 os.makedirs(fig_dir, exist_ok=True)
 

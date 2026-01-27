@@ -113,7 +113,7 @@ int CellZ_F8[3*NY6 * NZ6];         // F8 方向的 Z stencil 起點
 //-----------------------------------------------------------------------------
 double Ub_sum = 0.0;             // 累積的平均速度
 int force_update_count = 0;      // 累積的時間步數
-const int NDTFRC = 10000;        // 每多少步修正一次外力
+const int NDTFRC = 1000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
 // 2.11 輸出控制變數
 //-----------------------------------------------------------------------------
@@ -661,11 +661,16 @@ int main() {
         // 終端統計輸出（較小間隔，用於監控模擬進度）
         if(t % outputInterval_Stats == 0) {
             //每 outputInterval_Stats 步輸出一次平均密度
-            cout << "++      ++     ++      ++      ++      ++    ++      ++     ++      ++" << endl ; 
+            cout << "++      ++     ++      ++      ++      ++    ++      ++     ++      ++" << endl ;
             cout << "Time=" << t << setw(6) <<
-            " ; Average Density=" << CheckMassConservation(rho,t) << setw(6) << 
-            " ; Density Correction=" << fabs(rho_modify[0] )<< endl ;
+            " ; Average Density=" << CheckMassConservation(rho,t) << setw(6) <<
+            " ; Density Correction=" << fabs(rho_modify[0] ) <<
+            " ; Local Mass Err=" << ComputeMaxLocalMassError(rho) << endl ;
             //printStatistics(t);
+
+            // Mach 數統計（與統計輸出同步）
+            MachStats mach_stats = ComputeMachStats(v, w, rho);
+            PrintMachDiagnostics(t, mach_stats);
         }
     }
     //-------------------------------------------------------------------------

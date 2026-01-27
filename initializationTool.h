@@ -311,13 +311,13 @@ void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , in
     XiPara[5][base] =  Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
     XiPara[6][base] =  1-Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
     }  
-    else if (index_z0 < 6){
+    else if (index_z0 < interpolation_lower){  // 與 initialization.h 保持一致
     for(int i = 3 ; i <=6 ; i++) {XiPara[i][base] = 0.0 ;} 
     XiPara[0][base] =  Lagrange_2nd(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] ); 
     XiPara[1][base] =  Lagrange_2nd(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] ); 
     XiPara[2][base] =  Lagrange_2nd(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] );
     } 
-    else if (index_z0 > NZ6-7){
+    else if (index_z0 > interpolation_upper){  // 與 initialization.h 保持一致
     for(int i = 0 ; i <=3 ; i++) {XiPara[i][base] = 0.0 ;} 
     XiPara[4][base] =  Lagrange_2nd(pos_z, RelationXi[4],  RelationXi[5],  RelationXi[6] ); 
     XiPara[5][base] =  Lagrange_2nd(pos_z, RelationXi[5],  RelationXi[4],  RelationXi[6] );

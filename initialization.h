@@ -115,12 +115,12 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
         for(int i = 0 ; i <=4 ; i++) RelationXi_0[i] = 0.0 ;
         RelationXi_0[5] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + 5 ] ;
         RelationXi_0[6] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + 6 ] ;
-    }else if(index_z0 < interpolation_lower){  // 恢復到 8
+    }else if(index_z0 < interpolation_lower){  // 下邊界三點插值區
         for(int i = 3 ; i <=6 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
             RelationXi_0[i] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + i ] ;
         }}
-    else if(index_z0 >  interpolation_lower){
+    else if(index_z0 >  interpolation_upper){  // 上邊界三點插值區 (修正: interpolation_lower -> interpolation_upper)
         for(int i = 0 ; i <=3 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
             RelationXi_0[i] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + i ] ;

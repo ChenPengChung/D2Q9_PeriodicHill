@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 #include "InterpolationHillISLBM.h"
-
 #include "initialization.h"
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
@@ -184,6 +183,26 @@ double CheckMassConservation(double* rho_d, int step) {
     return rho_avg;
 }
 
+//==========================================
+//4.計算區域質量守恆 - 最大局部質量誤差
+//==========================================
+double ComputeMaxLocalMassError(double* rho_d) {
+    double max_error = 0.0;
+    for(int j = 4; j < NY6-4; j++) {
+        for(int k = streaming_lower+1; k < streaming_upper-1; k++) {
+            double local_mass = 0.0;
+            for(int dj = -1; dj <= 1; dj++) {
+                for(int dk = -1; dk <= 1; dk++) {
+                    local_mass += rho_d[(j + dj) * NZ6 + (k + dk)];
+                }
+            }
+            double error = std::fabs(local_mass - 9.0) / 9.0;
+            if(error > max_error) max_error = error;
+        }
+    }
+    return max_error;
+}
+
 //y方向週期邊界條件 
 void periodicSW(
     double* f0_new, double* f1_new, double* f2_new, double* f3_new, double* f4_new, double* f5_new, double* f6_new, double* f7_new, double* f8_new
@@ -319,36 +338,38 @@ for(int j = 3 ; j < NY6-3 ; j++){
         
         if( z_lower || z_upper || y_boundary ) {
             // 邊界附近：使用簡單的 streaming 替代插值
-            
+
             // F1,F3: Y方向 streaming，需要週期性 wrap
             int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
             int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
+
+            // F1,F3: 所有邊界區域都需要處理（Y方向 streaming）
             F1_in = f1_old[jm1*NZ6 + k];
             F3_in = f3_old[jp1*NZ6 + k];
-            
+
             // 根據 Z 位置處理 F2,F4,F5,F6,F7,F8
             if( z_lower ) {
-                // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
+                // 下邊界：F2,F5,F6 用 bounce-back
                 F2_in = f4_old[idx_xi];
                 F5_in = f7_old[idx_xi];
                 F6_in = f8_old[idx_xi];
-                
+
                 // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
                 F4_in = f4_old[j*NZ6 + k+1];
                 F7_in = f7_old[jp1*NZ6 + k+1];
                 F8_in = f8_old[jm1*NZ6 + k+1];
-                
+
             } else if( z_upper ) {
-                // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
+                // 上邊界：F4,F7,F8 用 bounce-back
                 F4_in = f2_old[idx_xi];
                 F7_in = f5_old[idx_xi];
                 F8_in = f6_old[idx_xi];
-                
+
                 // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
                 F2_in = f2_old[j*NZ6 + k-1];
                 F5_in = f5_old[jm1*NZ6 + k-1];
                 F6_in = f6_old[jp1*NZ6 + k-1];
-                
+
             } else {
                 // Y邊界但非Z邊界：使用簡單 streaming
                 F2_in = f2_old[j*NZ6 + k-1];
@@ -469,7 +490,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 bool in_upper = (k >= NZ6-35);
                 bool in_ybnd = (j <= 4) || (j >= NY6-5);
                 std::cout << "ABNORMAL at j=" << j << " k=" << k 
-                          << " region=" << (in_lower ? "LOWER" : (in_upper ? "UPPER" : (in_ybnd ? "YBND" : "INTERNAL")))
+                          << " region=" << (in_lower ? "[bottom boundary region]" : (in_upper ? "[upper boundary region]" : (in_ybnd ? "[left and right boundary region]" : "[internal region]")))
                           << " rho=" << rho_local
                           << " F=[" << F0_in << "," << F1_in << "," << F2_in << "," << F3_in << "," << F4_in
                           << "," << F5_in << "," << F6_in << "," << F7_in << "," << F8_in << "]" << std::endl;

@@ -206,10 +206,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
             
             // 根據 Z 位置處理 F2,F4,F5,F6,F7,F8
             if( z_lower ) {
-                // Z下邊界：F2,F5,F6 使用 bounce-back (因為來源在下邊界外)
-                F2_in = f4_old[idx_xi];
-                F5_in = f7_old[idx_xi];
-                F6_in = f8_old[idx_xi];
+                // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
+                F2_in = f2_old[j*NZ6 + k-1];
+                F5_in = f5_old[jm1*NZ6 + k-1];
+                F6_in = f6_old[jp1*NZ6 + k-1];
                 
                 // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
                 F4_in = f4_old[j*NZ6 + k+1];
@@ -217,10 +217,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 F8_in = f8_old[jm1*NZ6 + k+1];
                 
             } else if( z_upper ) {
-                // Z上邊界：F4,F7,F8 使用 bounce-back (因為來源在上邊界外)
-                F4_in = f2_old[idx_xi];
-                F7_in = f5_old[idx_xi];
-                F8_in = f6_old[idx_xi];
+                // F4,F7,F8: 向 -Z 方向，從 z+Δ 取值
+                F4_in = f4_old[j*NZ6 + k+1];
+                F7_in = f7_old[jp1*NZ6 + k+1];
+                F8_in = f8_old[jm1*NZ6 + k+1];
                 
                 // F2,F5,F6: 向 +Z 方向，從 z-Δ 取值
                 F2_in = f2_old[j*NZ6 + k-1];

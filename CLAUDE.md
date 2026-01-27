@@ -2266,6 +2266,127 @@ double ComputeMassFluxError(double* rho_d, double* v_field, double* w_field) {
 
 ---
 
+## 2026-01-28 修正：分階段過渡解決 t=53000 崩潰問題
+
+### 問題描述
+
+模擬在 t≈53000 時連續崩潰兩次。分析發現：
+
+```
+t=53000 時：
+- progress = 53000/100000 = 0.53
+- smooth_ratio ≈ 0.5 * (1 + tanh(6*(0.53-0.5))) ≈ 0.59
+- streaming_lower = 50 - 0.59*(50-10) ≈ 26
+```
+
+此時 `streaming_lower ≈ 26` 正好接近 `interpolation_lower = 25`，這是一個**臨界過渡點**！
+
+### 問題根因
+
+原設計使用單階段過渡：
+- streaming 50 → 10（跨越了三點插值區和七點插值區的邊界）
+- 在 streaming_lower 接近 interpolation_lower 時，系統從 streaming 直接跳到使用七點插值
+- 這個突變可能導致數值不穩定
+
+### 解決方案：分階段過渡
+
+#### 設計原理
+
+```
+=== 第一階段 (t=0 ~ 100000) ===
+streaming 50 → 25（開放七點插值區）
+   
+t=0:      |====streaming (k≤50)====|---七點插值---|====streaming====|
+t=100000: |==streaming (k≤25)==|-------七點插值-------|==streaming==|
+                               ↑                       ↑
+                          interpolation_lower    interpolation_upper
+
+=== 第二階段 (t=100000 ~ 200000) ===
+streaming 25 → 10（開放三點插值緩衝區）
+
+t=100000: |==streaming (k≤25)==|-------七點插值-------|==streaming==|
+t=200000: |=s(k≤10)=|--三點--|-------七點插值-------|--三點--|=s=|
+              ↑    ↑                                 ↑      ↑
+           target  interpolation_lower        interpolation_upper
+```
+
+#### 參數修改（variables.h）
+
+```cpp
+//=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
+// 初始值（保守，更大的 streaming 區域）
+#define     streaming_lower_init     (50)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-51)        // 初始上界 (k >= NZ6-51 用 streaming)
+
+// === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
+#define     streaming_lower_phase1   (interpolation_lower)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (interpolation_upper)  // 第一階段目標: NZ6-26
+#define     phase1_start_time        (0)             // 第一階段開始
+#define     phase1_end_time          (100000)        // 第一階段結束
+
+// === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
+#define     streaming_lower_target   (10)            // 最終目標下界
+#define     streaming_upper_target   (NZ6-7)         // 最終目標上界
+#define     phase2_start_time        (100000)        // 第二階段開始
+#define     phase2_end_time          (200000)        // 第二階段結束
+```
+
+#### 更新函數實作（main.cpp）
+
+```cpp
+// 使用 tanh 平滑過渡更新 streaming 邊界（分階段版本）
+// 第一階段 (t=0~100000)：streaming 50→25（開放七點插值區）
+// 第二階段 (t=100000~200000)：streaming 25→10（開放三點插值緩衝區）
+void UpdateStreamingBounds(int t) {
+    if (t >= phase2_end_time) {
+        // 第二階段完成，使用最終目標值
+        streaming_lower = streaming_lower_target;
+        streaming_upper = streaming_upper_target;
+    } else if (t >= phase2_start_time) {
+        // 第二階段：從 interpolation 邊界過渡到最終目標（開放三點插值區）
+        double progress = (double)(t - phase2_start_time) / (phase2_end_time - phase2_start_time);
+        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
+        
+        streaming_lower = streaming_lower_phase1 - 
+            (int)(smooth_ratio * (streaming_lower_phase1 - streaming_lower_target));
+        streaming_upper = streaming_upper_phase1 + 
+            (int)(smooth_ratio * (streaming_upper_target - streaming_upper_phase1));
+    } else if (t >= phase1_start_time) {
+        // 第一階段：從初始值過渡到 interpolation 邊界（開放七點插值區）
+        double progress = (double)(t - phase1_start_time) / (phase1_end_time - phase1_start_time);
+        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
+        
+        streaming_lower = streaming_lower_init - 
+            (int)(smooth_ratio * (streaming_lower_init - streaming_lower_phase1));
+        streaming_upper = streaming_upper_init + 
+            (int)(smooth_ratio * (streaming_upper_phase1 - streaming_upper_init));
+    } else {
+        // 尚未開始，使用初始值
+        streaming_lower = streaming_lower_init;
+        streaming_upper = streaming_upper_init;
+    }
+}
+```
+
+### 設計優點
+
+1. **避免跨越臨界點**：第一階段結束在 interpolation_lower，第二階段才繼續向下
+2. **充分穩定時間**：每階段各 100000 步，讓系統充分適應
+3. **保留 tanh 平滑過渡**：避免階梯跳變帶來的數值衝擊
+4. **漸進式開放**：先開放七點插值區（精度高），穩定後再開放三點緩衝區
+
+### 預期時間線
+
+| 時間 | streaming_lower | streaming_upper | 開放區域 |
+|------|-----------------|-----------------|----------|
+| t=0 | 50 | 211 | streaming only |
+| t=50000 | 30~35 | 225~230 | 七點插值區部分開放 |
+| t=100000 | 25 | 236 | 七點插值區完全開放 |
+| t=150000 | 16~20 | 245~250 | 三點緩衝區部分開放 |
+| t=200000 | 10 | 255 | 完全開放（最終狀態） |
+
+---
+
 ### Git Commit 記錄
 
 ```

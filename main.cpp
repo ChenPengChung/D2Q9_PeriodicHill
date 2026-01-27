@@ -120,27 +120,36 @@ const int NDTFRC = 1000;        // 每多少步修正一次外力
 int streaming_lower = streaming_lower_init;  // 動態下界，初始為保守值
 int streaming_upper = streaming_upper_init;  // 動態上界，初始為保守值
 
-// 使用 tanh 平滑過渡更新 streaming 邊界
+// 使用 tanh 平滑過渡更新 streaming 邊界（分階段版本）
+// 第一階段 (t=0~100000)：streaming 50→25（開放七點插值區）
+// 第二階段 (t=100000~200000)：streaming 25→10（開放三點插值緩衝區）
 void UpdateStreamingBounds(int t) {
-    if (t >= ramp_end_time) {
-        // 過渡完成，使用目標值
+    if (t >= phase2_end_time) {
+        // 第二階段完成，使用最終目標值
         streaming_lower = streaming_lower_target;
         streaming_upper = streaming_upper_target;
-    } else if (t <= ramp_start_time) {
+    } else if (t >= phase2_start_time) {
+        // 第二階段：從 interpolation 邊界過渡到最終目標（開放三點插值區）
+        double progress = (double)(t - phase2_start_time) / (phase2_end_time - phase2_start_time);
+        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
+        
+        streaming_lower = streaming_lower_phase1 - 
+            (int)(smooth_ratio * (streaming_lower_phase1 - streaming_lower_target));
+        streaming_upper = streaming_upper_phase1 + 
+            (int)(smooth_ratio * (streaming_upper_target - streaming_upper_phase1));
+    } else if (t >= phase1_start_time) {
+        // 第一階段：從初始值過渡到 interpolation 邊界（開放七點插值區）
+        double progress = (double)(t - phase1_start_time) / (phase1_end_time - phase1_start_time);
+        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
+        
+        streaming_lower = streaming_lower_init - 
+            (int)(smooth_ratio * (streaming_lower_init - streaming_lower_phase1));
+        streaming_upper = streaming_upper_init + 
+            (int)(smooth_ratio * (streaming_upper_phase1 - streaming_upper_init));
+    } else {
         // 尚未開始，使用初始值
         streaming_lower = streaming_lower_init;
         streaming_upper = streaming_upper_init;
-    } else {
-        // 過渡期：使用 tanh 平滑過渡
-        double progress = (double)(t - ramp_start_time) / (ramp_end_time - ramp_start_time);
-        // tanh 平滑：將 [0,1] 映射到 [0,1]，但中間過渡更平滑
-        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
-        
-        // 計算當前邊界值
-        streaming_lower = streaming_lower_init - 
-            (int)(smooth_ratio * (streaming_lower_init - streaming_lower_target));
-        streaming_upper = streaming_upper_init + 
-            (int)(smooth_ratio * (streaming_upper_target - streaming_upper_init));
     }
 }
 //-----------------------------------------------------------------------------

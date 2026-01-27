@@ -26,7 +26,7 @@
 
 //模擬迴圈上限值
 #define     loop        10000000
-#define      Re         500                            // 目標雷諾數
+#define      Re         1000                            // 目標雷諾數
 #define     tau         0.6833                            // 提高 tau 以增加穩定性（原 1.7 → 1.95）
 #define     niu         ((tau-0.5)/3.0*dt)
 #define     Uref        (Re*niu)
@@ -40,16 +40,22 @@
 #define     interpolation_lower  (25)                // 七點內插下界 (index_z < 此值用三點插值)
 #define     interpolation_upper  (NZ6-26)            // 七點內插上界 (index_z > 此值用三點插值)
 
-//=== 動態 Streaming 邊界參數（漸進式擴大解析層）===//
+//=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
 #define     streaming_lower_init     (50)            // 初始下界 (k <= 50 用 streaming)
 #define     streaming_upper_init     (NZ6-51)        // 初始上界 (k >= NZ6-51 用 streaming)
-// 目標值（與 interpolation 邊界一致）
-#define     streaming_lower_target   (10)  // 目標: 25
-#define     streaming_upper_target   (NZ6-7)  // 目標: NZ6-26
-// 過渡時間設定
-#define     ramp_start_time          (0)             // 開始漸進的時間步
-#define     ramp_end_time            (100000)        // 完成漸進的時間步
+
+// === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
+#define     streaming_lower_phase1   (interpolation_lower)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (interpolation_upper)  // 第一階段目標: NZ6-26
+#define     phase1_start_time        (0)             // 第一階段開始
+#define     phase1_end_time          (100000)        // 第一階段結束
+
+// === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
+#define     streaming_lower_target   (10)            // 最終目標下界
+#define     streaming_upper_target   (NZ6-7)         // 最終目標上界
+#define     phase2_start_time        (100000)        // 第二階段開始
+#define     phase2_end_time          (200000)        // 第二階段結束
 
 // 全域變數宣告（在 main.cpp 中定義）
 extern int streaming_lower;  // 動態下界，由 UpdateStreamingBounds() 更新

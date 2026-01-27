@@ -5,6 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include "globalVariables.h"
+#include "variables.h"
 #include "initializationTool.h"
 using namespace std;
 
@@ -114,12 +115,12 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
         for(int i = 0 ; i <=4 ; i++) RelationXi_0[i] = 0.0 ;
         RelationXi_0[5] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + 5 ] ;
         RelationXi_0[6] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + 6 ] ;
-    }else if(index_z0 < 6){
+    }else if(index_z0 < interpolation_lower){  // 恢復到 8
         for(int i = 3 ; i <=6 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
             RelationXi_0[i] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + i ] ;
         }}
-    else if(index_z0 > NZ6-7){
+    else if(index_z0 >  interpolation_lower){
         for(int i = 0 ; i <=3 ; i++) RelationXi_0[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
             RelationXi_0[i] = z_global[NZ6*(j_calc-1) + cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] + i ] ;
@@ -140,12 +141,12 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
         for(int i = 0 ; i <=4 ; i++) RelationXi_1[i] = 0.0 ;
         RelationXi_1[5] = z_global[NZ6*j_calc + cell_z[NZ6*(j_store)+k + 1 * NY6*NZ6] + 5 ] ;
         RelationXi_1[6] = z_global[NZ6*j_calc + cell_z[NZ6*(j_store)+k + 1 * NY6*NZ6] + 6 ] ;
-    }else if(index_z1 < 6){
+    }else if(index_z1 < interpolation_lower){
         for(int i = 3 ; i <=6 ; i++) RelationXi_1[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
             RelationXi_1[i] = z_global[NZ6*j_calc + cell_z[NZ6*(j_store)+k + 1 * NY6*NZ6] + i ] ;
         }}
-    else if(index_z1 > NZ6-7){
+    else if(index_z1 > interpolation_upper){
         for(int i = 0 ; i <=3 ; i++) RelationXi_1[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
             RelationXi_1[i] = z_global[NZ6*j_calc + cell_z[NZ6*(j_store)+k + 1 * NY6*NZ6] + i ] ;
@@ -166,12 +167,12 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
         for(int i = 0 ; i <=4 ; i++) RelationXi_2[i] = 0.0 ;
         RelationXi_2[5] = z_global[NZ6*(j_calc+1) + cell_z[NZ6*(j_store)+k + 2 * NY6*NZ6] + 5 ] ;
         RelationXi_2[6] = z_global[NZ6*(j_calc+1) + cell_z[NZ6*(j_store)+k + 2 * NY6*NZ6] + 6 ] ;
-    }else if(index_z2 < 6){
+    }else if(index_z2 <  interpolation_lower){
         for(int i = 3 ; i <=6 ; i++) RelationXi_2[i] = 0.0 ;
         for(int i = 0 ; i <=2 ; i++) {
             RelationXi_2[i] = z_global[NZ6*(j_calc+1) + cell_z[NZ6*(j_store)+k + 2 * NY6*NZ6] + i ] ;
         }}
-    else if(index_z2 > NZ6-7){
+    else if(index_z2 >  interpolation_upper){
         for(int i = 0 ; i <=3 ; i++) RelationXi_2[i] = 0.0 ;
         for(int i = 4 ; i <=6 ; i++) {
             RelationXi_2[i] = z_global[NZ6*(j_calc+1) + cell_z[NZ6*(j_store)+k + 2 * NY6*NZ6] + i ] ;

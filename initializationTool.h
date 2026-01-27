@@ -209,9 +209,9 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
             k_0 = 3; /*兩點外插出去*/
         } else if (index_z0 > NZ6-4) {
             k_0 = NZ6-5;
-        } else if (index_z0 < 6) {
+        } else if (index_z0 <  interpolation_lower) {  // 恢復到 8 (原 6,稍微放寬)
             k_0 = (int)round(index_z0);
-        } else if (index_z0 > NZ6-7) {
+        } else if (index_z0 >  interpolation_upper) {
             k_0 = (int)ceil(index_z0) - 6; // ceil - 2 - 4 -> ceil -6
         } else {
             k_0 = (int)floor(index_z0) - 3; // 正確地以 index 減 3 作為起點
@@ -221,9 +221,9 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
             k_1 = 3;
         } else if (index_z1 > NZ6-4) {
             k_1 = NZ6-5;
-        } else if (index_z1 < 6) {
+        } else if (index_z1 <  interpolation_lower) {
             k_1 = (int)round(index_z1);
-        } else if (index_z1 > NZ6-7) {
+        } else if (index_z1 >  interpolation_upper) {
             k_1 = (int)ceil(index_z1) - 6;
         } else {
             k_1 = (int)floor(index_z1) - 3;
@@ -233,9 +233,9 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
             k_2 = 3;
         } else if (index_z2 > NZ6-4) {
             k_2 = NZ6-5;
-        } else if (index_z2 < 6) {
+        } else if (index_z2 <  interpolation_lower) {
             k_2 = (int)round(index_z2);
-        } else if (index_z2 > NZ6-7) {
+        } else if (index_z2 >  interpolation_upper) {
             k_2 = (int)ceil(index_z2) - 6;
         } else {
             k_2 = (int)floor(index_z2) - 3; // -2為真正的起點 -4為統一往上編號所需

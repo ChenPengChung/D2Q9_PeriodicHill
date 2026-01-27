@@ -11,6 +11,128 @@
 #include "variables.h"
 using namespace std ; 
 //==========================================
+// Mach 數監控與速度限制函數
+//==========================================
+
+// 檢查並限制單點速度，返回是否進行了限制
+inline bool LimitVelocity(double& uy, double& uz, double rho_local) {
+    double u_mag = std::sqrt(uy*uy + uz*uz);
+    if(u_mag > U_max) {
+        // 按比例縮放速度到最大允許值
+        double scale = U_max / u_mag;
+        uy *= scale;
+        uz *= scale;
+        return true;  // 進行了限制
+    }
+    return false;
+}
+
+// 重建平衡態分佈函數（當速度被限制後需要重建）
+inline void RebuildEquilibrium(
+    double& F0, double& F1, double& F2, double& F3, double& F4,
+    double& F5, double& F6, double& F7, double& F8,
+    double rho, double uy, double uz)
+{
+    double udot = uy*uy + uz*uz;
+    F0 = (4.0/9.0)  * rho * (1.0 - 1.5*udot);
+    F1 = (1.0/9.0)  * rho * (1.0 + 3.0*uy + 4.5*uy*uy - 1.5*udot);
+    F2 = (1.0/9.0)  * rho * (1.0 + 3.0*uz + 4.5*uz*uz - 1.5*udot);
+    F3 = (1.0/9.0)  * rho * (1.0 - 3.0*uy + 4.5*uy*uy - 1.5*udot);
+    F4 = (1.0/9.0)  * rho * (1.0 - 3.0*uz + 4.5*uz*uz - 1.5*udot);
+    F5 = (1.0/36.0) * rho * (1.0 + 3.0*(uy+uz) + 4.5*(uy+uz)*(uy+uz) - 1.5*udot);
+    F6 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy+uz) + 4.5*(-uy+uz)*(-uy+uz) - 1.5*udot);
+    F7 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy-uz) + 4.5*(-uy-uz)*(-uy-uz) - 1.5*udot);
+    F8 = (1.0/36.0) * rho * (1.0 + 3.0*(uy-uz) + 4.5*(uy-uz)*(uy-uz) - 1.5*udot);
+}
+
+// 全域 Mach 數統計結構
+struct MachStats {
+    double max_Ma;           // 最大 Mach 數
+    double avg_Ma;           // 平均 Mach 數
+    int count_exceed_warning; // 超過警告閾值的點數
+    int count_exceed_max;     // 超過最大限制的點數
+    int j_max, k_max;         // 最大 Mach 數位置
+};
+
+// 計算全場 Mach 數統計（每隔一定步數呼叫）
+MachStats ComputeMachStats(double* v_field, double* w_field, double* rho_field) {
+    MachStats stats = {0.0, 0.0, 0, 0, 0, 0};
+    double Ma_sum = 0.0;
+    int count = 0;
+
+    for(int j = 3; j < NY6-3; j++) {
+        for(int k = 3; k < NZ6-3; k++) {
+            int idx = j * NZ6 + k;
+            double u_mag = std::sqrt(v_field[idx]*v_field[idx] + w_field[idx]*w_field[idx]);
+            double Ma_local = u_mag / cs;
+
+            Ma_sum += Ma_local;
+            count++;
+
+            if(Ma_local > stats.max_Ma) {
+                stats.max_Ma = Ma_local;
+                stats.j_max = j;
+                stats.k_max = k;
+            }
+
+            if(Ma_local > Ma_warning) stats.count_exceed_warning++;
+            if(Ma_local > Ma_max) stats.count_exceed_max++;
+        }
+    }
+
+    stats.avg_Ma = Ma_sum / (double)count;
+    return stats;
+}
+
+// 輸出 Mach 數診斷資訊
+void PrintMachDiagnostics(int timestep, const MachStats& stats) {
+    std::cout << "[t=" << timestep << "] Mach stats: "
+              << "max=" << stats.max_Ma << " (j=" << stats.j_max << ",k=" << stats.k_max << "), "
+              << "avg=" << stats.avg_Ma;
+
+    if(stats.count_exceed_warning > 0) {
+        std::cout << ", WARNING: " << stats.count_exceed_warning << " points > Ma_warning";
+    }
+    if(stats.count_exceed_max > 0) {
+        std::cout << ", CRITICAL: " << stats.count_exceed_max << " points > Ma_max (limited)";
+    }
+    std::cout << std::endl;
+}
+
+// 啟動時檢查理論 Mach 數
+void CheckTheoreticalMach() {
+    double Ma_theoretical = Uref / cs;
+    std::cout << "=======================================" << std::endl;
+    std::cout << "Mach Number Check at Startup" << std::endl;
+    std::cout << "=======================================" << std::endl;
+    std::cout << "Re = " << Re << std::endl;
+    std::cout << "tau = " << tau << std::endl;
+    std::cout << "niu = " << niu << std::endl;
+    std::cout << "Uref = " << Uref << std::endl;
+    std::cout << "cs = " << cs << std::endl;
+    std::cout << "Ma_theoretical = Uref/cs = " << Ma_theoretical << std::endl;
+    std::cout << "Ma_max (allowed) = " << Ma_max << std::endl;
+    std::cout << "Ma_warning = " << Ma_warning << std::endl;
+
+    if(Ma_theoretical > Ma_max) {
+        std::cout << "!!! CRITICAL WARNING !!!" << std::endl;
+        std::cout << "Theoretical Mach number (" << Ma_theoretical
+                  << ") exceeds Ma_max (" << Ma_max << ")!" << std::endl;
+        std::cout << "Simulation is likely to diverge!" << std::endl;
+        std::cout << "Suggestions:" << std::endl;
+        std::cout << "  1. Reduce CFL (current: " << CFL << ")" << std::endl;
+        std::cout << "  2. Increase grid resolution (current: NY=" << NY << ", NZ=" << NZ << ")" << std::endl;
+        std::cout << "  3. Reduce tau (current: " << tau << ") - but keep tau > 0.5" << std::endl;
+    } else if(Ma_theoretical > Ma_warning) {
+        std::cout << "WARNING: Theoretical Mach number is high but within limit." << std::endl;
+        std::cout << "Consider reducing CFL or increasing resolution for better accuracy." << std::endl;
+    } else {
+        std::cout << "OK: Theoretical Mach number is within safe range." << std::endl;
+    }
+    std::cout << "=======================================" << std::endl;
+}
+
+//==========================================
 //1.物理空間計算點的平均密度場的時變量最小值
 //==========================================
 double dRhoglobal(double F1_in, double F2_in, double F3_in, double F4_in, double F5_in, double F6_in, double F7_in, double F8_in,
@@ -192,8 +314,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
         // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
         bool y_boundary = (j <= 3) || (j >= NY6-4);
-        bool z_lower = (k <= 11);
-        bool z_upper = (k >= NZ6-10);  // k >= 121
+        bool z_lower = (k <= streaming_lower);  // 恢復到合理的插值範圍 (原為 11,保守用 8)
+        bool z_upper = (k >= streaming_upper);  // k >= 121
         
         if( z_lower || z_upper || y_boundary ) {
             // 邊界附近：使用簡單的 streaming 替代插值
@@ -264,7 +386,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         //透過BFLInitialization已經寫入q值到矩陣當中
         //BFL 用的 stencil 起點（基於目標點位置，因為 BFL 權重是獨立計算的）
         int cell_z_bfl = k-3;
-        if( k <= 6 ) cell_z_bfl = 3;
+        if( k <= 3 ) cell_z_bfl = 3;
         if( k >= NZ6-7 ) cell_z_bfl = NZ6-10;
 
         //左丘邊界，更新F1
@@ -354,10 +476,18 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 error_count++;
             }
         }
-        //4.計算equilibirium distribution function 
-        double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in; 
+        //4.計算equilibirium distribution function
+        double rho_s = F0_in  + F1_in  + F2_in  + F3_in  + F4_in  + F5_in  + F6_in  + F7_in  + F8_in;
         double v1 = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
 	    double w1 = (F2_in+ F5_in+ F6_in -( F4_in+F7_in+F8_in)) / rho_s ;
+
+        //4.5 Mach 數限制：若速度超過上限，縮放至安全範圍並重建分佈函數
+        if(LimitVelocity(v1, w1, rho_s)) {
+            // 速度被限制，需要用限制後的速度重建平衡態分佈函數
+            RebuildEquilibrium(F0_in, F1_in, F2_in, F3_in, F4_in,
+                              F5_in, F6_in, F7_in, F8_in, rho_s, v1, w1);
+        }
+
         double udot = v1*v1 + w1*w1;
         const double F0_eq  = (4./9.)  *rho_s*(1.0-1.5*udot);
         const double F1_eq  = (1./9.)  *rho_s*(1.0+3.0*v1 +4.5*v1*v1-1.5*udot);

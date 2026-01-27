@@ -184,23 +184,37 @@ double CheckMassConservation(double* rho_d, int step) {
 }
 
 //==========================================
-//4.計算區域質量守恆 - 最大局部質量誤差
+//4.計算區域質量守恆 - 質量通量淨流入流出差
+// 對每個格點計算: |流出質量通量 - 流入質量通量|
+// 質量通量 = ρ*v (Y方向) + ρ*w (Z方向)
+// 使用中心差分: div(ρu) ≈ [(ρv)_{j+1} - (ρv)_{j-1}]/2 + [(ρw)_{k+1} - (ρw)_{k-1}]/2
 //==========================================
-double ComputeMaxLocalMassError(double* rho_d) {
-    double max_error = 0.0;
+double ComputeMassFluxError(double* rho_d, double* v_field, double* w_field) {
+    double total_error = 0.0;
+    
     for(int j = 4; j < NY6-4; j++) {
-        for(int k = streaming_lower+1; k < streaming_upper-1; k++) {
-            double local_mass = 0.0;
-            for(int dj = -1; dj <= 1; dj++) {
-                for(int dk = -1; dk <= 1; dk++) {
-                    local_mass += rho_d[(j + dj) * NZ6 + (k + dk)];
-                }
-            }
-            double error = std::fabs(local_mass - 9.0) / 9.0;
-            if(error > max_error) max_error = error;
+        for(int k = 4; k < NZ6-4; k++) {
+            int idx = j * NZ6 + k;
+            int idx_jp1 = (j+1) * NZ6 + k;  // j+1
+            int idx_jm1 = (j-1) * NZ6 + k;  // j-1
+            int idx_kp1 = j * NZ6 + (k+1);  // k+1
+            int idx_km1 = j * NZ6 + (k-1);  // k-1
+            
+            // Y方向質量通量差 (ρv)_{j+1} - (ρv)_{j-1}
+            double flux_y = (rho_d[idx_jp1] * v_field[idx_jp1]) - (rho_d[idx_jm1] * v_field[idx_jm1]);
+            
+            // Z方向質量通量差 (ρw)_{k+1} - (ρw)_{k-1}
+            double flux_z = (rho_d[idx_kp1] * w_field[idx_kp1]) - (rho_d[idx_km1] * w_field[idx_km1]);
+            
+            // 質量守恆誤差 = |div(ρu)| = |∂(ρv)/∂y + ∂(ρw)/∂z|
+            double div_rho_u = std::fabs(flux_y + flux_z);
+            total_error += div_rho_u;
         }
     }
-    return max_error;
+    
+    // 回傳總質量通量誤差（除以格點數得到平均值）
+    int num_cells = (NY6 - 8) * (NZ6 - 8);
+    return total_error / (double)num_cells;
 }
 
 //y方向週期邊界條件 

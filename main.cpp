@@ -115,7 +115,36 @@ double Ub_sum = 0.0;             // 累積的平均速度
 int force_update_count = 0;      // 累積的時間步數
 const int NDTFRC = 1000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
-// 2.11 輸出控制變數
+// 2.12 動態 Streaming 邊界（漸進式擴大解析層）
+//-----------------------------------------------------------------------------
+int streaming_lower = streaming_lower_init;  // 動態下界，初始為保守值
+int streaming_upper = streaming_upper_init;  // 動態上界，初始為保守值
+
+// 使用 tanh 平滑過渡更新 streaming 邊界
+void UpdateStreamingBounds(int t) {
+    if (t >= ramp_end_time) {
+        // 過渡完成，使用目標值
+        streaming_lower = streaming_lower_target;
+        streaming_upper = streaming_upper_target;
+    } else if (t <= ramp_start_time) {
+        // 尚未開始，使用初始值
+        streaming_lower = streaming_lower_init;
+        streaming_upper = streaming_upper_init;
+    } else {
+        // 過渡期：使用 tanh 平滑過渡
+        double progress = (double)(t - ramp_start_time) / (ramp_end_time - ramp_start_time);
+        // tanh 平滑：將 [0,1] 映射到 [0,1]，但中間過渡更平滑
+        double smooth_ratio = 0.5 * (1.0 + tanh(6.0 * (progress - 0.5)));
+        
+        // 計算當前邊界值
+        streaming_lower = streaming_lower_init - 
+            (int)(smooth_ratio * (streaming_lower_init - streaming_lower_target));
+        streaming_upper = streaming_upper_init + 
+            (int)(smooth_ratio * (streaming_upper_target - streaming_upper_init));
+    }
+}
+//-----------------------------------------------------------------------------
+// 2.13 輸出控制變數
 //-----------------------------------------------------------------------------
 const int outputInterval_VTK = 1000;     // VTK 檔案輸出間隔（步數）
 const int outputInterval_Stats = 1000;   // 終端統計輸出間隔（步數）
@@ -555,6 +584,9 @@ int main() {
     
     cout.flush();
     for(t = 0; t < loop; t++) {
+        // 更新動態 streaming 邊界（漸進式擴大解析層）
+        UpdateStreamingBounds(t);
+        
         if(t % 10 == 0) { 
             double rho_check = CheckMassConservation(rho, t);
             if(std::isnan(rho_check) || std::isinf(rho_check)) {
@@ -665,8 +697,12 @@ int main() {
             cout << "Time=" << t << setw(6) <<
             " ; Average Density=" << CheckMassConservation(rho,t) << setw(6) <<
             " ; Density Correction=" << fabs(rho_modify[0] ) <<
-            " ; Local Mass Err=" << ComputeMaxLocalMassError(rho) << endl ;
-            //printStatistics(t);
+            " ; Mass Flux Err=" << ComputeMassFluxError(rho, v, w) << endl ;
+            
+            // 輸出當前 streaming 邊界（顯示解析層擴大進度）
+            cout << "[Streaming Bounds] lower=" << streaming_lower 
+                 << " upper=" << streaming_upper 
+                 << " (target: " << streaming_lower_target << "/" << streaming_upper_target << ")" << endl;
 
             // Mach 數統計（與統計輸出同步）
             MachStats mach_stats = ComputeMachStats(v, w, rho);

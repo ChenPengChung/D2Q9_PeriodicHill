@@ -39,8 +39,21 @@
 // 重要：streaming_lower 必須 >= interpolation_lower 以確保一致性
 #define     interpolation_lower  (25)                // 七點內插下界 (index_z < 此值用三點插值)
 #define     interpolation_upper  (NZ6-26)            // 七點內插上界 (index_z > 此值用三點插值)
-#define     streaming_lower      (25)                // k <= 此值用 streaming (必須 >= interpolation_lower)
-#define     streaming_upper      (NZ6-26)            // k >= 此值用 streaming (必須 <= interpolation_upper)
+
+//=== 動態 Streaming 邊界參數（漸進式擴大解析層）===//
+// 初始值（保守，更大的 streaming 區域）
+#define     streaming_lower_init     (50)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-51)        // 初始上界 (k >= NZ6-51 用 streaming)
+// 目標值（與 interpolation 邊界一致）
+#define     streaming_lower_target   (10)  // 目標: 25
+#define     streaming_upper_target   (NZ6-7)  // 目標: NZ6-26
+// 過渡時間設定
+#define     ramp_start_time          (0)             // 開始漸進的時間步
+#define     ramp_end_time            (100000)        // 完成漸進的時間步
+
+// 全域變數宣告（在 main.cpp 中定義）
+extern int streaming_lower;  // 動態下界，由 UpdateStreamingBounds() 更新
+extern int streaming_upper;  // 動態上界，由 UpdateStreamingBounds() 更新
 //=== 次要參數 ===/
 #define     dt          minSize
 #define     cs          (1.0/1.732050807568877)              // 晶格聲速 = 1/sqrt(3)

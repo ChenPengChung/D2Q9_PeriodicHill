@@ -37,13 +37,13 @@
 // streaming_lower/upper: evolution.h 中用於判斷是否用 streaming 代替插值
 // interpolation_lower/upper: initialization.h 中用於判斷使用幾點插值
 // 重要：streaming_lower 必須 >= interpolation_lower 以確保一致性
-#define     interpolation_lower  (25)                // 七點內插下界 (index_z < 此值用三點插值)
-#define     interpolation_upper  (NZ6-26)            // 七點內插上界 (index_z > 此值用三點插值)
+#define     interpolation_lower  (20)                // 七點內插下界 (index_z < 此值用三點插值)
+#define     interpolation_upper  (NZ6-15)            // 七點內插上界 (index_z > 此值用三點插值)
 
 //=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
-#define     streaming_lower_init     (50)            // 初始下界 (k <= 50 用 streaming)
-#define     streaming_upper_init     (NZ6-51)        // 初始上界 (k >= NZ6-51 用 streaming)
+#define     streaming_lower_init     (30)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-25)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
 #define     streaming_lower_phase1   (interpolation_lower)  // 第一階段目標: 25

@@ -32,7 +32,7 @@
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (1.0 / tau)                    // 剪切鬆弛參數 ≈ 0.513（更保守）
-#define     omega_2     0.1                            // 能量鬆弛（提高至 0.5，原 0.001）
+#define     omega_2     1.3                            // 能量鬆弛（提高至 0.5，原 0.001）
 // 統一邊界定義：streaming 和 interpolation 必須一致
 // streaming_lower/upper: evolution.h 中用於判斷是否用 streaming 代替插值
 // interpolation_lower/upper: initialization.h 中用於判斷使用幾點插值

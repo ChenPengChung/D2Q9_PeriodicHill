@@ -595,9 +595,19 @@ void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
     //透過平均速度與參考速度修正外力項
     // 3. 調整外力（比例控制器）
     Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
+    
+    //2026.1.29 外力輸出加上限幅
+    double F_max = 0.01 ; 
+    Force[0] = std::fmin(Force[0], F_max);
+    Force[0] = std::fmax(Force[0], -F_max);  
 
     // 4. 輸出監控資訊
-    std::cout << "Force Update: Ub_avg ="<< Ub_avg << ", Uref =" << Uref << ", Force =" << Force[0] << std::endl ; 
+    double ratio = Ub_avg / Uref;
+    double Ma_actual = Ub_avg / cs;
+    std::cout << "Force Update: Ub_avg=" << Ub_avg << ", Uref=" << Uref
+              << ", Ub/Uref=" << ratio
+              << ", Ma_actual=" << Ma_actual
+              << ", Force=" << Force[0] << std::endl;
 
     // 5. 重置累加器
     *Ub_sum_ptr = 0.0;

@@ -49,11 +49,11 @@
 #define     streaming_lower_phase1   (10)  // 第一階段目標: 25
 #define     streaming_upper_phase1   (NZ6-12)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
-#define     phase1_end_time          (100000)        // 第一階段結束
+#define     phase1_end_time          (10000)        // 第一階段結束
 
 // === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
-#define     streaming_lower_target   (6)            // 最終目標下界
-#define     streaming_upper_target   (NZ6-7)         // 最終目標上界
+#define     streaming_lower_target   (3)            // 最終目標下界
+#define     streaming_upper_target   (NZ6-4)         // 最終目標上界
 #define     phase2_start_time        (10000)        // 第二階段開始
 #define     phase2_end_time          (20000)        // 第二階段結束
 

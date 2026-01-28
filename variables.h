@@ -26,7 +26,7 @@
 
 //模擬迴圈上限值
 #define     loop        10000000
-#define      Re         1000                            // 目標雷諾數
+#define      Re         700                            // 目標雷諾數
 #define     tau         0.6833                            // 提高 tau 以增加穩定性（原 1.7 → 1.95）
 #define     niu         ((tau-0.5)/3.0*dt)
 #define     Uref        (Re*niu)
@@ -42,8 +42,8 @@
 
 //=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
-#define     streaming_lower_init     (30)            // 初始下界 (k <= 50 用 streaming)
-#define     streaming_upper_init     (NZ6-25)        // 初始上界 (k >= NZ6-51 用 streaming)
+#define     streaming_lower_init     (25)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-19)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
 #define     streaming_lower_phase1   (interpolation_lower)  // 第一階段目標: 25

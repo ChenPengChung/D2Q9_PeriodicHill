@@ -227,7 +227,7 @@ void periodicSW(
     for(int k = 3 ; k < NZ6-3 ; k++){
         for(int i = 0 ; i <= 2 ; i++){
             //右邊左側buffer layer
-            int idx_right = (i+NY6-6)*NZ6 + k ;
+            int idx_right = (i+NY6-7)*NZ6 + k ;
             int buffer_left = i*NZ6 + k ;
             f0_new[buffer_left] = f0_new[idx_right] ;
             f1_new[buffer_left] = f1_new[idx_right] ;
@@ -242,8 +242,8 @@ void periodicSW(
             w[buffer_left] = w[idx_right] ;
             rho_d[buffer_left] = rho_d[idx_right] ;
             //左邊右側buffer layer
-            int idx_left = (i+3)*NZ6 + k ;
-            int buffer_right = (i+NY6-3)*NZ6 + k ;
+            int idx_left = (i+4)*NZ6 + k ;
+            int buffer_right = (NY6-3+i)*NZ6 + k ;
             f0_new[buffer_right] = f0_new[idx_left] ;
             f1_new[buffer_right] = f1_new[idx_left] ;
             f2_new[buffer_right] = f2_new[idx_left] ;
@@ -354,8 +354,8 @@ for(int j = 3 ; j < NY6-3 ; j++){
             // 邊界附近：使用簡單的 streaming 替代插值
 
             // F1,F3: Y方向 streaming，需要週期性 wrap
-            int jm1 = (j > 3) ? (j-1) : (NY6-4);  // 週期性 wrap
-            int jp1 = (j < NY6-4) ? (j+1) : 3;     // 週期性 wrap
+            int jm1 = (j > 3) ? (j-1) : (NY6-5) ;  // 週期性 wrap
+            int jp1 = (j < NY6-4) ? (j+1) : 4 ;     // 週期性 wrap
 
             // F1,F3: 所有邊界區域都需要處理（Y方向 streaming）
             F1_in = f1_old[jm1*NZ6 + k];
@@ -386,6 +386,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
 
             } else {
                 // Y邊界但非Z邊界：使用簡單 streaming
+                //此為週期性邊界條件
                 F2_in = f2_old[j*NZ6 + k-1];
                 F4_in = f4_old[j*NZ6 + k+1];
                 F5_in = f5_old[jm1*NZ6 + k-1];

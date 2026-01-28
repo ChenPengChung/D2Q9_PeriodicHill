@@ -26,8 +26,8 @@
 // N=0 對應 j-1 列, N=1 對應 j 列, N=2 對應 j+1 列
 #define F1_Intrpl3(f,j,k,cell_z,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
 do { /*降階版本*/ /*先插 Xi 方向，再插 Y 方向*/\
-    const int jm1 = (j == 3) ? (NY6 - 4) : (j - 1); /*處理週期邊界*/ \
-    const int jp1 = (j == NY6 - 4) ? 3 : (j + 1); \
+    const int jm1 = (j == 3) ? (NY6 - 5) : (j - 1); /*處理週期邊界*/ \
+    const int jp1 = (j == NY6 - 4) ? 4 : (j + 1); \
      \
     const int base0 = jm1*nface + cell_z[idx_xi+0*NY6*NZ6]; \
     const int base1 = j*nface + cell_z[idx_xi+1*NY6*NZ6]; \
@@ -58,8 +58,8 @@ do { \
 // F3 來自 j+1 方向，所以 N=0 對應 j 列, N=1 對應 j+1 列, N=2 對應 j+2 列
 #define F3_Intrpl3(f,j,k,cell_z,idx_y,idx_xi,y_0,y_1,y_2,xi_0,xi_1,xi_2,xi_3,xi_4,xi_5,xi_6) \
 do { /*降階版本*/\
-    const int jm1 = (j == 3) ? (NY6 - 4) : (j - 1); /*處理週期邊界*/ \
-    const int jp1 = (j == NY6 - 4) ? 3 : (j + 1); \
+    const int jm1 = (j == 3) ? (NY6 - 5) : (j - 1); /*處理週期邊界*/ \
+    const int jp1 = (j == NY6 - 4) ? 4 : (j + 1); \
      \
     const int base0 = jm1*nface + cell_z[idx_xi+0*NY6*NZ6]; \
     const int base1 = j*nface + cell_z[idx_xi+1*NY6*NZ6]; \
@@ -108,8 +108,8 @@ do { \
 // 注意: cell_z 儲存的是 k_start，需要加上 y 列偏移
 #define Y_XI_Intrpl3(f, F_in, j, k, cell_z , idx_y, idx_xi, y_0, y_1, y_2, xi_0, xi_1, xi_2, xi_3, xi_4, xi_5, xi_6)    \
 do { /*降階版本*/\
-    const int jm1 = (j == 3) ? (NY6 - 4) : (j - 1); /*處理週期邊界*/ \
-    const int jp1 = (j == NY6 - 4) ? 3 : (j + 1); \
+    const int jm1 = (j == 3) ? (NY6 - 5) : (j - 1); /*處理週期邊界*/ \
+    const int jp1 = (j == NY6 - 4) ? 4 : (j + 1); \
      \
     const int base0 = jm1*nface + cell_z[idx_xi+0*NY6*NZ6]; /*在哪一個y層+起點座標*/\
     const int base1 = j*nface + cell_z[idx_xi+1*NY6*NZ6]; \

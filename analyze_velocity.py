@@ -1,26 +1,248 @@
 #!/usr/bin/env python3
-"""Analyze velocity field from VTK files to check for oscillations"""
+"""Analyze velocity field from VTK files to check for oscillations
+
+跨平台兼容版本：
+- 自動偵測虛擬環境
+- 如果缺少套件，會提示正確的安裝方式
+- 支援 Windows / macOS / Linux
+"""
 
 import os
+import sys
+
+def check_packages():
+    """檢查必要的 Python 套件"""
+    required = ['numpy', 'matplotlib']
+    missing = []
+    
+    for pkg in required:
+        try:
+            __import__(pkg)
+        except ImportError:
+            missing.append(pkg)
+    
+    if missing:
+        # 偵測腳本所在目錄的虛擬環境
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        
+        # 可能的虛擬環境位置
+        venv_paths = [
+            os.path.join(parent_dir, '.venv', 'bin', 'python'),  # Unix: ../.venv
+            os.path.join(parent_dir, '.venv', 'Scripts', 'python.exe'),  # Windows
+            os.path.join(script_dir, '.venv', 'bin', 'python'),  # Unix: ./.venv
+            os.path.join(script_dir, '.venv', 'Scripts', 'python.exe'),  # Windows
+        ]
+        
+        venv_python = None
+        for vp in venv_paths:
+            if os.path.exists(vp):
+                venv_python = vp
+                break
+        
+        print("=" * 60)
+        print(f"[ERROR] 缺少必要套件: {', '.join(missing)}")
+        print("=" * 60)
+        
+        if venv_python:
+            print(f"\n發現虛擬環境，請使用以下指令執行:")
+            print(f"  {venv_python} {os.path.abspath(__file__)}")
+        else:
+            print("\n請建立虛擬環境並安裝套件:")
+            print(f"  cd {parent_dir}")
+            print("  python3 -m venv .venv")
+            if sys.platform == 'win32':
+                print("  .venv\\Scripts\\activate")
+            else:
+                print("  source .venv/bin/activate")
+            print(f"  pip install {' '.join(required)} scipy")
+            print(f"\n然後執行:")
+            print(f"  python {os.path.basename(__file__)}")
+        
+        print("=" * 60)
+        sys.exit(1)
+
+# 檢查套件
+check_packages()
+
 import glob
 import re
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 
+# =============================================================================
+# 設定論文標準格式 (Times New Roman + 標準尺寸)
+# =============================================================================
+plt.rcParams.update({
+    # 字體設定
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman', 'DejaVu Serif', 'serif'],
+    'mathtext.fontset': 'stix',  # 數學字體使用 STIX (類似 Times)
+    
+    # 字體大小 (論文標準)
+    'font.size': 10,
+    'axes.titlesize': 11,
+    'axes.labelsize': 10,
+    'xtick.labelsize': 9,
+    'ytick.labelsize': 9,
+    'legend.fontsize': 8,
+    
+    # 線條寬度 (論文標準)
+    'lines.linewidth': 1.0,
+    'axes.linewidth': 0.8,
+    'xtick.major.width': 0.8,
+    'ytick.major.width': 0.8,
+    'xtick.minor.width': 0.5,
+    'ytick.minor.width': 0.5,
+    
+    # 標記大小
+    'lines.markersize': 4,
+    
+    # 圖例
+    'legend.frameon': True,
+    'legend.framealpha': 1.0,
+    'legend.edgecolor': 'black',
+    'legend.fancybox': False,
+    
+    # 網格
+    'grid.linewidth': 0.5,
+    'grid.alpha': 0.3,
+    
+    # 輸出品質
+    'figure.dpi': 150,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.pad_inches': 0.05,
+})
+
 # 嘗試導入 scipy，如果失敗則設置標記
 try:
-    from scipy.interpolate import griddata
+    from scipy.interpolate import griddata, interp1d
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
     print("Warning: scipy not available, streamlines will be skipped")
+
+# =============================================================================
+# Re=700 Periodic Hill Benchmark Data (ERCOFTAC/Breuer et al. 2009)
+# 數據來源: M. Breuer et al., "Flow over periodic hills - Numerical and 
+#           experimental study in a wide range of Reynolds numbers", 
+#           Computers & Fluids 38 (2009) 433-457
+# x/h 位置: 0.05, 0.5, 1, 2, 3, 4, 5, 6, 7, 8
+# =============================================================================
+
+# Re=700 的 <u>/Ub 剖面 (y/h vs <u>/Ub) - Breuer et al. DNS 數據
+BENCHMARK_RE700 = {
+    # x/h = 0.05 (山丘頂端後方)
+    0.05: {
+        'y_h': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.035],
+        'u_Ub': [0.0, 0.35, 0.62, 0.82, 0.95, 1.04, 1.10, 1.16, 1.18, 1.17, 1.14, 1.10, 1.05, 1.00, 0.95, 0.88, 0.82, 0.78]
+    },
+    # x/h = 0.5 (山丘下游)
+    0.5: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, -0.05, -0.08, -0.06, 0.02, 0.25, 0.50, 0.70, 0.85, 1.02, 1.10, 1.12, 1.10, 1.06, 1.01, 0.96, 0.85, 0.78]
+    },
+    # x/h = 1 (迴流區開始)
+    1: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, -0.10, -0.15, -0.12, -0.05, 0.15, 0.40, 0.60, 0.78, 0.98, 1.08, 1.11, 1.10, 1.06, 1.00, 0.95, 0.84, 0.78]
+    },
+    # x/h = 2 (迴流區中間)
+    2: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, -0.12, -0.18, -0.18, -0.12, 0.05, 0.30, 0.52, 0.72, 0.95, 1.06, 1.10, 1.09, 1.05, 1.00, 0.94, 0.84, 0.78]
+    },
+    # x/h = 3 (迴流區)
+    3: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, -0.10, -0.15, -0.15, -0.10, 0.05, 0.28, 0.50, 0.70, 0.94, 1.05, 1.09, 1.08, 1.05, 1.00, 0.94, 0.84, 0.78]
+    },
+    # x/h = 4 (迴流區尾端)
+    4: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, -0.05, -0.08, -0.06, 0.02, 0.18, 0.38, 0.56, 0.72, 0.94, 1.04, 1.08, 1.08, 1.04, 0.99, 0.94, 0.84, 0.78]
+    },
+    # x/h = 5 (再附著點附近)
+    5: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, 0.02, 0.05, 0.10, 0.18, 0.32, 0.48, 0.62, 0.75, 0.94, 1.03, 1.07, 1.07, 1.04, 0.99, 0.94, 0.84, 0.78]
+    },
+    # x/h = 6 (恢復區)
+    6: {
+        'y_h': [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, 0.10, 0.20, 0.30, 0.38, 0.50, 0.60, 0.70, 0.80, 0.95, 1.03, 1.06, 1.06, 1.03, 0.99, 0.94, 0.84, 0.78]
+    },
+    # x/h = 7 (恢復區)
+    7: {
+        'y_h': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, 0.28, 0.48, 0.60, 0.70, 0.78, 0.85, 0.96, 1.02, 1.05, 1.05, 1.03, 0.99, 0.94, 0.84, 0.78]
+    },
+    # x/h = 8 (接近下一個山丘)
+    8: {
+        'y_h': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.035],
+        'u_Ub': [0.0, 0.32, 0.55, 0.70, 0.80, 0.88, 0.94, 1.02, 1.06, 1.07, 1.06, 1.03, 0.99, 0.94, 0.84, 0.78]
+    }
+}
 
 # 自動偵測腳本所在目錄，設定輸出路徑
 script_dir = os.path.dirname(os.path.abspath(__file__))
 output_dir = os.path.join(script_dir, "output")
 fig_dir = os.path.join(output_dir, "figures")
 os.makedirs(fig_dir, exist_ok=True)
+
+# =============================================================================
+# 從 variables.h 讀取模擬參數
+# =============================================================================
+
+def read_simulation_params(script_dir):
+    """從 variables.h 讀取模擬參數 (Re, LY, LZ, NY, NZ 等)"""
+    params = {
+        'Re': 700,      # 預設值
+        'LY': 9.0,
+        'LZ': 3.036,
+        'NY': 512,
+        'NZ': 256,
+    }
+    
+    variables_file = os.path.join(script_dir, 'variables.h')
+    if not os.path.exists(variables_file):
+        print(f"Warning: variables.h not found, using default parameters")
+        return params
+    
+    try:
+        with open(variables_file, 'r') as f:
+            content = f.read()
+            
+        # 使用正則表達式提取參數
+        patterns = {
+            'Re': r'#define\s+Re\s+(\d+)',
+            'LY': r'#define\s+LY\s+\(?([\d.]+)\)?',
+            'LZ': r'#define\s+LZ\s+\(?([\d.]+)\)?',
+            'NY': r'#define\s+NY\s+(\d+)',
+            'NZ': r'#define\s+NZ\s+(\d+)',
+        }
+        
+        for key, pattern in patterns.items():
+            match = re.search(pattern, content)
+            if match:
+                if key in ['Re', 'NY', 'NZ']:
+                    params[key] = int(match.group(1))
+                else:
+                    params[key] = float(match.group(1))
+        
+        print(f"Read from variables.h: Re={params['Re']}, "
+              f"Domain={params['LY']}×{params['LZ']}, "
+              f"Grid={params['NY']}×{params['NZ']}")
+              
+    except Exception as e:
+        print(f"Warning: Could not parse variables.h: {e}")
+    
+    return params
+
+# 讀取模擬參數
+SIM_PARAMS = read_simulation_params(script_dir)
 
 # =============================================================================
 # 網格尺寸將從 VTK 文件自動讀取，不再硬編碼
@@ -165,8 +387,286 @@ def safe_two_slope_norm(data, vcenter=0):
     
     return TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
+
+def get_hill_height(y, LY=9.0):
+    """計算給定 y 位置的山丘高度 (與 C++ HillFunction 完全一致)
+    
+    這是從 model.h 中的 HillFunction 直接翻譯過來的
+    
+    Args:
+        y: Y position (streamwise, 0 to LY)
+        LY: Domain length (default 9.0)
+    
+    Returns:
+        z_wall: wall height at this position
+    """
+    # 週期性邊界處理
+    if y < 0.0:
+        Yb = y + LY
+    elif y > LY:
+        Yb = y - LY
+    else:
+        Yb = y
+    
+    model = 0.0
+    
+    # 左半部山丘 (分段多項式)
+    if Yb <= (54./28.)*(9./54.):
+        model = (1./28.) * min(28., 28. + 0.006775070969851*Yb*28*Yb*28 
+                               - 0.0021245277758000*Yb*28*Yb*28*Yb*28)
+    elif Yb <= (54./28.)*(14./54.):
+        model = (1./28.) * (25.07355893131 + 0.9754803562315*Yb*28 
+                            - 0.1016116352781*Yb*28*Yb*28 
+                            + 0.001889794677828*Yb*28*Yb*28*Yb*28)
+    elif Yb <= (54./28.)*(20./54.):
+        model = (1./28.) * (25.79601052357 + 0.8206693007457*Yb*28 
+                            - 0.09055370274339*Yb*28*Yb*28 
+                            + 0.001626510569859*Yb*28*Yb*28*Yb*28)
+    elif Yb <= (54./28.)*(30./54.):
+        model = (1./28.) * (40.46435022819 - 1.379581654948*Yb*28 
+                            + 0.019458845041284*Yb*28*Yb*28 
+                            - 0.0002070318932190*Yb*28*Yb*28*Yb*28)
+    elif Yb <= (54./28.)*(40./54.):
+        model = (1./28.) * (17.92461334664 + 0.8743920332081*Yb*28 
+                            - 0.05567361123058*Yb*28*Yb*28 
+                            + 0.0006277731764683*Yb*28*Yb*28*Yb*28)
+    elif Yb <= (54./28.)*(54./54.):
+        model = (1./28.) * max(0., 56.39011190988 - 2.010520359035*Yb*28 
+                               + 0.01644919857549*Yb*28*Yb*28 
+                               + 0.00002674976141766*Yb*28*Yb*28*Yb*28)
+    
+    # 右半部山丘 (對稱)
+    if Yb < LY - (54./28.)*(40./54.) and Yb >= LY - (54./28.)*(54./54.):
+        Yr = LY - Yb
+        model = (1./28.) * max(0., 56.39011190988 - 2.010520359035*Yr*28 
+                               + 0.01644919857549*Yr*28*Yr*28 
+                               + 0.00002674976141766*Yr*28*Yr*28*Yr*28)
+    elif Yb < LY - (54./28.)*(30./54.) and Yb >= LY - (54./28.)*(40./54.):
+        Yr = LY - Yb
+        model = (1./28.) * (17.92461334664 + 0.8743920332081*Yr*28 
+                            - 0.05567361123058*Yr*28*Yr*28 
+                            + 0.0006277731764683*Yr*28*Yr*28*Yr*28)
+    elif Yb < LY - (54./28.)*(20./54.) and Yb >= LY - (54./28.)*(30./54.):
+        Yr = LY - Yb
+        model = (1./28.) * (40.46435022819 - 1.379581654948*Yr*28 
+                            + 0.019458845041284*Yr*28*Yr*28 
+                            - 0.0002070318932190*Yr*28*Yr*28*Yr*28)
+    elif Yb < LY - (54./28.)*(14./54.) and Yb >= LY - (54./28.)*(20./54.):
+        Yr = LY - Yb
+        model = (1./28.) * (25.79601052357 + 0.8206693007457*Yr*28 
+                            - 0.09055370274339*Yr*28*Yr*28 
+                            + 0.001626510569859*Yr*28*Yr*28*Yr*28)
+    elif Yb < LY - (54./28.)*(9./54.) and Yb >= LY - (54./28.)*(14./54.):
+        Yr = LY - Yb
+        model = (1./28.) * (25.07355893131 + 0.9754803562315*Yr*28 
+                            - 0.1016116352781*Yr*28*Yr*28 
+                            + 0.001889794677828*Yr*28*Yr*28*Yr*28)
+    elif Yb >= LY - (54./28.)*(9./54.):
+        Yr = LY - Yb
+        model = (1./28.) * min(28., 28. + 0.006775070969851*Yr*28*Yr*28 
+                               - 0.0021245277758000*Yr*28*Yr*28*Yr*28)
+    
+    return model
+
+
+def plot_velocity_profiles_paper_style(vel, Y, Z, timestep, fig_dir, ny, nz, 
+                                        Ub=None, h=1.0, L=9.0, H=3.035,
+                                        show_benchmark=True, Re=700):
+    """生成論文風格的速度剖面圖 (按 x/h 位置並排)
+    
+    Args:
+        vel: Velocity array (nz, ny, 3)
+        Y, Z: Coordinate arrays (nz, ny) - 物理座標
+        timestep: Time step number
+        fig_dir: Output directory for figures
+        ny, nz: Grid dimensions
+        Ub: Bulk velocity for normalization (auto-calculated if None)
+        h: Hill height (default 1.0)
+        L: Domain length in x-direction (default 9.0h)
+        H: Channel height (default 3.035h)
+        show_benchmark: Whether to show Re=700 benchmark data
+        Re: Reynolds number for title
+    """
+    Uy = vel[:, :, 0]  # Streamwise velocity (u)
+    Uz = vel[:, :, 1]  # Vertical velocity (v)
+    
+    # Auto-calculate bulk velocity if not provided
+    if Ub is None:
+        # Ub = average Uy across the channel (excluding near-wall regions)
+        k_start = int(nz * 0.1)
+        k_end = int(nz * 0.9)
+        Ub = np.mean(Uy[k_start:k_end, :])
+        print(f"  Auto-calculated Ub = {Ub:.6f}")
+    
+    # Normalize velocities
+    u_norm = Uy / Ub if Ub != 0 else Uy
+    v_norm = Uz / Ub if Ub != 0 else Uz
+    
+    # ================================================================
+    # x/h 位置對應到 j 索引的映射
+    # 假設 Y 座標從 0 到 L (9h)
+    # ================================================================
+    Y_min, Y_max = Y.min(), Y.max()
+    print(f"  Physical Y range: [{Y_min:.3f}, {Y_max:.3f}]")
+    
+    # x/h 位置 (論文標準位置)
+    x_h_positions = [0.05, 0.5, 1, 2, 3, 4, 5, 6, 7, 8]
+    
+    # 找到每個 x/h 位置對應的 j 索引
+    j_indices = []
+    for x_h in x_h_positions:
+        # 將 x/h 轉換為物理 Y 座標
+        y_target = x_h * h * (Y_max - Y_min) / L + Y_min
+        # 找最接近的 j 索引
+        j = np.argmin(np.abs(Y[nz//2, :] - y_target))
+        j_indices.append(j)
+        print(f"  x/h = {x_h}: j = {j}, Y = {Y[nz//2, j]:.3f}")
+    
+    # ================================================================
+    # Figure 1: Streamwise velocity <u>/Ub profiles (論文風格) - 已移至 Figure 4
+    # Figure 2: Vertical velocity - 已停用
+    # 只保留 subplots 和 paper 風格
+    # ================================================================
+    
+    # ================================================================
+    # Figure 3: 子圖版本 (上下兩排，每排5個剖面) - 類似論文圖 (a)(b) 風格
+    # ================================================================
+    fig, axes = plt.subplots(2, 5, figsize=(12, 6), sharey=True)
+    plt.subplots_adjust(hspace=0.3, wspace=0.1)
+    
+    for i, (x_h, j) in enumerate(zip(x_h_positions, j_indices)):
+        row = i // 5
+        col = i % 5
+        ax = axes[row, col]
+        
+        z_profile = Z[:, j]
+        u_profile = u_norm[:, j]
+        
+        # 獲取該位置的山丘高度
+        y_phys = Y[nz//2, j]
+        wall_z = get_hill_height(y_phys, L)
+        
+        # y/h 從壁面算起
+        y_h = (z_profile - wall_z) / h
+        
+        # LBM 結果 (實線，論文標準線寬)
+        ax.plot(u_profile, y_h, 'k-', linewidth=1.0, label='LBM')
+        
+        # Benchmark 數據 (空心圓，論文標準大小)
+        if show_benchmark and x_h in BENCHMARK_RE700:
+            bench = BENCHMARK_RE700[x_h]
+            ax.plot(bench['u_Ub'], bench['y_h'], 'o', 
+                    color='black', markersize=3, markerfacecolor='none', 
+                    markeredgewidth=0.6, label='DNS')
+        
+        ax.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
+        ax.set_xlim([-0.3, 1.3])
+        ax.set_ylim([0, 3.5])
+        
+        # x/h 標籤放在圖內
+        ax.text(0.95, 0.95, f'$x/h={x_h}$', transform=ax.transAxes,
+                fontsize=8, ha='right', va='top')
+        
+        # 只在左側顯示 y 軸標籤
+        if col == 0:
+            ax.set_ylabel(r'$y/h$')
+        
+        # 只在底部顯示 x 軸標籤
+        if row == 1:
+            ax.set_xlabel(r'$\langle u \rangle/U_b$')
+        
+        # 細化刻度
+        ax.tick_params(direction='in', top=True, right=True)
+        ax.set_xticks([0, 0.5, 1.0])
+        ax.set_yticks([0, 1, 2, 3])
+    
+    # 統一圖例 (放在第一個子圖)
+    axes[0, 0].legend(loc='upper left', fontsize=7, handlelength=1.5)
+    
+    plt.savefig(os.path.join(fig_dir, f'velocity_profiles_subplots_t{timestep}.png'), 
+                dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: velocity_profiles_subplots_t{timestep}.png")
+    
+    # ================================================================
+    # Figure 4: 單圖並排顯示 (完全模仿論文風格)
+    # 所有剖面在同一張圖上按 x/h 位置偏移顯示
+    # 剖面底部跟隨山丘形狀
+    # ================================================================
+    fig, ax = plt.subplots(figsize=(10, 4))
+    
+    # 首先繪製山丘輪廓 (使用實際的 HillFunction)
+    x_hill = np.linspace(0, L, 500)
+    y_hill = np.array([get_hill_height(x, L) for x in x_hill])
+    ax.fill_between(x_hill, 0, y_hill, color='lightgray', alpha=0.6, zorder=1)
+    ax.plot(x_hill, y_hill, 'k-', linewidth=0.8, zorder=2)
+    
+    # 繪製上壁面
+    ax.axhline(y=H, color='k', linewidth=0.8, zorder=2)
+    
+    # 速度剖面縮放因子 (讓剖面在視覺上更清晰)
+    velocity_scale = 0.7  # 調整此值改變剖面寬度
+    
+    for i, (x_h, j) in enumerate(zip(x_h_positions, j_indices)):
+        # 獲取該 j 位置的實際 Y 座標
+        y_phys = Y[nz//2, j]  # 實際的 Y 物理座標
+        
+        z_profile = Z[:, j]   # 該位置的 Z 座標剖面
+        u_profile = u_norm[:, j]
+        
+        # 計算該位置的山丘高度 (使用實際 Y 座標)
+        wall_z = get_hill_height(y_phys, L)
+        
+        # 只取山丘以上的部分
+        mask = z_profile >= wall_z - 0.05  # 稍微放寬避免邊界問題
+        z_plot = z_profile[mask]
+        u_plot = u_profile[mask]
+        
+        # 偏移到 x/h 位置，速度值乘以縮放因子
+        u_shifted = y_phys + u_plot * velocity_scale
+        
+        # 繪製 LBM 結果 (黑色實線，論文標準)
+        ax.plot(u_shifted, z_plot, '-', color='black', linewidth=1.0, zorder=3)
+        
+        # 繪製 u=0 參考線 (從山丘到上壁)
+        ax.plot([y_phys, y_phys], [wall_z, H], ':', color='gray', linewidth=0.4, alpha=0.7, zorder=2)
+        
+        # 繪製 benchmark 數據 (空心圓點，論文標準)
+        if show_benchmark and x_h in BENCHMARK_RE700:
+            bench = BENCHMARK_RE700[x_h]
+            # Benchmark 的 y_h 是從壁面算起的高度，需要加上該位置的山丘高度
+            bench_z = np.array(bench['y_h']) * h + wall_z
+            bench_u = np.array(bench['u_Ub']) * velocity_scale + y_phys
+            # 只繪製在上壁面以下的點
+            valid = bench_z <= H
+            ax.plot(bench_u[valid], bench_z[valid], 'o', color='black', markersize=3,
+                    markerfacecolor='none', markeredgewidth=0.6, zorder=4)
+    
+    # 設定軸
+    ax.set_xlim([-0.3, L + 0.3])
+    ax.set_ylim([0, H + 0.1])
+    ax.set_xlabel(r'$x/h$')
+    ax.set_ylabel(r'$y/h$')
+    
+    # 添加圖例
+    ax.plot([], [], 'k-', linewidth=1.0, label='LBM')
+    ax.plot([], [], 'ko', markersize=3, markerfacecolor='none', markeredgewidth=0.6, label='DNS (Re=700)')
+    ax.legend(loc='upper right', fontsize=8, frameon=True)
+    
+    # 刻度設定
+    ax.tick_params(direction='in', top=True, right=True)
+    ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    ax.set_aspect('equal')
+    
+    plt.savefig(os.path.join(fig_dir, f'velocity_profiles_paper_t{timestep}.png'), 
+                dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: velocity_profiles_paper_t{timestep}.png")
+    
+    return Ub
+
 def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
-    """Generate comprehensive velocity field visualizations
+    """Generate velocity field visualizations (contour and vector field only)
     
     Args:
         vel: Velocity array (nz, ny, 3)
@@ -227,85 +727,10 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
     plt.tight_layout()
     plt.savefig(os.path.join(fig_dir, f'velocity_contour_t{timestep}.png'), dpi=150)
     plt.close()
+    print(f"  Saved: velocity_contour_t{timestep}.png")
     
     # ================================================================
-    # Figure 2: Centerline velocity profiles
-    # ================================================================
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Vertical centerline at different Y positions - 動態計算索引
-    y_indices = [max(0, ny//20), ny//5, ny//2, ny*3//4, min(ny-1, ny*19//20)]
-    y_labels = [f'j={j}' for j in y_indices]
-    colors = plt.cm.viridis(np.linspace(0, 1, len(y_indices)))
-    
-    # Uy profile along Z
-    ax = axes[0, 0]
-    for j, label, color in zip(y_indices, y_labels, colors):
-        z_profile = Z[:, j]
-        uy_profile = Uy[:, j]
-        ax.plot(uy_profile, z_profile, label=label, color=color, linewidth=1.5)
-    ax.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Uy (streamwise velocity)')
-    ax.set_ylabel('Z (height)')
-    ax.set_title('Vertical Profiles of Uy')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
-    
-    # Uz profile along Z
-    ax = axes[0, 1]
-    for j, label, color in zip(y_indices, y_labels, colors):
-        z_profile = Z[:, j]
-        uz_profile = Uz[:, j]
-        ax.plot(uz_profile, z_profile, label=label, color=color, linewidth=1.5)
-    ax.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Uz (vertical velocity)')
-    ax.set_ylabel('Z (height)')
-    ax.set_title('Vertical Profiles of Uz')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
-    
-    # Horizontal centerline at different Z positions
-    # Ensure indices are within bounds
-    k_max = nz - 10
-    k_indices = [k for k in [10, 30, 50, 75, 100, 130] if k < k_max]
-    if not k_indices:  # 如果網格太小
-        k_indices = [nz // 4, nz // 2, 3 * nz // 4]
-    k_labels = [f'k={k}' for k in k_indices]
-    colors = plt.cm.plasma(np.linspace(0, 1, len(k_indices)))
-    
-    # Uy profile along Y
-    ax = axes[1, 0]
-    for k, label, color in zip(k_indices, k_labels, colors):
-        y_profile = Y[k, :]
-        uy_profile = Uy[k, :]
-        ax.plot(y_profile, uy_profile, label=label, color=color, linewidth=1.5)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Y (streamwise position)')
-    ax.set_ylabel('Uy (streamwise velocity)')
-    ax.set_title('Horizontal Profiles of Uy')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
-    
-    # Uz profile along Y
-    ax = axes[1, 1]
-    for k, label, color in zip(k_indices, k_labels, colors):
-        y_profile = Y[k, :]
-        uz_profile = Uz[k, :]
-        ax.plot(y_profile, uz_profile, label=label, color=color, linewidth=1.5)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Y (streamwise position)')
-    ax.set_ylabel('Uz (vertical velocity)')
-    ax.set_title('Horizontal Profiles of Uz')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
-    
-    plt.suptitle(f'Centerline Velocity Profiles (t={timestep})', fontsize=14)
-    plt.tight_layout()
-    plt.savefig(os.path.join(fig_dir, f'centerline_profiles_t{timestep}.png'), dpi=150)
-    plt.close()
-    
-    # ================================================================
-    # Figure 3: Vector field with streamlines
+    # Figure 2: Vector field with streamlines
     # ================================================================
     fig, ax = plt.subplots(figsize=(14, 5))
     
@@ -352,58 +777,7 @@ def plot_velocity_field(vel, Y, Z, timestep, fig_dir, ny=None, nz=None):
     plt.tight_layout()
     plt.savefig(os.path.join(fig_dir, f'vector_field_t{timestep}.png'), dpi=150)
     plt.close()
-    
-    # ================================================================
-    # Figure 4: Oscillation check - consecutive point differences
-    # ================================================================
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Y-direction differences at mid-height (使用動態 nz)
-    k_mid = nz // 2
-    ax = axes[0, 0]
-    uy_diff = np.diff(Uy[k_mid, :])
-    ax.plot(Y[k_mid, :-1], uy_diff, 'b-', linewidth=1)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Y')
-    ax.set_ylabel('ΔUy')
-    ax.set_title(f'Uy Differences Along Y (k={k_mid})')
-    ax.grid(True, alpha=0.3)
-    
-    ax = axes[0, 1]
-    uz_diff = np.diff(Uz[k_mid, :])
-    ax.plot(Y[k_mid, :-1], uz_diff, 'r-', linewidth=1)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Y')
-    ax.set_ylabel('ΔUz')
-    ax.set_title(f'Uz Differences Along Y (k={k_mid})')
-    ax.grid(True, alpha=0.3)
-    
-    # Z-direction differences at mid-Y (使用動態 ny)
-    j_mid = ny // 2
-    ax = axes[1, 0]
-    uy_diff_z = np.diff(Uy[:, j_mid])
-    ax.plot(Z[:-1, j_mid], uy_diff_z, 'b-', linewidth=1)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Z')
-    ax.set_ylabel('ΔUy')
-    ax.set_title(f'Uy Differences Along Z (j={j_mid})')
-    ax.grid(True, alpha=0.3)
-    
-    ax = axes[1, 1]
-    uz_diff_z = np.diff(Uz[:, j_mid])
-    ax.plot(Z[:-1, j_mid], uz_diff_z, 'r-', linewidth=1)
-    ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-    ax.set_xlabel('Z')
-    ax.set_ylabel('ΔUz')
-    ax.set_title(f'Uz Differences Along Z (j={j_mid})')
-    ax.grid(True, alpha=0.3)
-    
-    plt.suptitle(f'Spatial Oscillation Check (t={timestep})', fontsize=14)
-    plt.tight_layout()
-    plt.savefig(os.path.join(fig_dir, f'oscillation_check_t{timestep}.png'), dpi=150)
-    plt.close()
-    
-    print(f"  Saved figures to {fig_dir}/")
+    print(f"  Saved: vector_field_t{timestep}.png")
     
     return Uy, Uz, Umag
 
@@ -557,6 +931,18 @@ def main():
         # Generate visualization figures
         print("\nGenerating velocity field visualizations...")
         plot_velocity_field(last_vel, Y_coords, Z_coords, last_timestep, fig_dir, NY, NZ)
+        
+        # Generate paper-style velocity profiles with benchmark comparison
+        print("\nGenerating paper-style velocity profiles with Re=700 benchmark...")
+        plot_velocity_profiles_paper_style(
+            last_vel, Y_coords, Z_coords, last_timestep, fig_dir, 
+            NY, NZ, Ub=None, 
+            h=1.0, 
+            L=SIM_PARAMS['LY'], 
+            H=SIM_PARAMS['LZ'],
+            show_benchmark=True, 
+            Re=SIM_PARAMS['Re']
+        )
         
         # Check Y-direction pattern at mid-height
         k_mid = NZ // 2

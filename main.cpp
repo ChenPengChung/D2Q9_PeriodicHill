@@ -4,7 +4,7 @@
 // 執行：./hill
 //=============================================================================
 #include <iostream>
-#include <fstream>
+#include <fstream>     
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
@@ -197,7 +197,7 @@ void initializeArrays() {
     memset(CellZ_F1, 0, sizeof(CellZ_F1));
     memset(CellZ_F2, 0, sizeof(CellZ_F2));
     memset(CellZ_F3, 0, sizeof(CellZ_F3));
-    memset(CellZ_F4, 0, sizeof(CellZ_F4));
+    memset(CellZ_F4, 0, sizeof(CellZ_F4)); 
     memset(CellZ_F5, 0, sizeof(CellZ_F5));
     memset(CellZ_F6, 0, sizeof(CellZ_F6));
     memset(CellZ_F7, 0, sizeof(CellZ_F7));

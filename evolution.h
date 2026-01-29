@@ -625,6 +625,5 @@ void ModifyForcingTerm() {
     *Ub_sum_ptr = 0.0;
 }
 
-
-
+//U_bulk_average 針對所有平面的平均的加總 git
 #endif

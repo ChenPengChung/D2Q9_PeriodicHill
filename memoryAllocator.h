@@ -11,7 +11,6 @@ using namespace std ;
 // Y 方向權重 buffer
 vector<double> YPara0_buf;
 vector<double> YPara2_buf;
-
 // Xi 方向權重 buffer (F1~F8)
 vector<double> XiParaF1_buf;
 std::vector<double> XiParaF2_buf;
@@ -197,7 +196,6 @@ inline void FreeAllWeightArrays() {
     YPara0_buf.shrink_to_fit();
     YPara2_buf.clear();
     YPara2_buf.shrink_to_fit();
-
     XiParaF1_buf.clear();
     XiParaF1_buf.shrink_to_fit();
     XiParaF2_buf.clear();
@@ -234,7 +232,4 @@ inline void FreeAllWeightArrays() {
     XiBFLParaF8_buf.shrink_to_fit();
     std::cout << "Memory has been released!" << std::endl;
 }
-
-
-
 #endif // MEMORYALLOCATOR_H

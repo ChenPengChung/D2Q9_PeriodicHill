@@ -31,14 +31,18 @@ void InitialUsingDftFunc() {
                                                     3.0 *(e[dir][0] * v[index] + e[dir][1] * w[index])+          //1階項
                                                     4.5 *(e[dir][0] * v[index] + e[dir][1] * w[index] )*(e[dir][0] * v[index] + e[dir][1] * w[index] ) - 1.5*udot );
         }}}
-        //離散化\ 宏觀\ 外立\ 場的初始化initilaoization of the discrete macroscopic force term
-        Force[0] =  (8.0*niu*Uref)/(LZ*LZ)*5.0; //降低外力係數，原本是 5.0
-        Force[1] = 0.0;  // Z 方向無外力
+        //外立項的初始化 
+        force[0] = (8.0*niu*Uref)/(Heff*Heff)*5.0; //降低外力係數，原本是 5.0//外力控制尺度改為平均高度
+        force[1] = 0.0 ;
+        //截面平均速度的初始化 
+        for(int j = 0 ; j <= NY6-1 ; j++){
+            ubulk[j] = 0.0 ; 
+        }
 }
 //建立Y(主流場方向)方向之均勻網格系統
 //計算y_global
 void GenerateMesh_Y() {
-    
+
     double dy;
     int buffr = 3;
 

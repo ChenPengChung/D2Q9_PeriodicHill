@@ -40,8 +40,13 @@ double f_new[9][NY6 * NZ6];      // 當前時間步的分佈函數
 //-----------------------------------------------------------------------------
 // 2.3 外力項與質量修正
 //-----------------------------------------------------------------------------
-double Force[2];                 // 外力項 [0]=Fy, [1]=Fz
-double rho_modify[1] = {0.0};    // 質量修正項
+//外立項修改為二維陣列，其中，第二維度的尺寸為 由 記憶體配置賦予
+double  AverageVolumeVelocity_t ;     //時間t的體流流率面積加權平均 
+double  Ubar_filter = 0.0  ;           //時間t的體流流率面積加權平均（經過指數濾波）(每一個時間步都需要計算)
+double  force[2];                // 外力項 [0]=Fy, [1]=Fz
+double  rho_modify[1] = {0.0};    // 質量修正項
+double  ubulk[NY6] ; //u_bulk為截面平均速度，在Periodic Hill流場中，作為Stream-Wise方向的座標變數 
+//接著，轉向記憶體配置與初始化修改
 //-----------------------------------------------------------------------------
 // 2.4 座標陣列
 //-----------------------------------------------------------------------------
@@ -102,16 +107,16 @@ double Q6_h[NY6 * NZ6];          // F6 方向的 q 值（右丘 -Y+Z）
 //-----------------------------------------------------------------------------
 int CellZ_F1[3*NY6 * NZ6];         // F1 方向的 Z stencil 起點
 int CellZ_F2[3*NY6 * NZ6];         // F2 方向的 Z stencil 起點
-int CellZ_F3[3*NY6 * NZ6];         // F3 方向的 Z stencil 起點
+//int CellZ_F3[3*NY6 * NZ6];         // F3 方向的 Z stencil 起點
 int CellZ_F4[3*NY6 * NZ6];         // F4 方向的 Z stencil 起點
-int CellZ_F5[3*NY6 * NZ6];         // F5 方向的 Z stencil 起點
-int CellZ_F6[3*NY6 * NZ6];         // F6 方向的 Z stencil 起點
-int CellZ_F7[3*NY6 * NZ6];         // F7 方向的 Z stencil 起點
-int CellZ_F8[3*NY6 * NZ6];         // F8 方向的 Z stencil 起點
+//int CellZ_F5[3*NY6 * NZ6];         // F5 方向的 Z stencil 起點
+//int CellZ_F6[3*NY6 * NZ6];         // F6 方向的 Z stencil 起點
+//int CellZ_F7[3*NY6 * NZ6];         // F7 方向的 Z stencil 起點
+//int CellZ_F8[3*NY6 * NZ6];         // F8 方向的 Z stencil 起點
 //-----------------------------------------------------------------------------
 // 2.11 外力修正用變數
 //-----------------------------------------------------------------------------
-double Volume_rate_k[NZ6] ;      //同一個k值下，體積流率的總和
+double Heff ; //山丘流場截面平均高度 
 int force_update_count = 0;      // 累積的時間步數
 const int NDTFRC = 1000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
@@ -196,15 +201,12 @@ void initializeArrays() {
     // CellZ stencil 起點索引
     memset(CellZ_F1, 0, sizeof(CellZ_F1));
     memset(CellZ_F2, 0, sizeof(CellZ_F2));
-    memset(CellZ_F3, 0, sizeof(CellZ_F3));
+    //memset(CellZ_F3, 0, sizeof(CellZ_F3));
     memset(CellZ_F4, 0, sizeof(CellZ_F4)); 
-    memset(CellZ_F5, 0, sizeof(CellZ_F5));
-    memset(CellZ_F6, 0, sizeof(CellZ_F6));
-    memset(CellZ_F7, 0, sizeof(CellZ_F7));
-    memset(CellZ_F8, 0, sizeof(CellZ_F8));
-    // 外力
-    Force[0] = 0.0;
-    Force[1] = 0.0;
+    //memset(CellZ_F5, 0, sizeof(CellZ_F5));
+    //memset(CellZ_F6, 0, sizeof(CellZ_F6));
+    //memset(CellZ_F7, 0, sizeof(CellZ_F7));
+    //memset(CellZ_F8, 0, sizeof(CellZ_F8));
 }
 
 //-----------------------------------------------------------------------------
@@ -535,7 +537,17 @@ void Wright_Danger_Interpolation_Point(){
     Danger_Interpolation_Point.close() ; 
 }
 
-
+//4.6 計算山丘流場平均高度
+void Calculate_Heff(){
+    double z_sum = 0.0;
+    int count = 0;
+    for(int j = 3; j < NY6-3; j++) {
+        z_sum += LZ - HillFunction(y_global[j]);
+        count++;
+    }
+    Heff = z_sum / count; //Heff計算完畢 
+    cout << "Effective average height Heff = " << Heff << endl;
+}
 
 //=============================================================================
 // [區塊 5] 主程式
@@ -555,6 +567,7 @@ int main() {
     GenerateMesh_Z();
     Wright_Boundary_Node() ; //確認曲面邊界點 
     Wright_Danger_Interpolation_Point() ; //確認危險插值點
+    Calculate_Heff() ; //計算山丘流場平均高度
     //步驟 4 :預計算插值權重
     cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();
@@ -664,7 +677,7 @@ int main() {
             XiBFLParaF8_h[0], XiBFLParaF8_h[1], XiBFLParaF8_h[2], XiBFLParaF8_h[3],
             XiBFLParaF8_h[4], XiBFLParaF8_h[5], XiBFLParaF8_h[6],
             // 宏觀參數
-            v, w, rho, Force, rho_modify,
+            v, w, rho , rho_modify,
             // BFL q值
             Q1_h, Q3_h, Q5_h, Q6_h
         );
@@ -676,13 +689,12 @@ int main() {
             v, w, rho
         );
 
-        // 5.2.3 累積平均速度（用於外力修正）
-        AccumulateUbulk(Volume_rate_k , v , z_global);
+        EMA_UpdateVolumeAverage();
         force_update_count++;
 
         // 5.2.4 每 NDTFRC 步修正外力
         if(force_update_count >= NDTFRC) {
-            ModifyForcingTerm();
+            ModifyForcingTerm(force , Ubar_filter); //更新force[0]
             force_update_count = 0;
         }
 

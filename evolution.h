@@ -8,41 +8,15 @@
 #include "MRT_Process.h"
 #include "MRT_Matrix.h"
 #include "variables.h"
+#include "globalVariables.h"
+#include "model.h"  // 新增：用於 HillFunction
+
 using namespace std ; 
 //==========================================
 // Mach 數監控與速度限制函數
 //==========================================
 
-// 檢查並限制單點速度，返回是否進行了限制
-inline bool LimitVelocity(double& uy, double& uz, double rho_local) {
-    double u_mag = std::sqrt(uy*uy + uz*uz);
-    if(u_mag > U_max) {
-        // 按比例縮放速度到最大允許值
-        double scale = U_max / u_mag;
-        uy *= scale;
-        uz *= scale;
-        return true;  // 進行了限制
-    }
-    return false;
-}
 
-// 重建平衡態分佈函數（當速度被限制後需要重建）
-inline void RebuildEquilibrium(
-    double& F0, double& F1, double& F2, double& F3, double& F4,
-    double& F5, double& F6, double& F7, double& F8,
-    double rho, double uy, double uz)
-{
-    double udot = uy*uy + uz*uz;
-    F0 = (4.0/9.0)  * rho * (1.0 - 1.5*udot);
-    F1 = (1.0/9.0)  * rho * (1.0 + 3.0*uy + 4.5*uy*uy - 1.5*udot);
-    F2 = (1.0/9.0)  * rho * (1.0 + 3.0*uz + 4.5*uz*uz - 1.5*udot);
-    F3 = (1.0/9.0)  * rho * (1.0 - 3.0*uy + 4.5*uy*uy - 1.5*udot);
-    F4 = (1.0/9.0)  * rho * (1.0 - 3.0*uz + 4.5*uz*uz - 1.5*udot);
-    F5 = (1.0/36.0) * rho * (1.0 + 3.0*(uy+uz) + 4.5*(uy+uz)*(uy+uz) - 1.5*udot);
-    F6 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy+uz) + 4.5*(-uy+uz)*(-uy+uz) - 1.5*udot);
-    F7 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy-uz) + 4.5*(-uy-uz)*(-uy-uz) - 1.5*udot);
-    F8 = (1.0/36.0) * rho * (1.0 + 3.0*(uy-uz) + 4.5*(uy-uz)*(uy-uz) - 1.5*udot);
-}
 
 // 全域 Mach 數統計結構
 struct MachStats {
@@ -289,7 +263,7 @@ void stream_collide(
     double* XiBFLF7_0, double* XiBFLF7_1, double* XiBFLF7_2, double* XiBFLF7_3, double* XiBFLF7_4, double* XiBFLF7_5, double* XiBFLF7_6,
     double* XiBFLF8_0, double* XiBFLF8_1, double* XiBFLF8_2, double* XiBFLF8_3, double* XiBFLF8_4, double* XiBFLF8_5, double* XiBFLF8_6,
     //宏觀參數
-    double *v,           double *w,           double *rho_d,       double *Force,  double *rho_modify,
+    double *v,           double *w,           double *rho_d,    double *rho_modify,
     //BFL邊界條件無因次化距離q
     double *Q1_h,        double*Q3_h,         double *Q5_h,       double*Q6_h
 ){ //本程式碼不分主機端與裝置端變數，統一已_h結尾表示物理空間計算點變數
@@ -304,7 +278,12 @@ void stream_collide(
     //施加週期性邊界條件
     periodicSW(f0_old, f1_old, f2_old, f3_old, f4_old, f5_old, f6_old, f7_old, f8_old, v, w, rho_d);//因為用舊值做操作 
     //1.函數內直接開始執行雙重for迴圈
+    double A_sum = 0.0 ; //累加每一個計算平面中的面積
+    double Q_sum = 0.0 ; //累加每一個計算平面中的體積流率
 for(int j = 3 ; j < NY6-3 ; j++){
+    double Ubulk = 0.0 ;
+    double H_j = LZ - HillFunction(y_global[j]); // 當前計算平面有效高度
+    A_sum += H_j; // 累加有效流體區域面積
     for(int k = 3 ; k < NZ6-3 ; k++){
         int idx_xi = j *NZ6 + k ;
         int idx ; //出現在 interpolationHillISLBM.h 巨集定義內的中間變數idx
@@ -484,10 +463,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 YBFLF8_0,YBFLF8_1,YBFLF8_2,YBFLF8_3,YBFLF8_4,YBFLF8_5,YBFLF8_6,
                 XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);*/
                 //取左上右下線性內插
-                //F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
-                Y_XI_Intrpl3(f8_old, F6_in, j, k, CellZ_F8, j, idx_xi, 
-                YBFLF8_0,YBFLF8_1,YBFLF8_2 , 
-                XiBFLF8_0, XiBFLF8_1, XiBFLF8_2, XiBFLF8_3, XiBFLF8_4, XiBFLF8_5, XiBFLF8_6);
+                F6_in = (2*q6)*f8_old[idx_xi] + (1.0 - 2.0*q6)*f8_old[idx_xi-NZ6+1];//往左邊再往上
             }
             if(q6>0.5){
                 F6_in = (1.0/(2.0*q6))*f8_old[idx_xi] + ((2.0*q6-1.0)/(2.0*q6))*f6_old[idx_xi];
@@ -517,12 +493,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         double v1 = (F1_in+ F5_in+ F8_in -( F3_in+F6_in+F7_in)) / rho_s ;
 	    double w1 = (F2_in+ F5_in+ F6_in -( F4_in+F7_in+F8_in)) / rho_s ;
 
-        //4.5 Mach 數限制：若速度超過上限，縮放至安全範圍並重建分佈函數
-        if(LimitVelocity(v1, w1, rho_s)) {
-            // 速度被限制，需要用限制後的速度重建平衡態分佈函數
-            RebuildEquilibrium(F0_in, F1_in, F2_in, F3_in, F4_in,
-                              F5_in, F6_in, F7_in, F8_in, rho_s, v1, w1);
-        }
+
 
         double udot = v1*v1 + w1*w1;
         const double F0_eq  = (4./9.)  *rho_s*(1.0-1.5*udot);
@@ -552,77 +523,54 @@ for(int j = 3 ; j < NY6-3 ; j++){
         rho_d[idx_xi] = rho_s;
         v[idx_xi] = v1;
         w[idx_xi] = w1;
-}}}
+        //進行截面體積流率之計算
+        double dz = (z_global[NZ6*j+k+1] - z_global[NZ6*j+k-1]) * 0.5;
+        Ubulk += v1 * dz;  // 修正：原本 Ubulk += Ubulk + v1*dz 會導致指數增長
+}   
+    ubulk[j] = (H_j > 0.0) ? (Ubulk / H_j) : 0.0;  // 計算每一列的平均速度
+    Q_sum += Ubulk; //累加每一個計算平面的體積流率
+}
+    //到這邊計算成所有截面的體積流率>計算該時間步的體積流率的面積加權平均
+    //計算用途 配合時間指數濾波 輸入外力校正方程式
+    AverageVolumeVelocity_t = (A_sum > 0.0) ? (Q_sum / A_sum) : 0.0;
+}
 
-//=============================================================================
-// 累積 Y 方向平均速度（每個時間步呼叫）
-// 輸入：v_field - Y方向速度場
-// 輸出：Ub_sum_ptr - 累積的速度總和
-//=============================================================================
-void AccumulateUbulk(double* Volume_rate_k , double* v , double* z_global) {
-    //計算同一個 k 值下，體積流率的總和
-    for(int k = 3 ; k < NZ6-3 ; k++){
-        //每一個k值計算彼此獨立
-        Volume_rate_k[k] = 0.0 ;
-        for(int j = 3 ; j  <= NY6-4 ; j++){
-            double dz = (z_global[j*NZ6 + k +1 ] - z_global[j*NZ6 + k-1]) / 2.0 ;
-            Volume_rate_k[k] += dz * v[j*NZ6+k] ; //同一個k值下．沿著StreamWise 的方向做疊加
-        }
+void EMA_UpdateVolumeAverage(){
+    //此程式碼為指數濾波更新輸入外力修正的全場平均速度值
+    const double alpha = 1.0 / static_cast<double>(NDTFRC); //濾波係數
+    if(t == 0){
+        Ubar_filter = AverageVolumeVelocity_t ; //初始值設定為第一個時間步的全場平均速度
+    }else{
+        //每一個時間步都需要計算
+        Ubar_filter = (1.0 - alpha) * Ubar_filter + alpha * AverageVolumeVelocity_t ;
     }
 }
 
-//=============================================================================
-// 修正外力項（每 NDTFRC 步呼叫一次）
-// 使用比例控制器讓實際流速趨近目標流速 Uref
-//
-// 控制公式：F_new = F_old + β × (U_target - U_actual) × U_ref / L
-//   - β = max(0.001, 3/Re)：控制增益
-//   - U_target = Uref：目標流速
-//   - U_actual = Ub_avg：實際平均流速
-//
-// 輸入：
-//   Force - 外力陣列
-//   Ub_sum_ptr - 累積的速度總和
-//   NDTFRC - 累積的時間步數
-// 輸出：
-//   更新後的 Force[0]
-//   重置 *Ub_sum_ptr = 0
-//=============================================================================
-void ModifyForcingTerm() {
-    //計算入口區的截面速平均速度
-    double Ub_avg = 0.0;
-    for( int k = 3; k < NZ6-3; k++ ){
-        Ub_avg = Ub_avg + Ub_avg_h[k];
-        Ub_avg_h[k] = 0.0;
-    }
-    Ub_avg = Ub_avg / (double)((LZ-1.0))/NDTFRC;
-
-
-    // 1. 計算時間與空間平均速度
-    int num_cells = (NY6 - 6) * (NZ6 - 6);  // 計算區域的網格數
-    double Ub_avg = (*Ub_sum_ptr) / (double)(num_cells * NDTFRC);
-
-    // 2. 計算控制增益（低雷諾數時較大，高雷諾數時較小）
+void ModifyForcingTerm(double* force , double Ubar_filter){
+    //Step1.計算 外力修正增益：
     double beta = std::fmax(0.001, 3.0 / (double)Re);
-    //透過平均速度與參考速度修正外力項
-    // 3. 調整外力（比例控制器）
-    Force[0] = Force[0] + beta * (Uref - Ub_avg) * Uref / LZ;
-    
-    //2026.1.29 外力輸出加上限幅
-    double F_max = 0.01 ; 
-    Force[0] = std::fmin(Force[0], F_max);
-    Force[0] = std::fmax(Force[0], -F_max);  
-
-    // 4. 輸出監控資訊
-    double ratio = Ub_avg / Uref;
-    double Ma_actual = Ub_avg / cs;
-    std::cout << "Force Update: Ub_avg=" << Ub_avg << ", Uref=" << Uref
+    double Ub_avg_max = 0.0 ;
+    double Force_max = 0.0;
+    //Step2.逐步修正外力
+    force[0] = force[0] + beta * (Uref - Ubar_filter) * Uref / Heff ; //外力回受控制 以全場平均速度為參考修正依據 , 以平均流場厚度為長度
+    //Step3.限制最大外力
+    double F_max = 0.01 ;
+    force[0] = std::fmin(force[0], F_max);
+    force[0] = std::fmax(force[0], -F_max);
+    Force_max = std::fabs(force[0]);
+    //Step4.找出最大值
+    for(int j = 3 ; j < NY6-3 ; j++ ){
+    if( ubulk[j] > Ub_avg_max ){
+        Ub_avg_max = ubulk[j] ;//保留最大截面平均速度之輸出監控
+    }
+   }
+    // 4. 輸出監控資訊(以最大值作為代表)
+    double ratio = Ub_avg_max / Uref;
+    double Ma_actual = Ub_avg_max / cs;
+    std::cout << "Force Update: Ub_avg=" << Ub_avg_max << ", Uref=" << Uref
               << ", Ub/Uref=" << ratio
               << ", Ma_actual=" << Ma_actual
-              << ", Force=" << Force[0] << std::endl;
-
-    // 5. 重置累加器
-    *Ub_sum_ptr = 0.0;
+              << ", Force=" << Force_max << std::endl;  
 }
 
 //U_bulk_average 針對所有平面的平均的加總 git

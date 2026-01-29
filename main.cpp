@@ -690,8 +690,8 @@ int main() {
         );
 
         EMA_UpdateVolumeAverage();
-        force_update_count++;
-
+        force_update_count++   ;
+          
         // 5.2.4 每 NDTFRC 步修正外力
         if(force_update_count >= NDTFRC) {
             ModifyForcingTerm(force , Ubar_filter); //更新force[0]

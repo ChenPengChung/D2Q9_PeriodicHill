@@ -111,7 +111,7 @@ int CellZ_F8[3*NY6 * NZ6];         // F8 方向的 Z stencil 起點
 //-----------------------------------------------------------------------------
 // 2.11 外力修正用變數
 //-----------------------------------------------------------------------------
-double Ub_sum = 0.0;             // 累積的平均速度
+double Volume_rate_k[NZ6] ;      //同一個k值下，體積流率的總和
 int force_update_count = 0;      // 累積的時間步數
 const int NDTFRC = 1000;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
@@ -677,12 +677,12 @@ int main() {
         );
 
         // 5.2.3 累積平均速度（用於外力修正）
-        AccumulateUbulk(v, &Ub_sum);
+        AccumulateUbulk(Volume_rate_k , v , z_global);
         force_update_count++;
 
         // 5.2.4 每 NDTFRC 步修正外力
         if(force_update_count >= NDTFRC) {
-            ModifyForcingTerm(Force, &Ub_sum, NDTFRC);
+            ModifyForcingTerm();
             force_update_count = 0;
         }
 

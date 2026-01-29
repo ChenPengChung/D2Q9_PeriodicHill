@@ -38,6 +38,7 @@ void InitialUsingDftFunc() {
 //建立Y(主流場方向)方向之均勻網格系統
 //計算y_global
 void GenerateMesh_Y() {
+    
     double dy;
     int buffr = 3;
 

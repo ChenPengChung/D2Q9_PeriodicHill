@@ -559,11 +559,14 @@ for(int j = 3 ; j < NY6-3 ; j++){
 // 輸入：v_field - Y方向速度場
 // 輸出：Ub_sum_ptr - 累積的速度總和
 //=============================================================================
-void AccumulateUbulk(double* v_field, double* Ub_sum_ptr) {
-    for(int j = 3; j < NY6-3; j++) {
-        for(int k = 3; k < NZ6-3; k++) {
-            int idx = j * NZ6 + k;
-            *Ub_sum_ptr += v_field[idx];
+void AccumulateUbulk(double* Volume_rate_k , double* v , double* z_global) {
+    //計算同一個 k 值下，體積流率的總和
+    for(int k = 3 ; k < NZ6-3 ; k++){
+        //每一個k值計算彼此獨立
+        Volume_rate_k[k] = 0.0 ;
+        for(int j = 3 ; j  <= NY6-4 ; j++){
+            double dz = (z_global[j*NZ6 + k +1 ] - z_global[j*NZ6 + k-1]) / 2.0 ;
+            Volume_rate_k[k] += dz * v[j*NZ6+k] ; //同一個k值下．沿著StreamWise 的方向做疊加
         }
     }
 }
@@ -585,7 +588,16 @@ void AccumulateUbulk(double* v_field, double* Ub_sum_ptr) {
 //   更新後的 Force[0]
 //   重置 *Ub_sum_ptr = 0
 //=============================================================================
-void ModifyForcingTerm(double* Force, double* Ub_sum_ptr, int NDTFRC) {
+void ModifyForcingTerm() {
+    //計算入口區的截面速平均速度
+    double Ub_avg = 0.0;
+    for( int k = 3; k < NZ6-3; k++ ){
+        Ub_avg = Ub_avg + Ub_avg_h[k];
+        Ub_avg_h[k] = 0.0;
+    }
+    Ub_avg = Ub_avg / (double)((LZ-1.0))/NDTFRC;
+
+
     // 1. 計算時間與空間平均速度
     int num_cells = (NY6 - 6) * (NZ6 - 6);  // 計算區域的網格數
     double Ub_avg = (*Ub_sum_ptr) / (double)(num_cells * NDTFRC);

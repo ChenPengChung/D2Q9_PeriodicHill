@@ -32,7 +32,7 @@
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (1.0 / tau)                    // 剪切鬆弛參數 ≈ 0.513（更保守）
-#define     omega_2     1.3                            // 能量鬆弛（提高至 0.5，原 0.001）
+#define     omega_2     1.2                            // 能量鬆弛（提高至 0.5，原 0.001）
 // 統一邊界定義：streaming 和 interpolation 必須一致
 // streaming_lower/upper: evolution.h 中用於判斷是否用 streaming 代替插值
 // interpolation_lower/upper: initialization.h 中用於判斷使用幾點插值
@@ -46,16 +46,16 @@
 #define     streaming_upper_init     (NZ6-19)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
-#define     streaming_lower_phase1   (10)  // 第一階段目標: 25
-#define     streaming_upper_phase1   (NZ6-12)  // 第一階段目標: NZ6-26
+#define     streaming_lower_phase1   (25)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (NZ6-19)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
-#define     phase1_end_time          (10000)        // 第一階段結束
+#define     phase1_end_time          (50000)        // 第一階段結束
 
 // === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
-#define     streaming_lower_target   (3)            // 最終目標下界
-#define     streaming_upper_target   (NZ6-4)         // 最終目標上界
-#define     phase2_start_time        (10000)        // 第二階段開始
-#define     phase2_end_time          (20000)        // 第二階段結束
+#define     streaming_lower_target   (25)            // 最終目標下界
+#define     streaming_upper_target   (NZ6-19)         // 最終目標上界
+#define     phase2_start_time        (50000)        // 第二階段開始
+#define     phase2_end_time          (80000)        // 第二階段結束
 
 // 全域變數宣告（在 main.cpp 中定義）
 extern int streaming_lower;  // 動態下界，由 UpdateStreamingBounds() 更新

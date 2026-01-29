@@ -325,7 +325,7 @@ for(int j = 3 ; j < NY6-3 ; j++){
         
         // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
-        bool y_boundary = (j <= 3) || (j >= NY6-4);
+        bool y_boundary = (j <= 4) || (j >= NY6-5);
         bool z_lower = (k <= streaming_lower);  // 恢復到合理的插值範圍 (原為 11,保守用 8)
         bool z_upper = (k >= streaming_upper);  // k >= 121
         
@@ -554,7 +554,7 @@ void ModifyForcingTerm(double* force , double Ubar_filter){
     //Step2.逐步修正外力
     force[0] = force[0] + beta * (Uref - Ubar_filter) * Uref / Heff ; //外力回受控制 以全場平均速度為參考修正依據 , 以平均流場厚度為長度
     //Step3.限制最大外力
-    double F_max = 0.01 ;
+    double F_max = 0.005 ;
     force[0] = std::fmin(force[0], F_max);
     force[0] = std::fmax(force[0], -F_max);
     Force_max = std::fabs(force[0]);

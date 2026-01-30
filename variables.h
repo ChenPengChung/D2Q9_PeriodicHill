@@ -13,7 +13,7 @@
 #define     NY6    (NY+7)
 #define     NZ6    (NZ+6)
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
-//CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小
+//CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小 在ISLBM中，為晶格速度/網格速度
 //所以最小物理大小的CFL才是晶格大小，為minSize
 #define     CFL                 0.7  // Re=1000 時用 0.85 更安全
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
@@ -32,7 +32,7 @@
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (1.0 / tau)                    // 剪切鬆弛參數 ≈ 0.513（更保守）
-#define     omega_2     0.5                            // 能量鬆弛（提高至 0.5，原 0.001）
+#define     omega_2     1.3                            // 能量鬆弛（提高至 0.5，原 0.001）
 // 統一邊界定義：streaming 和 interpolation 必須一致
 // streaming_lower/upper: evolution.h 中用於判斷是否用 streaming 代替插值
 // interpolation_lower/upper: initialization.h 中用於判斷使用幾點插值
@@ -42,20 +42,20 @@
 
 //=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
-#define     streaming_lower_init     (25)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_lower_init     (30)            // 初始下界 (k <= 50 用 streaming)
 #define     streaming_upper_init     (NZ6-19)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
-#define     streaming_lower_phase1   (12)  // 第一階段目標: 25
-#define     streaming_upper_phase1   (NZ6-10)  // 第一階段目標: NZ6-26
+#define     streaming_lower_phase1   (30)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (NZ6-19)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
-#define     phase1_end_time          (50000)        // 第一階段結束
+#define     phase1_end_time          (200000)        // 第一階段結束
 
 // === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
 #define     streaming_lower_target   (3)            // 最終目標下界
 #define     streaming_upper_target   (NZ6-4)         // 最終目標上界
-#define     phase2_start_time        (50000)        // 第二階段開始
-#define     phase2_end_time          (80000)        // 第二階段結束
+#define     phase2_start_time        (200000)        // 第二階段開始
+#define     phase2_end_time          (500000)        // 第二階段結束
 
 // 全域變數宣告（在 main.cpp 中定義）
 extern int streaming_lower;  // 動態下界，由 UpdateStreamingBounds() 更新

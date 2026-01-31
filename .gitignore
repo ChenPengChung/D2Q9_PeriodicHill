@@ -15,11 +15,12 @@
 *.log
 main
 
-# Output directory - ignore VTK but keep figures (not ._* files)
+# Output directory - ignore VTK and PNG images, but keep GIF animations
 output/*.vtk
 output/*.dat
-!output/figures/
-!output/figures/*.png
+output_images/**/*.png
+!output_images/*.gif
+
 # Explicitly ignore macOS resource forks in figures
 output/figures/._*
 

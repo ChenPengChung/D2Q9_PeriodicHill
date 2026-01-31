@@ -11,7 +11,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.animation import FuncAnimation, PillowWriter
+from PIL import Image
 import re
+
+# 設置全局字體為Times New Roman加粗
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Times New Roman']
+plt.rcParams['font.weight'] = 'bold'
+plt.rcParams['axes.labelweight'] = 'bold'
+plt.rcParams['axes.titleweight'] = 'bold'
+plt.rcParams['figure.titleweight'] = 'bold'
 
 def check_packages():
     """檢查必要的套件"""
@@ -39,38 +48,62 @@ def check_packages():
 check_packages()
 
 
-def read_vtk_structured_points(filename):
-    """讀取 VTK Structured Points 格式的檔案"""
+def read_vtk_structured_grid(filename):
+    """讀取 VTK Structured Grid 格式的檔案"""
     with open(filename, 'r') as f:
         lines = f.readlines()
     
     # 解析維度
     dims = None
-    spacing = None
-    origin = None
+    points = []
     velocity = []
     density = []
+    velocity_magnitude = []
     
+    reading_points = False
     reading_velocity = False
     reading_density = False
+    reading_vel_mag = False
     
     for i, line in enumerate(lines):
         if 'DIMENSIONS' in line:
             dims = list(map(int, line.split()[1:4]))
-        elif 'SPACING' in line:
-            spacing = list(map(float, line.split()[1:4]))
-        elif 'ORIGIN' in line:
-            origin = list(map(float, line.split()[1:4]))
+        elif 'POINTS' in line and 'double' in line:
+            reading_points = True
+            reading_velocity = False
+            reading_density = False
+            reading_vel_mag = False
+            continue
+        elif 'POINT_DATA' in line:
+            reading_points = False
+            continue
         elif 'VECTORS Velocity' in line:
             reading_velocity = True
             reading_density = False
+            reading_vel_mag = False
+            reading_points = False
             continue
-        elif 'SCALARS Density' in line or 'SCALARS' in line:
+        elif 'SCALARS Density' in line:
             reading_velocity = False
             reading_density = True
+            reading_vel_mag = False
+            reading_points = False
+            continue
+        elif 'SCALARS VelocityMagnitude' in line:
+            reading_velocity = False
+            reading_density = False
+            reading_vel_mag = True
+            reading_points = False
             continue
         elif 'LOOKUP_TABLE' in line:
             continue
+        elif reading_points:
+            parts = line.strip().split()
+            if len(parts) >= 3:
+                try:
+                    points.append([float(parts[0]), float(parts[1]), float(parts[2])])
+                except ValueError:
+                    pass
         elif reading_velocity:
             parts = line.strip().split()
             if len(parts) >= 3:
@@ -85,107 +118,157 @@ def read_vtk_structured_points(filename):
                     density.append(float(val))
                 except ValueError:
                     pass
+        elif reading_vel_mag:
+            parts = line.strip().split()
+            for val in parts:
+                try:
+                    velocity_magnitude.append(float(val))
+                except ValueError:
+                    pass
     
+    points = np.array(points)
     velocity = np.array(velocity)
     density = np.array(density)
+    velocity_magnitude = np.array(velocity_magnitude)
     
     if dims is None:
         raise ValueError("無法從VTK檔案中讀取DIMENSIONS")
     
     nx, ny, nz = dims
     
-    # Reshape數據
+    # Reshape數據 (對於2D模擬，nz通常是1)
+    if len(points) == nx * ny * nz:
+        points = points.reshape((ny, nx, 3))
+    
     if len(velocity) == nx * ny * nz:
-        velocity = velocity.reshape((nz, ny, nx, 3))
+        velocity = velocity.reshape((ny, nx, 3))
     
     if len(density) == nx * ny * nz:
-        density = density.reshape((nz, ny, nx))
+        density = density.reshape((ny, nx))
+    
+    if len(velocity_magnitude) == nx * ny * nz:
+        velocity_magnitude = velocity_magnitude.reshape((ny, nx))
     
     return {
         'dims': dims,
-        'spacing': spacing,
-        'origin': origin,
+        'points': points,
         'velocity': velocity,
-        'density': density
+        'density': density,
+        'velocity_magnitude': velocity_magnitude
     }
 
 
-def plot_2d_slice(data, z_slice=0, output_dir='output_images'):
-    """繪製2D切面的向量場和等值線圖"""
+def plot_2d_data(data):
+    """提取2D數據用於繪圖"""
     velocity = data['velocity']
     density = data['density']
+    velocity_magnitude = data['velocity_magnitude']
+    points = data['points']
     dims = data['dims']
     nx, ny, nz = dims
     
-    if z_slice >= nz:
-        z_slice = nz // 2
+    # 對於2D模擬，數據已經是2D的
+    u = velocity[:, :, 0]  # x方向速度
+    v = velocity[:, :, 1]  # y方向速度
+    rho = density[:, :]     # 密度
     
-    # 提取2D切面
-    u = velocity[z_slice, :, :, 0]  # x方向速度
-    v = velocity[z_slice, :, :, 1]  # y方向速度
-    rho = density[z_slice, :, :]     # 密度
+    # 如果有預先計算的速度大小，使用它；否則計算
+    if velocity_magnitude.size > 0:
+        speed = velocity_magnitude[:, :]
+    else:
+        speed = np.sqrt(u**2 + v**2)
     
-    # 計算速度大小
-    speed = np.sqrt(u**2 + v**2)
+    # 計算馬赫數 (Ma = u/cs, cs = 1/sqrt(3) 在格子單位中)
+    cs = 1.0 / np.sqrt(3.0)  # 格子聲速
+    mach = speed / cs
     
-    # 創建座標網格
-    x = np.arange(nx)
-    y = np.arange(ny)
-    X, Y = np.meshgrid(x, y)
+    # 從points提取x, y座標
+    x_coords = points[:, :, 0]
+    y_coords = points[:, :, 1]
     
-    return X, Y, u, v, speed, rho
+    return x_coords, y_coords, u, v, speed, rho, mach
 
 
-def create_vector_field_image(X, Y, u, v, speed, filename, title="Velocity Field"):
+def create_vector_field_image(X, Y, u, v, speed, mach, filename, title="Velocity Field"):
     """創建向量場圖片"""
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(14, 7))
     
     # 繪製速度大小的contour作為背景
-    contourf = ax.contourf(X, Y, speed, levels=20, cmap='jet', alpha=0.6)
-    plt.colorbar(contourf, ax=ax, label='Speed')
+    contourf = ax.contourf(X, Y, speed, levels=30, cmap='jet', alpha=0.7)
+    cbar = plt.colorbar(contourf, ax=ax, label='Speed')
+    cbar.ax.tick_params(labelsize=12)
     
-    # 繪製向量場（降低密度以便觀察）
-    skip = max(1, X.shape[1] // 30)  # 調整箭頭密度
-    quiver = ax.quiver(X[::skip, ::skip], Y[::skip, ::skip], 
-                       u[::skip, ::skip], v[::skip, ::skip],
-                       scale=None, scale_units='xy', angles='xy',
-                       color='white', alpha=0.8, width=0.003)
+    # 繪製向量場（降低密度以便觀察）- 使用黑色箭頭
+    skip_x = max(1, X.shape[1] // 40)  # 調整箭頭密度
+    skip_y = max(1, X.shape[0] // 20)
     
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_title(title)
+    quiver = ax.quiver(X[::skip_y, ::skip_x], Y[::skip_y, ::skip_x], 
+                       u[::skip_y, ::skip_x], v[::skip_y, ::skip_x],
+                       scale=None, scale_units='xy',
+                       color='black', alpha=0.8, width=0.002)
+    
+    # 計算並顯示馬赫數統計信息
+    ma_max = np.max(mach)
+    ma_avg = np.mean(mach)
+    ma_limit = 0.3  # 不可壓縮流的馬赫數限制
+    
+    # 在圖片底部添加統計信息（放大字體，使用加粗）- 增加與主體的距離
+    info_text = f'Ma max: {ma_max:.4f}   |   Ma avg: {ma_avg:.4f}   |   Ma limit: {ma_limit:.2f}'
+    ax.text(0.5, -0.18, info_text, transform=ax.transAxes,
+            fontsize=14, weight='bold', verticalalignment='top', horizontalalignment='center',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9, pad=0.8))
+    
+    ax.set_xlabel('X', fontsize=13, weight='bold')
+    ax.set_ylabel('Y', fontsize=13, weight='bold')
+    ax.set_title(title, fontsize=15, weight='bold', pad=10)
     ax.set_aspect('equal')
+    ax.tick_params(labelsize=11)
     
-    plt.tight_layout()
-    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    # 調整子圖邊距 - 增加主體大小，減少留白
+    plt.subplots_adjust(left=0.07, right=0.96, top=0.95, bottom=0.15)
+    plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=0.25)
     plt.close()
-    print(f"已保存向量場圖片: {filename}")
+    print(f"已保存向量場圖片: {filename} (Ma_max={ma_max:.4f})")
 
 
-def create_contour_image(X, Y, field, filename, title="Contour Plot", levels=20, cmap='jet'):
+def create_contour_image(X, Y, field, mach, filename, title="Contour Plot", levels=30, cmap='jet', field_name='Value'):
     """創建等值線圖片"""
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(14, 7))
     
     # 繪製filled contour
     contourf = ax.contourf(X, Y, field, levels=levels, cmap=cmap)
-    plt.colorbar(contourf, ax=ax, label='Value')
+    cbar = plt.colorbar(contourf, ax=ax, label=field_name)
+    cbar.ax.tick_params(labelsize=12)
     
     # 添加contour線
     contour = ax.contour(X, Y, field, levels=levels, colors='black', 
                          linewidths=0.5, alpha=0.3)
     
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_title(title)
-    ax.set_aspect('equal')
+    # 計算並顯示馬赫數統計信息
+    ma_max = np.max(mach)
+    ma_avg = np.mean(mach)
+    ma_limit = 0.3  # 不可壓縮流的馬赫數限制
     
-    plt.tight_layout()
-    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    # 在圖片底部添加統計信息（放大字體，使用加粗）- 增加與主體的距離
+    info_text = f'Ma max: {ma_max:.4f}   |   Ma avg: {ma_avg:.4f}   |   Ma limit: {ma_limit:.2f}'
+    ax.text(0.5, -0.18, info_text, transform=ax.transAxes,
+            fontsize=14, weight='bold', verticalalignment='top', horizontalalignment='center',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9, pad=0.8))
+    
+    ax.set_xlabel('X', fontsize=13, weight='bold')
+    ax.set_ylabel('Y', fontsize=13, weight='bold')
+    ax.set_title(title, fontsize=15, weight='bold', pad=10)
+    ax.set_aspect('equal')
+    ax.tick_params(labelsize=11)
+    
+    # 調整子圖邊距 - 增加主體大小，減少留白
+    plt.subplots_adjust(left=0.07, right=0.96, top=0.95, bottom=0.15)
+    plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=0.25)
     plt.close()
     print(f"已保存等值線圖片: {filename}")
 
 
-def batch_process_vtk_files(vtk_dir='output', output_dir='output_images', z_slice=0):
+def batch_process_vtk_files(vtk_dir='output', output_dir='output_images'):
     """批次處理所有VTK檔案"""
     # 創建輸出目錄
     vector_dir = os.path.join(output_dir, 'vectors')
@@ -213,25 +296,25 @@ def batch_process_vtk_files(vtk_dir='output', output_dir='output_images', z_slic
         
         try:
             # 讀取VTK數據
-            data = read_vtk_structured_points(vtk_file)
+            data = read_vtk_structured_grid(vtk_file)
             
-            # 提取2D切面
-            X, Y, u, v, speed, rho = plot_2d_slice(data, z_slice=z_slice)
+            # 提取2D數據
+            X, Y, u, v, speed, rho, mach = plot_2d_data(data)
             
             # 生成向量場圖片
             vector_filename = os.path.join(vector_dir, f'{basename}_vector.png')
-            create_vector_field_image(X, Y, u, v, speed, vector_filename, 
+            create_vector_field_image(X, Y, u, v, speed, mach, vector_filename, 
                                      title=f'Velocity Field - {basename}')
             
             # 生成速度等值線圖片
             contour_speed_filename = os.path.join(contour_speed_dir, f'{basename}_speed.png')
-            create_contour_image(X, Y, speed, contour_speed_filename,
-                                title=f'Speed Contour - {basename}', cmap='jet')
+            create_contour_image(X, Y, speed, mach, contour_speed_filename,
+                                title=f'Speed Contour - {basename}', cmap='jet', field_name='Speed')
             
             # 生成密度等值線圖片
             contour_density_filename = os.path.join(contour_density_dir, f'{basename}_density.png')
-            create_contour_image(X, Y, rho, contour_density_filename,
-                                title=f'Density Contour - {basename}', cmap='viridis')
+            create_contour_image(X, Y, rho, mach, contour_density_filename,
+                                title=f'Density Contour - {basename}', cmap='viridis', field_name='Density')
             
             processed_files.append({
                 'vtk': vtk_file,
@@ -242,42 +325,35 @@ def batch_process_vtk_files(vtk_dir='output', output_dir='output_images', z_slic
             
         except Exception as e:
             print(f"處理 {vtk_file} 時發生錯誤: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     return processed_files
 
 
 def create_animation_from_images(image_files, output_file, fps=10, title_prefix=""):
-    """從圖片序列創建動畫"""
+    """從圖片序列創建動畫 - 直接使用圖片不添加額外留白"""
     if not image_files:
         print("沒有圖片可以製作動畫")
         return
     
     print(f"\n正在創建動畫: {output_file}")
     
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.axis('off')
+    # 使用PIL直接讀取圖片並創建GIF
+    images = []
+    for img_file in image_files:
+        img = Image.open(img_file)
+        images.append(img)
     
-    # 讀取第一張圖片
-    first_img = plt.imread(image_files[0])
-    im = ax.imshow(first_img)
-    
-    title_text = ax.text(0.5, 1.05, '', transform=ax.transAxes, 
-                         ha='center', fontsize=12)
-    
-    def update(frame):
-        img = plt.imread(image_files[frame])
-        im.set_array(img)
-        title_text.set_text(f'{title_prefix} - Frame {frame+1}/{len(image_files)}')
-        return [im, title_text]
-    
-    anim = FuncAnimation(fig, update, frames=len(image_files), 
-                        interval=1000//fps, blit=True)
-    
-    # 保存為GIF
-    writer = PillowWriter(fps=fps)
-    anim.save(output_file, writer=writer, dpi=150)
-    plt.close()
+    # 保存為GIF動畫
+    images[0].save(
+        output_file,
+        save_all=True,
+        append_images=images[1:],
+        duration=int(1000/fps),  # 每幀持續時間（毫秒）
+        loop=0  # 無限循環
+    )
     
     print(f"動畫已保存: {output_file}")
 
@@ -291,12 +367,11 @@ def main():
     # 設置參數
     vtk_dir = 'output'
     output_dir = 'output_images'
-    z_slice = 0  # 使用z=0的切面（對於2D模擬，通常只有一個切面）
     fps = 10     # 動畫幀率
     
     # 批次處理VTK檔案
     print(f"\n開始批次處理VTK檔案...")
-    processed_files = batch_process_vtk_files(vtk_dir, output_dir, z_slice)
+    processed_files = batch_process_vtk_files(vtk_dir, output_dir)
     
     if not processed_files:
         print("沒有成功處理任何檔案")

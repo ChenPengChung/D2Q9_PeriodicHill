@@ -550,14 +550,12 @@ void ModifyForcingTerm(double* force , double Ubar_filter){
     //Step1.計算 外力修正增益：
     double beta = std::fmax(0.001, 3.0 / (double)Re);
     double Ub_avg_max = 0.0 ;
-    double Force_max = 0.0;
     //Step2.逐步修正外力
-    force[0] = force[0] + beta * (Uref - Ubar_filter) * Uref / Heff ; //外力回受控制 以全場平均速度為參考修正依據 , 以平均流場厚度為長度
+    force[0] = force[0] + beta * (Uref - Ubar_filter) * Uref / 3.036 ; //外力回受控制 以全場平均速度為參考修正依據 , 以平均流場厚度為長度
     //Step3.限制最大外力
-    double F_max = 0.005 ;
-    force[0] = std::fmin(force[0], F_max);
-    force[0] = std::fmax(force[0], -F_max);
-    Force_max = std::fabs(force[0]);
+    //double F_max = 0.005 ;
+    //force[0] = std::fmin(force[0], F_max);
+    //force[0] = std::fmax(force[0], -F_max);
     //Step4.找出最大值
     for(int j = 3 ; j < NY6-3 ; j++ ){
     if( ubulk[j] > Ub_avg_max ){
@@ -570,7 +568,7 @@ void ModifyForcingTerm(double* force , double Ubar_filter){
     std::cout << "Force Update: Ub_avg=" << Ub_avg_max << ", Uref=" << Uref
               << ", Ub/Uref=" << ratio
               << ", Ma_actual=" << Ma_actual
-              << ", Force=" << Force_max << std::endl;  
+              << ", Force[0]=" << force[0] << std::endl;  
 }
 
 //U_bulk_average 針對所有平面的平均的加總 git

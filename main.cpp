@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <limits>
 using namespace std;
 //=============================================================================
 // [區塊 1] 引入參數定義（不依賴全域變數的標頭檔）
@@ -118,7 +119,7 @@ int CellZ_F4[3*NY6 * NZ6];         // F4 方向的 Z stencil 起點
 //-----------------------------------------------------------------------------
 double Heff ; //山丘流場截面平均高度 
 int force_update_count = 0;      // 累積的時間步數
-const int NDTFRC = 100;        // 每多少步修正一次外力
+const int NDTFRC = 300;        // 每多少步修正一次外力
 //-----------------------------------------------------------------------------
 // 2.12 動態 Streaming 邊界（漸進式擴大解析層）
 //-----------------------------------------------------------------------------
@@ -242,6 +243,174 @@ void printStatistics(int step) {
         << ", w_avg=" << scientific << setprecision(6) << w_avg
         << '\n';
     cout << oss.str();
+}
+
+struct RecircStats {
+    int total = 0;
+    int neg = 0;
+    double min_u = 0.0;
+    double y_min = 0.0;
+    double y_max = 0.0;
+    bool has_neg = false;
+};
+
+static RecircStats ComputeDownslopeRecirc(const double* v_field) {
+    RecircStats s;
+    s.min_u = std::numeric_limits<double>::infinity();
+    s.y_min = std::numeric_limits<double>::infinity();
+    s.y_max = -std::numeric_limits<double>::infinity();
+
+    const double z_band = L_char; // 近壁監控高度（以 h 為單位）
+
+    for(int j = 3; j < NY6-3; ++j) {
+        const double y = y_global[j];
+        if(y < 0.0 || y > HillHalfWidth) continue; // 山坡下降區域（左丘）
+        const double wall = HillFunction(y);
+        const double z_top = wall + z_band;
+
+        for(int k = 3; k < NZ6-3; ++k) {
+            const int idx = j * NZ6 + k;
+            const double z = z_global[idx];
+            if(z < wall || z > z_top) continue;
+
+            const double u = v_field[idx];
+            if(u < s.min_u) s.min_u = u;
+            s.total++;
+            if(u < 0.0) {
+                s.neg++;
+                s.has_neg = true;
+                if(y < s.y_min) s.y_min = y;
+                if(y > s.y_max) s.y_max = y;
+            }
+        }
+    }
+
+    if(!std::isfinite(s.min_u)) s.min_u = 0.0;
+    if(!s.has_neg) {
+        s.y_min = 0.0;
+        s.y_max = 0.0;
+    }
+    return s;
+}
+
+static bool LoadRestartVTK(const std::string& path) {
+    std::ifstream in(path);
+    if(!in.is_open()) {
+        std::cout << "[Restart] Cannot open VTK: " << path << std::endl;
+        return false;
+    }
+
+    std::string tok;
+    int ny_out = 0, nz_out = 0, nz_dummy = 0;
+    int n_points = 0;
+    std::vector<double> density;
+    std::vector<double> velocity;
+
+    auto read_doubles = [&](std::vector<double>& dst, int count) -> bool {
+        dst.resize(count);
+        for(int i = 0; i < count; ++i) {
+            if(!(in >> dst[i])) return false;
+        }
+        return true;
+    };
+    auto skip_doubles = [&](int count) -> bool {
+        double tmp;
+        for(int i = 0; i < count; ++i) {
+            if(!(in >> tmp)) return false;
+        }
+        return true;
+    };
+
+    while(in >> tok) {
+        if(tok == "DIMENSIONS") {
+            in >> ny_out >> nz_out >> nz_dummy;
+            n_points = ny_out * nz_out;
+        } else if(tok == "SCALARS") {
+            std::string name, type;
+            int comps = 0;
+            in >> name >> type >> comps;
+            in >> tok; // LOOKUP_TABLE
+            if(tok == "LOOKUP_TABLE") {
+                std::string table;
+                in >> table;
+            }
+            if(n_points <= 0) return false;
+            if(name == "Density") {
+                if(!read_doubles(density, n_points)) return false;
+            } else {
+                if(!skip_doubles(n_points)) return false;
+            }
+        } else if(tok == "VECTORS") {
+            std::string name, type;
+            in >> name >> type;
+            if(n_points <= 0) return false;
+            if(name == "Velocity") {
+                if(!read_doubles(velocity, 3 * n_points)) return false;
+            } else {
+                if(!skip_doubles(3 * n_points)) return false;
+            }
+        }
+    }
+
+    if(n_points <= 0 || ny_out != (NY6 - 6) || nz_out != (NZ6 - 6)) {
+        std::cout << "[Restart] Grid mismatch or missing DIMENSIONS. File ny/nz="
+                  << ny_out << "/" << nz_out
+                  << " expected " << (NY6 - 6) << "/" << (NZ6 - 6) << std::endl;
+        return false;
+    }
+    if(static_cast<int>(density.size()) != n_points || static_cast<int>(velocity.size()) != 3 * n_points) {
+        std::cout << "[Restart] Missing Density or Velocity data." << std::endl;
+        return false;
+    }
+
+    int p = 0;
+    for(int k = 3; k < NZ6 - 3; ++k) {
+        for(int j = 3; j < NY6 - 3; ++j) {
+            const int idx = j * NZ6 + k;
+            const double rho_local = density[p];
+            const double uy = velocity[3 * p + 0];
+            const double uz = velocity[3 * p + 1];
+
+            rho[idx] = rho_local;
+            v[idx] = uy;
+            w[idx] = uz;
+
+            const double udot = uy * uy + uz * uz;
+            const double F0_eq  = (4.0/9.0)  * rho_local * (1.0 - 1.5 * udot);
+            const double F1_eq  = (1.0/9.0)  * rho_local * (1.0 + 3.0 * uy + 4.5 * uy * uy - 1.5 * udot);
+            const double F2_eq  = (1.0/9.0)  * rho_local * (1.0 + 3.0 * uz + 4.5 * uz * uz - 1.5 * udot);
+            const double F3_eq  = (1.0/9.0)  * rho_local * (1.0 - 3.0 * uy + 4.5 * uy * uy - 1.5 * udot);
+            const double F4_eq  = (1.0/9.0)  * rho_local * (1.0 - 3.0 * uz + 4.5 * uz * uz - 1.5 * udot);
+            const double F5_eq  = (1.0/36.0) * rho_local * (1.0 + 3.0 * (uy + uz) + 4.5 * (uy + uz) * (uy + uz) - 1.5 * udot);
+            const double F6_eq  = (1.0/36.0) * rho_local * (1.0 + 3.0 * (-uy + uz) + 4.5 * (-uy + uz) * (-uy + uz) - 1.5 * udot);
+            const double F7_eq  = (1.0/36.0) * rho_local * (1.0 + 3.0 * (-uy - uz) + 4.5 * (-uy - uz) * (-uy - uz) - 1.5 * udot);
+            const double F8_eq  = (1.0/36.0) * rho_local * (1.0 + 3.0 * (uy - uz) + 4.5 * (uy - uz) * (uy - uz) - 1.5 * udot);
+
+            f[0][idx] = F0_eq; f[1][idx] = F1_eq; f[2][idx] = F2_eq;
+            f[3][idx] = F3_eq; f[4][idx] = F4_eq; f[5][idx] = F5_eq;
+            f[6][idx] = F6_eq; f[7][idx] = F7_eq; f[8][idx] = F8_eq;
+
+            for(int dir = 0; dir < 9; ++dir) {
+                f_old[dir][idx] = f[dir][idx];
+                f_new[dir][idx] = f[dir][idx];
+            }
+            p++;
+        }
+    }
+
+    // Update periodic buffer layers for loaded fields
+    periodicSW(
+        f_old[0], f_old[1], f_old[2], f_old[3], f_old[4],
+        f_old[5], f_old[6], f_old[7], f_old[8],
+        v, w, rho
+    );
+    for(int dir = 0; dir < 9; ++dir) {
+        memcpy(f_new[dir], f_old[dir], sizeof(double) * NY6 * NZ6);
+        memcpy(f[dir], f_old[dir], sizeof(double) * NY6 * NZ6);
+    }
+
+    std::cout << "[Restart] Loaded VTK restart: " << path << std::endl;
+    return true;
 }
 //-----------------------------------------------------------------------------
 // 4.3 交換 f_old 與 f_new
@@ -706,7 +875,17 @@ int main() {
     //步驟 5 : BFL 邊界初始化
     cout << "Initializing BFL boundary...." << endl ;
     BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
+    const char* restart_path = std::getenv("RESTART_VTK");
+    bool restarted = false;
+    if(restart_path && *restart_path) {
+        cout << "Restarting from VTK: " << restart_path << endl;
+        restarted = LoadRestartVTK(restart_path);
+        if(!restarted) {
+            cout << "Restart failed, fallback to default initialization." << endl;
+        }
+    }
     //步驟 6 : 初始化流場與分佈函數
+    if(restarted) goto after_init;
     cout << "Initializing flow field...." << endl ;
     InitialUsingDftFunc();
     //步驟 7 : 複製初始分佈函數到 f_old
@@ -715,6 +894,7 @@ int main() {
             f_old[dir][idx] = f[dir][idx];
         }
     }//f_old為上一個時間步所更新的碰撞後插值後一般態分佈函數 
+after_init:
     cout << "Initialization complete.." << endl ;
 
     //-------------------------------------------------------------------------
@@ -888,6 +1068,13 @@ int main() {
             cout << "[Bulk/Target] Ubar_filter=" << Ubar_filter
                  << " Uref=" << Uref
                  << " Re_est=" << Re_est << endl;
+            const RecircStats recirc = ComputeDownslopeRecirc(v);
+            const double neg_ratio = (recirc.total > 0) ? (static_cast<double>(recirc.neg) / recirc.total) : 0.0;
+            const double span_y = recirc.has_neg ? (recirc.y_max - recirc.y_min) : 0.0;
+            cout << "[Recirc-Downslope] neg_ratio=" << neg_ratio
+                 << " minU=" << recirc.min_u
+                 << " spanY=" << span_y
+                 << " (points=" << recirc.neg << "/" << recirc.total << ")" << endl;
 
             // Mach 數統計（與統計輸出同步）
             MachStats mach_stats = ComputeMachStats(v, w, rho);

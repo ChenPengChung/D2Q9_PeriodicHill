@@ -251,6 +251,137 @@ void swapDistributions() {
         memcpy(f_old[dir], f_new[dir], sizeof(double) * NY6 * NZ6);
     }
 }
+
+//-----------------------------------------------------------------------------
+// Divergence diagnostics helpers (opt-in via env vars)
+//-----------------------------------------------------------------------------
+static long ReadEnvLong(const char* name, long default_value) {
+    const char* raw = std::getenv(name);
+    if(raw == nullptr || *raw == '\0') return default_value;
+    char* end = nullptr;
+    long value = std::strtol(raw, &end, 10);
+    if(end == raw) return default_value;
+    return value;
+}
+
+struct NonFiniteInfo {
+    bool found = false;
+    size_t idx = 0;
+    double value = 0.0;
+};
+
+static NonFiniteInfo FindFirstNonFinite(const double* arr, size_t n) {
+    for(size_t i = 0; i < n; ++i) {
+        const double x = arr[i];
+        if(!std::isfinite(x)) return {true, i, x};
+    }
+    return {};
+}
+
+static void PrintF4InterpolationDebug(int step, size_t idx) {
+    const int j = static_cast<int>(idx / static_cast<size_t>(NZ6));
+    const int k = static_cast<int>(idx % static_cast<size_t>(NZ6));
+    const size_t layer_stride = static_cast<size_t>(NY6) * static_cast<size_t>(NZ6);
+    const size_t idx_r1 = idx + 1 * layer_stride;
+
+    const int k_start = CellZ_F4[idx_r1];
+    const int base = j * NZ6 + k_start;
+
+    std::cout << "\n[Interp Debug] t=" << step
+              << " target(j=" << j << ",k=" << k << ",idx=" << idx << ")"
+              << " F4 k_start=" << k_start
+              << " base=" << base
+              << " z_target=" << z_global[idx]
+              << " z_target+minSize=" << (z_global[idx] + minSize)
+              << std::endl;
+
+    std::cout << "  XiF4 weights (row=1):";
+    for(int i = 0; i < 7; ++i) {
+        const double w = XiParaF4_h[i][idx_r1];
+        std::cout << " w" << i << "=" << w;
+    }
+    std::cout << std::endl;
+
+    double reconstructed = 0.0;
+    std::cout << "  stencil points (k_start..k_start+6):" << std::endl;
+    for(int off = 0; off < 7; ++off) {
+        const int kk = k_start + off;
+        const int src = j * NZ6 + kk;
+        const double w = XiParaF4_h[off][idx_r1];
+        const double fsrc = f_old[4][src];
+        const double zsrc = z_global[src];
+        std::cout << "    off=" << off
+                  << " k=" << kk
+                  << " z=" << zsrc
+                  << " f4_old=" << fsrc
+                  << " w=" << w
+                  << " contrib=" << (fsrc * w)
+                  << std::endl;
+        reconstructed += fsrc * w;
+    }
+
+    std::cout << "  F4_in reconstructed=" << reconstructed
+              << " f4_new_at_target=" << f_new[4][idx]
+              << std::endl;
+}
+
+static void PrintNonFiniteDetail(const char* stage, int step, const char* field, const NonFiniteInfo& bad) {
+    const int j = static_cast<int>(bad.idx / static_cast<size_t>(NZ6));
+    const int k = static_cast<int>(bad.idx % static_cast<size_t>(NZ6));
+    const double y = (j >= 0 && j < NY6) ? y_global[j] : NAN;
+    const double z = (bad.idx < static_cast<size_t>(NY6) * static_cast<size_t>(NZ6)) ? z_global[bad.idx] : NAN;
+
+    std::cout << "\n[DIVERGENCE] stage=" << stage
+              << " t=" << step
+              << " field=" << field
+              << " idx=" << bad.idx
+              << " (j=" << j << ",k=" << k << ")"
+              << " y=" << y
+              << " z=" << z
+              << " value=" << bad.value
+              << " streaming_lower=" << streaming_lower
+              << " streaming_upper=" << streaming_upper
+              << " force0=" << force[0]
+              << " Ubar_filter=" << Ubar_filter
+              << std::endl;
+
+    if(std::strcmp(stage, "after_stream_collide") == 0 && std::strcmp(field, "rho") == 0) {
+        PrintF4InterpolationDebug(step, bad.idx);
+    }
+}
+
+static bool CheckStageFinite(const char* stage, int step, bool check_distributions) {
+    const size_t n = static_cast<size_t>(NY6) * static_cast<size_t>(NZ6);
+
+    const NonFiniteInfo rho_bad = FindFirstNonFinite(rho, n);
+    if(rho_bad.found) { PrintNonFiniteDetail(stage, step, "rho", rho_bad); return false; }
+    const NonFiniteInfo v_bad = FindFirstNonFinite(v, n);
+    if(v_bad.found) { PrintNonFiniteDetail(stage, step, "v", v_bad); return false; }
+    const NonFiniteInfo w_bad = FindFirstNonFinite(w, n);
+    if(w_bad.found) { PrintNonFiniteDetail(stage, step, "w", w_bad); return false; }
+
+    if(check_distributions) {
+        for(int dir = 0; dir < 9; ++dir) {
+            const NonFiniteInfo f_old_bad = FindFirstNonFinite(f_old[dir], n);
+            if(f_old_bad.found) {
+                std::ostringstream name;
+                name << "f_old[" << dir << "]";
+                PrintNonFiniteDetail(stage, step, name.str().c_str(), f_old_bad);
+                return false;
+            }
+            const NonFiniteInfo f_new_bad = FindFirstNonFinite(f_new[dir], n);
+            if(f_new_bad.found) {
+                std::ostringstream name;
+                name << "f_new[" << dir << "]";
+                PrintNonFiniteDetail(stage, step, name.str().c_str(), f_new_bad);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 //4.4寫入取曲面邊界點
 void Wright_Boundary_Node(){
    //根據不同分佈函數寫入曲面邊界點 
@@ -595,7 +726,16 @@ int main() {
     // 5.2 時間迴圈
     //-------------------------------------------------------------------------
     cout << "Starting time loop..." << endl ;
-    cout << "loop = " << loop << endl ;
+    const int max_steps = static_cast<int>(ReadEnvLong("MAX_STEPS", loop));
+    const bool no_vtk = (std::getenv("NO_VTK") != nullptr);
+    const bool diag_div = (std::getenv("DIAG_DIVERGENCE") != nullptr);
+    const int diag_start = static_cast<int>(ReadEnvLong("DIAG_START", 0));
+    const int diag_every = std::max(1, static_cast<int>(ReadEnvLong("DIAG_EVERY", 1)));
+    const bool diag_check_f = (std::getenv("DIAG_CHECK_F") != nullptr);
+    const char* output_dir_env = std::getenv("OUTPUT_DIR");
+    const std::string output_dir = (output_dir_env && *output_dir_env) ? std::string(output_dir_env) : std::string("output");
+
+    cout << "loop = " << max_steps << endl ;
     
     // 初始化週期性邊界條件（在第一次 stream_collide 前執行）
     periodicSW(
@@ -605,7 +745,7 @@ int main() {
     );
     
     cout.flush();
-    for(t = 0; t < loop; t++) {
+    for(t = 0; t < max_steps; t++) {
         // 更新動態 streaming 邊界（漸進式擴大解析層）
         UpdateStreamingBounds(t);
         
@@ -682,6 +822,10 @@ int main() {
             Q1_h, Q3_h, Q5_h, Q6_h
         );
 
+        if(diag_div && t >= diag_start && (t % diag_every == 0)) {
+            if(!CheckStageFinite("after_stream_collide", t, diag_check_f)) return 1;
+        }
+
         // 5.2.2 週期性邊界條件
         periodicSW(
             f_new[0], f_new[1], f_new[2], f_new[3], f_new[4],
@@ -689,27 +833,43 @@ int main() {
             v, w, rho
         );
 
+        if(diag_div && t >= diag_start && (t % diag_every == 0)) {
+            if(!CheckStageFinite("after_periodicSW", t, diag_check_f)) return 1;
+        }
+
         EMA_UpdateVolumeAverage();
         force_update_count++   ;
+
+        if(diag_div && t >= diag_start && (t % diag_every == 0)) {
+            if(!CheckStageFinite("after_EMA_UpdateVolumeAverage", t, false)) return 1;
+        }
           
         // 5.2.4 每 NDTFRC 步修正外力
         if(force_update_count >= NDTFRC) {
             ModifyForcingTerm(force , Ubar_filter); //更新force[0]
             force_update_count = 0;
+
+            if(diag_div && t >= diag_start && (t % diag_every == 0)) {
+                if(!CheckStageFinite("after_ModifyForcingTerm", t, false)) return 1;
+            }
         }
 
         // 5.2.5 交換 f_old 與 f_new
         swapDistributions();
 
+        if(diag_div && t >= diag_start && (t % diag_every == 0)) {
+            if(!CheckStageFinite("after_swapDistributions", t, diag_check_f)) return 1;
+        }
+
         //---------------------------------------------------------------------
         // 5.2.6 輸出數據
         //---------------------------------------------------------------------
         // VTK 檔案輸出（較大間隔，用於 ParaView 視覺化）
-        if(t % outputInterval_VTK == 0) {
+        if(!no_vtk && t % outputInterval_VTK == 0) {
             cout << "==================================================================" << endl ;
             cout << "\n=== time step t = " << t << " ===" << endl;
             cout << "Output VTK file and Statics Data..." << endl;
-            OutputVTK(t, y_global, z_global, rho, v, w);
+            OutputVTK(t, y_global, z_global, rho, v, w, output_dir);
         }
         // 終端統計輸出（較小間隔，用於監控模擬進度）
         if(t % outputInterval_Stats == 0) {
@@ -734,6 +894,6 @@ int main() {
     // 5.3 結束
     //-------------------------------------------------------------------------
     cout << "Simulation complete." << endl ;
-    printStatistics(loop);
+    printStatistics(max_steps);
     return 0;
 }

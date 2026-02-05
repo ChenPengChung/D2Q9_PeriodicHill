@@ -205,10 +205,14 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         //j-1:外插|三點內插|七點內插|三點內插|外插----
         //j  :外插|三點內插|七點內插|三點內插|外插----
         //j+1:外插|三點內插|七點內插|三點內插|外插----
+        // k_* stores the Z-start index for the 7-point stencil.
+        // To keep base+6 within the last *updated* fluid node (k=NZ6-4),
+        // the maximum safe start index is (NZ6-10).
         if (index_z0 < 3) {
             k_0 = 3; /*兩點外插出去*/
         } else if (index_z0 > NZ6-4) {
-            k_0 = NZ6-5;
+            // 上邊界外插：固定使用最後一組 7-point stencil (k=NZ6-10 ... NZ6-4)
+            k_0 = NZ6-10;
         } else if (index_z0 <  interpolation_lower) {  // 恢復到 8 (原 6,稍微放寬)
             k_0 = (int)round(index_z0);
         } else if (index_z0 >  interpolation_upper) {
@@ -220,7 +224,7 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         if (index_z1 < 3) {
             k_1 = 3;
         } else if (index_z1 > NZ6-4) {
-            k_1 = NZ6-5;
+            k_1 = NZ6-10;
         } else if (index_z1 <  interpolation_lower) {
             k_1 = (int)round(index_z1);
         } else if (index_z1 >  interpolation_upper) {
@@ -232,7 +236,7 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         if (index_z2 < 3) {
             k_2 = 3;
         } else if (index_z2 > NZ6-4) {
-            k_2 = NZ6-5;
+            k_2 = NZ6-10;
         } else if (index_z2 <  interpolation_lower) {
             k_2 = (int)round(index_z2);
         } else if (index_z2 >  interpolation_upper) {
@@ -240,6 +244,15 @@ void RelationXi(double pos_z , int j , int k ,  int* cell_z , double a){//double
         } else {
             k_2 = (int)floor(index_z2) - 3; // -2為真正的起點 -4為統一往上編號所需
         }
+
+        // Final safety clamp: keep the 7-point stencil within k=3..NZ6-4.
+        // (k_start + 6) <= (NZ6-4)  =>  k_start <= (NZ6-10)
+        if(k_0 < 3) k_0 = 3;
+        if(k_1 < 3) k_1 = 3;
+        if(k_2 < 3) k_2 = 3;
+        if(k_0 > NZ6-10) k_0 = NZ6-10;
+        if(k_1 > NZ6-10) k_1 = NZ6-10;
+        if(k_2 > NZ6-10) k_2 = NZ6-10;
         //寫入每個idx_xi的三個(Y座標) 起始內插成員Z方向起始點編號
         //使用原始 j_store 作為儲存索引，確保不會因週期映射而錯位
         cell_z[NZ6*(j_store)+k + 0 * NY6*NZ6] = k_0;
@@ -297,27 +310,27 @@ void GetParameter_6th(
     Para_h[6][i] = Lagrange_6th(Position, Pos[n+6], Pos[n],   Pos[n+1], Pos[n+2], Pos[n+3], Pos[n+4], Pos[n+5]);
     
 }
-void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int j , int k  , int index_z0){
+void GetParameter_6th2(double** XiPara , double pos_z ,  double* RelationXi , int r , int j , int k  , double index_z0){
     const int layer_stride = NY6 * NZ6;
     const int base = j*NZ6 + k + r * layer_stride;
-    if (index_z0 < 3){
+    if (index_z0 < 3.0){
     //線性外插 
     XiPara[0][base] =  1-Extrapolation(pos_z , RelationXi[0] , RelationXi[1] ) ;
     XiPara[1][base] =  Extrapolation(pos_z , RelationXi[0] , RelationXi[1] ) ;
     for(int i = 2 ; i <=6 ; i++) {XiPara[i][base] = 0.0 ;} 
     }
-    else if (index_z0 > NZ6-4){
+    else if (index_z0 > (double)(NZ6-4)){
     for(int i = 0 ; i <=4 ; i++) {XiPara[i][base] = 0.0 ;}     
     XiPara[5][base] =  Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
     XiPara[6][base] =  1-Extrapolation(pos_z , RelationXi[6] , RelationXi[5] ) ;
     }  
-    else if (index_z0 < interpolation_lower){  // 與 initialization.h 保持一致
+    else if (index_z0 < (double)interpolation_lower){  // 與 initialization.h 保持一致
     for(int i = 3 ; i <=6 ; i++) {XiPara[i][base] = 0.0 ;} 
     XiPara[0][base] =  Lagrange_2nd(pos_z, RelationXi[0],  RelationXi[1],  RelationXi[2] ); 
     XiPara[1][base] =  Lagrange_2nd(pos_z, RelationXi[1],  RelationXi[0],  RelationXi[2] ); 
     XiPara[2][base] =  Lagrange_2nd(pos_z, RelationXi[2],  RelationXi[0],  RelationXi[1] );
     } 
-    else if (index_z0 > interpolation_upper){  // 與 initialization.h 保持一致
+    else if (index_z0 > (double)interpolation_upper){  // 與 initialization.h 保持一致
     for(int i = 0 ; i <=3 ; i++) {XiPara[i][base] = 0.0 ;} 
     XiPara[4][base] =  Lagrange_2nd(pos_z, RelationXi[4],  RelationXi[5],  RelationXi[6] ); 
     XiPara[5][base] =  Lagrange_2nd(pos_z, RelationXi[5],  RelationXi[4],  RelationXi[6] );
@@ -691,4 +704,3 @@ double Right_q_DiagonalMinus135(double y , double z){
 
 
 #endif
-

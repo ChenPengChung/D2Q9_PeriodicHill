@@ -7,7 +7,7 @@
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
 #define     NY      256
-#define     NZ      128
+#define     NZ      256
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)
@@ -15,7 +15,7 @@
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
 //CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小 在ISLBM中，為晶格速度/網格速度
 //所以最小物理大小的CFL才是晶格大小，為minSize
-#define     CFL                 0.7  // Re=1000 時用 0.85 更安全
+#define     CFL                 0.8  // Re=1000 時用 0.85 更安全
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
 //非均勻網格之判斷式
 //1 : Yes,  0 : No
@@ -26,7 +26,7 @@
 
 //模擬迴圈上限值
 #define     loop        10000000
-#define      Re         100                            // 目標雷諾數
+#define      Re         700                            // 目標雷諾數
 #define     tau         0.6833                            // 提高 tau 以增加穩定性（原 1.7 → 1.95）
 #define     niu         ((tau-0.5)/3.0*dt)
 #define     Uref        (Re*niu)
@@ -49,13 +49,13 @@
 #define     streaming_lower_phase1   (5)  // 第一階段目標: 25
 #define     streaming_upper_phase1   (NZ6-7)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
-#define     phase1_end_time          (200000)        // 第一階段結束
+#define     phase1_end_time          (20000)        // 第一階段結束
 
 // === 第二階段：開放三點插值緩衝區 (interpolation_lower → target) ===
-#define     streaming_lower_target   (3)            // 最終目標下界
-#define     streaming_upper_target   (NZ6-4)         // 最終目標上界
-#define     phase2_start_time        (200000)        // 第二階段開始
-#define     phase2_end_time          (500000)        // 第二階段結束
+#define     streaming_lower_target   (5)            // 最終目標下界 (保留 wall buffer, 增加穩定性)
+#define     streaming_upper_target   (NZ6-7)         // 最終目標上界 (保留 wall buffer, 增加穩定性)
+#define     phase2_start_time        (20000)        // 第二階段開始
+#define     phase2_end_time          (50000)        // 第二階段結束
 
 // 全域變數宣告（在 main.cpp 中定義）
 extern int streaming_lower;  // 動態下界，由 UpdateStreamingBounds() 更新
@@ -76,6 +76,4 @@ extern int streaming_upper;  // 動態上界，由 UpdateStreamingBounds() 更�
 // 注意：若 Ma_theoretical > Ma_max，模擬很可能不穩定
 
 #endif
-
-
 

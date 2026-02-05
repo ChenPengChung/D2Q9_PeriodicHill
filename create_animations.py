@@ -14,6 +14,14 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from PIL import Image
 import re
 
+# 嘗試載入 scipy（流線圖需要將非均勻網格插值到均勻網格）
+try:
+    from scipy.interpolate import griddata
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    print("Warning: scipy not available, streamlines will use raw grid (may be less smooth)")
+
 # 設置全局字體為Times New Roman加粗
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman']
@@ -268,16 +276,81 @@ def create_contour_image(X, Y, field, mach, filename, title="Contour Plot", leve
     print(f"已保存等值線圖片: {filename}")
 
 
+def create_streamline_image(X, Y, u, v, speed, mach, filename, title="Streamlines"):
+    """創建流線圖（streamline plot）"""
+    fig, ax = plt.subplots(figsize=(14, 7))
+
+    # 背景：速度大小等值線
+    contourf = ax.contourf(X, Y, speed, levels=30, cmap='coolwarm', alpha=0.8)
+    cbar = plt.colorbar(contourf, ax=ax, label='Speed')
+    cbar.ax.tick_params(labelsize=12)
+
+    # 流線圖需要均勻網格；若有 scipy 則插值到均勻網格，否則直接用原始資料
+    if SCIPY_AVAILABLE:
+        # 建立均勻網格
+        n_y = min(200, X.shape[1])
+        n_z = min(100, X.shape[0])
+        x_reg = np.linspace(X.min(), X.max(), n_y)
+        y_reg = np.linspace(Y.min(), Y.max(), n_z)
+        X_reg, Y_reg = np.meshgrid(x_reg, y_reg)
+
+        u_reg = griddata((X.flatten(), Y.flatten()), u.flatten(),
+                         (X_reg, Y_reg), method='linear')
+        v_reg = griddata((X.flatten(), Y.flatten()), v.flatten(),
+                         (X_reg, Y_reg), method='linear')
+
+        # 處理 NaN（邊界外的點填 0）
+        u_reg = np.nan_to_num(u_reg, nan=0.0)
+        v_reg = np.nan_to_num(v_reg, nan=0.0)
+
+        ax.streamplot(x_reg, y_reg, u_reg, v_reg,
+                      color='black', linewidth=0.8, density=2.0,
+                      arrowsize=1.0, arrowstyle='->')
+    else:
+        # 無 scipy 時直接使用原始網格（streamplot 要求嚴格遞增的 1D 座標）
+        try:
+            x_1d = X[0, :]
+            y_1d = Y[:, 0]
+            ax.streamplot(x_1d, y_1d, u, v,
+                          color='black', linewidth=0.8, density=2.0,
+                          arrowsize=1.0, arrowstyle='->')
+        except Exception as e:
+            print(f"  流線繪製失敗 (需要 scipy 處理非均勻網格): {e}")
+
+    # 馬赫數統計
+    ma_max = np.max(mach)
+    ma_avg = np.mean(mach)
+    ma_limit = 0.3
+
+    info_text = f'Ma max: {ma_max:.4f}   |   Ma avg: {ma_avg:.4f}   |   Ma limit: {ma_limit:.2f}'
+    ax.text(0.5, -0.18, info_text, transform=ax.transAxes,
+            fontsize=14, weight='bold', verticalalignment='top', horizontalalignment='center',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9, pad=0.8))
+
+    ax.set_xlabel('X', fontsize=13, weight='bold')
+    ax.set_ylabel('Y', fontsize=13, weight='bold')
+    ax.set_title(title, fontsize=15, weight='bold', pad=10)
+    ax.set_aspect('equal')
+    ax.tick_params(labelsize=11)
+
+    plt.subplots_adjust(left=0.07, right=0.96, top=0.95, bottom=0.15)
+    plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=0.25)
+    plt.close()
+    print(f"已保存流線圖: {filename} (Ma_max={ma_max:.4f})")
+
+
 def batch_process_vtk_files(vtk_dir='output', output_dir='output_images'):
     """批次處理所有VTK檔案"""
     # 創建輸出目錄
     vector_dir = os.path.join(output_dir, 'vectors')
     contour_speed_dir = os.path.join(output_dir, 'contour_speed')
     contour_density_dir = os.path.join(output_dir, 'contour_density')
-    
+    streamline_dir = os.path.join(output_dir, 'streamlines')
+
     os.makedirs(vector_dir, exist_ok=True)
     os.makedirs(contour_speed_dir, exist_ok=True)
     os.makedirs(contour_density_dir, exist_ok=True)
+    os.makedirs(streamline_dir, exist_ok=True)
     
     # 獲取所有VTK檔案並排序
     vtk_files = sorted(glob.glob(os.path.join(vtk_dir, 'flow_*.vtk')))
@@ -315,12 +388,18 @@ def batch_process_vtk_files(vtk_dir='output', output_dir='output_images'):
             contour_density_filename = os.path.join(contour_density_dir, f'{basename}_density.png')
             create_contour_image(X, Y, rho, mach, contour_density_filename,
                                 title=f'Density Contour - {basename}', cmap='viridis', field_name='Density')
-            
+
+            # 生成流線圖
+            streamline_filename = os.path.join(streamline_dir, f'{basename}_streamline.png')
+            create_streamline_image(X, Y, u, v, speed, mach, streamline_filename,
+                                    title=f'Streamlines - {basename}')
+
             processed_files.append({
                 'vtk': vtk_file,
                 'vector': vector_filename,
                 'speed': contour_speed_filename,
-                'density': contour_density_filename
+                'density': contour_density_filename,
+                'streamline': streamline_filename
             })
             
         except Exception as e:
@@ -401,7 +480,13 @@ def main():
     density_animation = os.path.join(output_dir, 'animation_density_contour.gif')
     create_animation_from_images(density_images, density_animation, fps=fps,
                                 title_prefix="Density Contour")
-    
+
+    # 流線圖動畫
+    streamline_images = [f['streamline'] for f in processed_files]
+    streamline_animation = os.path.join(output_dir, 'animation_streamlines.gif')
+    create_animation_from_images(streamline_images, streamline_animation, fps=fps,
+                                title_prefix="Streamlines")
+
     print("\n" + "=" * 60)
     print("完成！")
     print("=" * 60)
@@ -409,10 +494,12 @@ def main():
     print(f"  - 向量場圖片: {os.path.join(output_dir, 'vectors')}")
     print(f"  - 速度等值線: {os.path.join(output_dir, 'contour_speed')}")
     print(f"  - 密度等值線: {os.path.join(output_dir, 'contour_density')}")
+    print(f"  - 流線圖:     {os.path.join(output_dir, 'streamlines')}")
     print(f"\n生成的動畫:")
     print(f"  - {vector_animation}")
     print(f"  - {speed_animation}")
     print(f"  - {density_animation}")
+    print(f"  - {streamline_animation}")
     print("=" * 60)
 
 

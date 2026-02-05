@@ -7,7 +7,7 @@
 #define     LZ     (3.036)
 //分配之格子數量，計算點在網格中心點
 #define     NY      512
-#define     NZ      256
+#define     NZ      768
 //加Buffer之計算區域下的總體網格數量
 //Stream-Wise方向不考慮GPU切割
 #define     NY6    (NY+7)
@@ -42,12 +42,12 @@
 
 //=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
-#define     streaming_lower_init     (30)            // 初始下界 (k <= 50 用 streaming)
-#define     streaming_upper_init     (NZ6-19)        // 初始上界 (k >= NZ6-51 用 streaming)
+#define     streaming_lower_init     (10)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-10)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
-#define     streaming_lower_phase1   (30)  // 第一階段目標: 25
-#define     streaming_upper_phase1   (NZ6-19)  // 第一階段目標: NZ6-26
+#define     streaming_lower_phase1   (5)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (NZ6-8)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
 #define     phase1_end_time          (200000)        // 第一階段結束
 

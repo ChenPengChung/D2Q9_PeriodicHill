@@ -884,6 +884,10 @@ int main() {
             cout << "[Streaming Bounds] lower=" << streaming_lower 
                  << " upper=" << streaming_upper 
                  << " (target: " << streaming_lower_target << "/" << streaming_upper_target << ")" << endl;
+            const double Re_est = (niu > 0.0) ? (Ubar_filter / niu) : 0.0;
+            cout << "[Bulk/Target] Ubar_filter=" << Ubar_filter
+                 << " Uref=" << Uref
+                 << " Re_est=" << Re_est << endl;
 
             // Mach 數統計（與統計輸出同步）
             MachStats mach_stats = ComputeMachStats(v, w, rho);

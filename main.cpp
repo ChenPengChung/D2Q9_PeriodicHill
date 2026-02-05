@@ -293,7 +293,19 @@ static RecircStats ComputeDownslopeRecirc(const double* v_field) {
     return s;
 }
 
-static bool LoadRestartVTK(const std::string& path) {
+struct RestartExtras {
+    bool has_force = false;
+    bool has_ubar = false;
+    bool has_avg = false;
+    bool has_count = false;
+    double force0 = 0.0;
+    double force1 = 0.0;
+    double Ubar_filter = 0.0;
+    double AverageVolumeVelocity_t = 0.0;
+    int force_update_count = 0;
+};
+
+static bool LoadRestartVTK(const std::string& path, RestartExtras* extras) {
     std::ifstream in(path);
     if(!in.is_open()) {
         std::cout << "[Restart] Cannot open VTK: " << path << std::endl;
@@ -305,6 +317,10 @@ static bool LoadRestartVTK(const std::string& path) {
     int n_points = 0;
     std::vector<double> density;
     std::vector<double> velocity;
+
+    if(extras) {
+        *extras = RestartExtras();
+    }
 
     auto read_doubles = [&](std::vector<double>& dst, int count) -> bool {
         dst.resize(count);
@@ -348,6 +364,37 @@ static bool LoadRestartVTK(const std::string& path) {
                 if(!read_doubles(velocity, 3 * n_points)) return false;
             } else {
                 if(!skip_doubles(3 * n_points)) return false;
+            }
+        } else if(tok == "FIELD") {
+            std::string field_group;
+            int nfields = 0;
+            in >> field_group >> nfields;
+            for(int f = 0; f < nfields; ++f) {
+                std::string fname, ftype;
+                int ncomp = 0, ntuple = 0;
+                if(!(in >> fname >> ncomp >> ntuple >> ftype)) return false;
+                const int total = ncomp * ntuple;
+                std::vector<double> values;
+                values.resize(total);
+                for(int i = 0; i < total; ++i) {
+                    if(!(in >> values[i])) return false;
+                }
+                if(extras) {
+                    if(fname == "force" && total >= 2) {
+                        extras->has_force = true;
+                        extras->force0 = values[0];
+                        extras->force1 = values[1];
+                    } else if(fname == "Ubar_filter" && total >= 1) {
+                        extras->has_ubar = true;
+                        extras->Ubar_filter = values[0];
+                    } else if(fname == "AverageVolumeVelocity_t" && total >= 1) {
+                        extras->has_avg = true;
+                        extras->AverageVolumeVelocity_t = values[0];
+                    } else if(fname == "force_update_count" && total >= 1) {
+                        extras->has_count = true;
+                        extras->force_update_count = static_cast<int>(std::lround(values[0]));
+                    }
+                }
             }
         }
     }
@@ -409,8 +456,114 @@ static bool LoadRestartVTK(const std::string& path) {
         memcpy(f[dir], f_old[dir], sizeof(double) * NY6 * NZ6);
     }
 
+    // Recompute volume-averaged velocity from restarted field
+    double A_sum = 0.0;
+    double Q_sum = 0.0;
+    for(int j = 3; j < NY6-3; ++j) {
+        const double H_j = LZ - HillFunction(y_global[j]);
+        A_sum += H_j;
+        double Ubulk = 0.0;
+        for(int k = 3; k < NZ6-3; ++k) {
+            const int idx = j * NZ6 + k;
+            const double dz = (z_global[NZ6*j + k + 1] - z_global[NZ6*j + k - 1]) * 0.5;
+            Ubulk += v[idx] * dz;
+        }
+        ubulk[j] = (H_j > 0.0) ? (Ubulk / H_j) : 0.0;
+        Q_sum += Ubulk;
+    }
+    AverageVolumeVelocity_t = (A_sum > 0.0) ? (Q_sum / A_sum) : 0.0;
+    if(extras && extras->has_avg) {
+        AverageVolumeVelocity_t = extras->AverageVolumeVelocity_t;
+    }
+    if(extras && extras->has_ubar) {
+        Ubar_filter = extras->Ubar_filter;
+    } else {
+        Ubar_filter = AverageVolumeVelocity_t;
+    }
+
     std::cout << "[Restart] Loaded VTK restart: " << path << std::endl;
     return true;
+}
+
+struct RestartState {
+    bool loaded = false;
+    int t = 0;
+    int force_update_count = 0;
+    double force0 = 0.0;
+    double force1 = 0.0;
+    double Ubar_filter = 0.0;
+    double AverageVolumeVelocity_t = 0.0;
+};
+
+static bool LoadRestartState(const std::string& path, RestartState& out) {
+    std::ifstream in(path);
+    if(!in.is_open()) return false;
+    std::string key;
+    while(in >> key) {
+        if(!key.empty() && key[0] == '#') {
+            std::string rest;
+            std::getline(in, rest);
+            continue;
+        }
+        if(key == "t") {
+            in >> out.t;
+        } else if(key == "force0") {
+            in >> out.force0;
+        } else if(key == "force1") {
+            in >> out.force1;
+        } else if(key == "Ubar_filter") {
+            in >> out.Ubar_filter;
+        } else if(key == "AverageVolumeVelocity_t") {
+            in >> out.AverageVolumeVelocity_t;
+        } else if(key == "force_update_count") {
+            in >> out.force_update_count;
+        } else {
+            std::string rest;
+            std::getline(in, rest);
+        }
+    }
+    out.loaded = true;
+    return true;
+}
+
+static void WriteRestartState(const std::string& output_dir, int step) {
+    std::ofstream out(output_dir + "/restart_state.txt");
+    if(!out.is_open()) return;
+    out << "# restart_state\n";
+    out << "t " << step << "\n";
+    out << "force0 " << force[0] << "\n";
+    out << "force1 " << force[1] << "\n";
+    out << "Ubar_filter " << Ubar_filter << "\n";
+    out << "AverageVolumeVelocity_t " << AverageVolumeVelocity_t << "\n";
+    out << "force_update_count " << force_update_count << "\n";
+}
+
+static void WriteLatestVTK(const std::string& output_dir, int timestep) {
+    std::ostringstream oss;
+    oss << output_dir << "/flow_" << std::setfill('0') << std::setw(6) << timestep << ".vtk";
+    std::ofstream out(output_dir + "/latest_vtk.txt");
+    if(!out.is_open()) return;
+    out << oss.str() << "\n";
+}
+
+static std::string ResolveRestartVTK(const std::string& output_dir) {
+    const char* env = std::getenv("RESTART_VTK");
+    if(env == nullptr || *env == '\0') return "";
+    std::string val = env;
+    if(val == "LATEST" || val == "latest") {
+        std::ifstream in(output_dir + "/latest_vtk.txt");
+        if(!in.is_open()) return "";
+        std::string path;
+        std::getline(in, path);
+        return path;
+    }
+    return val;
+}
+
+static std::string ResolveRestartState(const std::string& output_dir) {
+    const char* env = std::getenv("RESTART_STATE");
+    if(env != nullptr && *env != '\0') return std::string(env);
+    return output_dir + "/restart_state.txt";
 }
 //-----------------------------------------------------------------------------
 // 4.3 交換 f_old 與 f_new
@@ -872,16 +1025,73 @@ int main() {
     cout << "Computing interpolation weights...." << endl ;
     GetIntrplParameter_Y();
     GetIntrplParameter_Xi();
+    const char* output_dir_env = std::getenv("OUTPUT_DIR");
+    const std::string output_dir = (output_dir_env && *output_dir_env) ? std::string(output_dir_env) : std::string("output");
     //步驟 5 : BFL 邊界初始化
     cout << "Initializing BFL boundary...." << endl ;
     BFLInitialization(Q1_h, Q3_h, Q5_h, Q6_h);
-    const char* restart_path = std::getenv("RESTART_VTK");
+    const std::string restart_vtk = ResolveRestartVTK(output_dir);
     bool restarted = false;
-    if(restart_path && *restart_path) {
-        cout << "Restarting from VTK: " << restart_path << endl;
-        restarted = LoadRestartVTK(restart_path);
+    RestartExtras extras;
+    if(!restart_vtk.empty()) {
+        cout << "Restarting from VTK: " << restart_vtk << endl;
+        restarted = LoadRestartVTK(restart_vtk, &extras);
         if(!restarted) {
             cout << "Restart failed, fallback to default initialization." << endl;
+        }
+    }
+    if(restarted) {
+        bool have_force = extras.has_force;
+        bool have_ubar = extras.has_ubar;
+        bool have_avg = extras.has_avg;
+        bool have_count = extras.has_count;
+
+        if(have_force) {
+            force[0] = extras.force0;
+            force[1] = extras.force1;
+        }
+        if(have_count) {
+            force_update_count = extras.force_update_count;
+        }
+        if(have_force || have_ubar || have_avg || have_count) {
+            cout << "[Restart] VTK fields: force0="
+                 << (have_force ? extras.force0 : force[0])
+                 << " Ubar_filter=" << Ubar_filter
+                 << " count=" << (have_count ? extras.force_update_count : force_update_count)
+                 << endl;
+        }
+        const std::string state_path = ResolveRestartState(output_dir);
+        RestartState rs;
+        if((!have_force || !have_ubar || !have_avg || !have_count) &&
+           !state_path.empty() && LoadRestartState(state_path, rs)) {
+            if(!have_force) {
+                force[0] = rs.force0;
+                force[1] = rs.force1;
+                have_force = true;
+            }
+            if(!have_ubar) {
+                Ubar_filter = rs.Ubar_filter;
+                have_ubar = true;
+            }
+            if(!have_avg) {
+                AverageVolumeVelocity_t = rs.AverageVolumeVelocity_t;
+                have_avg = true;
+            }
+            if(!have_count) {
+                force_update_count = rs.force_update_count;
+                have_count = true;
+            }
+            cout << "[Restart] Loaded state: force0=" << force[0]
+                 << " Ubar_filter=" << Ubar_filter
+                 << " count=" << force_update_count << endl;
+        }
+        if(!have_force) {
+            force[0] = (8.0 * niu * Uref) / (Heff * Heff) * 5.0;
+            force[1] = 0.0;
+            force_update_count = 0;
+            cout << "[Restart] No restart_state/VTK force, init force from formula." << endl;
+        } else if(!have_count) {
+            force_update_count = 0;
         }
     }
     //步驟 6 : 初始化流場與分佈函數
@@ -912,8 +1122,6 @@ after_init:
     const int diag_start = static_cast<int>(ReadEnvLong("DIAG_START", 0));
     const int diag_every = std::max(1, static_cast<int>(ReadEnvLong("DIAG_EVERY", 1)));
     const bool diag_check_f = (std::getenv("DIAG_CHECK_F") != nullptr);
-    const char* output_dir_env = std::getenv("OUTPUT_DIR");
-    const std::string output_dir = (output_dir_env && *output_dir_env) ? std::string(output_dir_env) : std::string("output");
 
     cout << "loop = " << max_steps << endl ;
     
@@ -1049,7 +1257,11 @@ after_init:
             cout << "==================================================================" << endl ;
             cout << "\n=== time step t = " << t << " ===" << endl;
             cout << "Output VTK file and Statics Data..." << endl;
-            OutputVTK(t, y_global, z_global, rho, v, w, output_dir);
+            OutputVTK(
+                t, y_global, z_global, rho, v, w, output_dir,
+                force[0], force[1], Ubar_filter, AverageVolumeVelocity_t, force_update_count
+            );
+            WriteLatestVTK(output_dir, t);
         }
         // 終端統計輸出（較小間隔，用於監控模擬進度）
         if(t % outputInterval_Stats == 0) {
@@ -1079,6 +1291,7 @@ after_init:
             // Mach 數統計（與統計輸出同步）
             MachStats mach_stats = ComputeMachStats(v, w, rho);
             PrintMachDiagnostics(t, mach_stats);
+            WriteRestartState(output_dir, t);
         }
     }
     //-------------------------------------------------------------------------

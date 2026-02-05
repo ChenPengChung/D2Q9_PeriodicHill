@@ -19,7 +19,12 @@ void OutputVTK(
     const double* rho,
     const double* v,
     const double* w,
-    const std::string& outputDir = "output"
+    const std::string& outputDir,
+    double force0,
+    double force1,
+    double Ubar_filter,
+    double AverageVolumeVelocity_t,
+    int force_update_count
 ) {
     // 建立輸出目錄
     #ifdef _WIN32
@@ -79,6 +84,16 @@ void OutputVTK(
         }
     }
 
+    // 外力場（常數向量，保留成場）
+    file << "\nVECTORS Force double\n";
+    for(int k = 3; k < NZ6 - 3; ++k) {
+        for(int j = 3; j < NY6 - 3; ++j) {
+            (void)j;
+            (void)k;
+            file << force0 << " " << force1 << " 0.0\n";
+        }
+    }
+
     // 速度大小
     file << "\nSCALARS VelocityMagnitude double 1\n";
     file << "LOOKUP_TABLE default\n";
@@ -89,6 +104,19 @@ void OutputVTK(
             file << vmag << "\n";
         }
     }
+
+    // 統計/重啟所需的全域欄位
+    file << "\nFIELD FieldData 5\n";
+    file << "force 2 1 double\n";
+    file << force0 << " " << force1 << "\n";
+    file << "Ubar_filter 1 1 double\n";
+    file << Ubar_filter << "\n";
+    file << "AverageVolumeVelocity_t 1 1 double\n";
+    file << AverageVolumeVelocity_t << "\n";
+    file << "force_update_count 1 1 int\n";
+    file << force_update_count << "\n";
+    file << "timestep 1 1 int\n";
+    file << timestep << "\n";
 
     file.close();
     std::cout << "congratulationn VTK Output: " << filename.str() << std::endl;

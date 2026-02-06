@@ -190,6 +190,7 @@ void GetXiParameter(double* XiPara_h[7], double pos_z, double pos_y, int j , int
     GetParameter_6th2( XiPara_h, pos_xi2 , RelationXi_2 , 2 , j_store , k , index_z2 ); //配置第三套適應性內插權重
 }
 
+
 //降階版本 
 void GetIntrplParameter_Y() {
     for( int j = 3; j < NY6-3; j++ ){
@@ -296,3 +297,4 @@ void BFLInitialization(double *Q1_h, double *Q3_h, double *Q5_h, double *Q6_h) {
     }
 }
 #endif 
+

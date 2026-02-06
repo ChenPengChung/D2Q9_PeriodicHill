@@ -117,10 +117,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
         F0_in = f0_old[idx_xi];
         
         //========== 邊界判斷 ==========
-        bool is_bottom = (k <= 6);   // 擴大範圍以保護 7-point stencil
-        bool is_top = (k >= NZ6-7);   // 擴大範圍以保護 7-point stencil
-        bool is_left = (j <= 6);      // 擴大範圍以保護 3-point Y stencil
-        bool is_right = (j >= NY6-7); // 擴大範圍以保護 3-point Y stencil
+        bool is_bottom = (k <= 3);   // 擴大範圍以保護 7-point stencil
+        bool is_top = (k >= NZ6-4);   // 擴大範圍以保護 7-point stencil
+        bool is_left = (j <= 3);      // 擴大範圍以保護 3-point Y stencil
+        bool is_right = (j >= NY6-4); // 擴大範圍以保護 3-point Y stencil
         
         // 真正的壁面點（用於 moving wall 計算）
         bool is_wall_bottom = (k == 3);

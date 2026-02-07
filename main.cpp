@@ -358,5 +358,6 @@ int main() {
     //-------------------------------------------------------------------------
     cout << "Simulation complete." << endl ;
     printStatistics(loop);
+
     return 0;
 }

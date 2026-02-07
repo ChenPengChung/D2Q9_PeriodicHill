@@ -261,7 +261,7 @@ void periodicSW(
     for(int k = 3 ; k < NZ6-3 ; k++){
         for(int i = 0 ; i <= 2 ; i++){
             //右邊左側buffer layer
-            int idx_right = (i+NY6-6)*NZ6 + k ;
+            int idx_right = (i+NY6-7)*NZ6 + k ;
             int buffer_left = i*NZ6 + k ;
             f0_new[buffer_left] = f0_new[idx_right] ;
             f1_new[buffer_left] = f1_new[idx_right] ;
@@ -276,8 +276,8 @@ void periodicSW(
             w[buffer_left] = w[idx_right] ;
             rho_d[buffer_left] = rho_d[idx_right] ;
             //左邊右側buffer layer
-            int idx_left = (i+3)*NZ6 + k ;
-            int buffer_right = (i+NY6-3)*NZ6 + k ;
+            int idx_left = (i+4)*NZ6 + k ;
+            int buffer_right = (NY6-i-1)*NZ6 + k ;
             f0_new[buffer_right] = f0_new[idx_left] ;
             f1_new[buffer_right] = f1_new[idx_left] ;
             f2_new[buffer_right] = f2_new[idx_left] ;

@@ -71,9 +71,15 @@ extern int streaming_upper;  // 動態上界，由 UpdateStreamingBounds() 更�
 #define     U_max       (Ma_max * cs)                        // 最大允許速度 ≈ 0.173
 #define     U_warning   (Ma_warning * cs)                    // 警告速度 ≈ 0.087
 
-// 計算當前參數下的理論 Mach 數
-// Ma_theoretical = Uref / cs = Uref * sqrt(3)
-// 注意：若 Ma_theoretical > Ma_max，模擬很可能不穩定
+// 從零開始（預設）
+//#define RESTART_FROM_VTK    ""
+
+// 載入特定 VTK 檔案
+#define RESTART_FROM_VTK    "output/flow_025000.vtk"
+
+// 自動載入最新的 VTK 檔案
+//#define RESTART_FROM_VTK    "LATEST"
+
 
 #endif
 

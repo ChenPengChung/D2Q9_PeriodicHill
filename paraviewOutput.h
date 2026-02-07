@@ -63,6 +63,19 @@ void OutputVTK(
         }
     }
 
+    // 全域欄位數據（必須放在 POINT_DATA 之前，避免 ParaView 解析錯誤）
+    file << "\nFIELD FieldData 5\n";
+    file << "force 2 1 double\n";
+    file << force0 << " " << force1 << "\n";
+    file << "Ubar_filter 1 1 double\n";
+    file << Ubar_filter << "\n";
+    file << "AverageVolumeVelocity_t 1 1 double\n";
+    file << AverageVolumeVelocity_t << "\n";
+    file << "force_update_count 1 1 int\n";
+    file << force_update_count << "\n";
+    file << "timestep 1 1 int\n";
+    file << timestep << "\n";
+
     // 點數據
     file << "\nPOINT_DATA " << (ny_out * nz_out) << "\n";
 
@@ -104,19 +117,6 @@ void OutputVTK(
             file << vmag << "\n";
         }
     }
-
-    // 統計/重啟所需的全域欄位
-    file << "\nFIELD FieldData 5\n";
-    file << "force 2 1 double\n";
-    file << force0 << " " << force1 << "\n";
-    file << "Ubar_filter 1 1 double\n";
-    file << Ubar_filter << "\n";
-    file << "AverageVolumeVelocity_t 1 1 double\n";
-    file << AverageVolumeVelocity_t << "\n";
-    file << "force_update_count 1 1 int\n";
-    file << force_update_count << "\n";
-    file << "timestep 1 1 int\n";
-    file << timestep << "\n";
 
     file.close();
     std::cout << "congratulationn VTK Output: " << filename.str() << std::endl;

@@ -547,12 +547,25 @@ static void WriteLatestVTK(const std::string& output_dir, int timestep) {
 }
 
 static std::string ResolveRestartVTK(const std::string& output_dir) {
+    // 優先檢查環境變數
     const char* env = std::getenv("RESTART_VTK");
-    if(env == nullptr || *env == '\0') return "";
-    std::string val = env;
+    std::string val;
+    
+    if(env != nullptr && *env != '\0') {
+        val = env;
+    } else {
+        // 使用 variables.h 中定義的 RESTART_FROM_VTK
+        val = RESTART_FROM_VTK;
+    }
+    
+    if(val.empty()) return "";
+    
     if(val == "LATEST" || val == "latest") {
         std::ifstream in(output_dir + "/latest_vtk.txt");
-        if(!in.is_open()) return "";
+        if(!in.is_open()) {
+            std::cout << "[Restart] No latest_vtk.txt found, starting fresh." << std::endl;
+            return "";
+        }
         std::string path;
         std::getline(in, path);
         return path;

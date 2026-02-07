@@ -548,7 +548,9 @@ void EMA_UpdateVolumeAverage(){
 
 void ModifyForcingTerm(double* force , double Ubar_filter){
     //Step1.計算 外力修正增益：
-    double beta = std::fmax(0.001, 3.0 / (double)Re);
+    // beta 越大，外力調整越快，但過大可能導致不穩定
+    // 原值 3.0/Re ≈ 0.0043 太小，加速至 0.02
+    double beta = std::fmax(0.02, 3.0 / (double)Re);
     double Ub_avg_max = 0.0 ;
     //Step2.逐步修正外力
     force[0] = force[0] + beta * (Uref - Ubar_filter) * Uref / 3.036 ; //外力回受控制 以全場平均速度為參考修正依據 , 以平均流場厚度為長度
@@ -577,41 +579,3 @@ void ModifyForcingTerm(double* force , double Ubar_filter){
 
 
 
-/*筆記:流速限制器
-//4.5 Mach 數限制：若速度超過上限，縮放至安全範圍並重建分佈函數
-    if(LimitVelocity(v1, w1, rho_s)) {
-        // 速度被限制，需要用限制後的速度重建平衡態分佈函數
-        RebuildEquilibrium(F0_in, F1_in, F2_in, F3_in, F4_in, F5_in, F6_in, F7_in, F8_in, rho_s, v1, w1);
-    }
-函數式:
-// 檢查並限制單點速度，返回是否進行了限制
-inline bool LimitVelocity(double& uy, double& uz, double rho_local) {
-    double u_mag = std::sqrt(uy*uy + uz*uz);
-    if(u_mag > U_max) {
-        // 按比例縮放速度到最大允許值
-        double scale = U_max / u_mag;
-        uy *= scale;
-        uz *= scale;
-        return true;  // 進行了限制
-    }
-    return false;
-}
-
-// 重建平衡態分佈函數（當速度被限制後需要重建）
-inline void RebuildEquilibrium(
-    double& F0, double& F1, double& F2, double& F3, double& F4,
-    double& F5, double& F6, double& F7, double& F8,
-    double rho, double uy, double uz)
-{
-    double udot = uy*uy + uz*uz;
-    F0 = (4.0/9.0)  * rho * (1.0 - 1.5*udot);
-    F1 = (1.0/9.0)  * rho * (1.0 + 3.0*uy + 4.5*uy*uy - 1.5*udot);
-    F2 = (1.0/9.0)  * rho * (1.0 + 3.0*uz + 4.5*uz*uz - 1.5*udot);
-    F3 = (1.0/9.0)  * rho * (1.0 - 3.0*uy + 4.5*uy*uy - 1.5*udot);
-    F4 = (1.0/9.0)  * rho * (1.0 - 3.0*uz + 4.5*uz*uz - 1.5*udot);
-    F5 = (1.0/36.0) * rho * (1.0 + 3.0*(uy+uz) + 4.5*(uy+uz)*(uy+uz) - 1.5*udot);
-    F6 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy+uz) + 4.5*(-uy+uz)*(-uy+uz) - 1.5*udot);
-    F7 = (1.0/36.0) * rho * (1.0 + 3.0*(-uy-uz) + 4.5*(-uy-uz)*(-uy-uz) - 1.5*udot);
-    F8 = (1.0/36.0) * rho * (1.0 + 3.0*(uy-uz) + 4.5*(uy-uz)*(uy-uz) - 1.5*udot);
-}
-*/

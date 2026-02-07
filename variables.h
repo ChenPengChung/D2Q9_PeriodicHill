@@ -15,7 +15,7 @@
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
 //CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小 在ISLBM中，為晶格速度/網格速度
 //所以最小物理大小的CFL才是晶格大小，為minSize
-#define     CFL                 0.8  // Re=1000 時用 0.85 更安全
+#define     CFL                 0.7  // Re=1000 時用 0.85 更安全
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
 //非均勻網格之判斷式
 //1 : Yes,  0 : No
@@ -26,13 +26,13 @@
 
 //模擬迴圈上限值
 #define     loop        10000000
-#define      Re         700                            // 目標雷諾數
-#define     tau         0.6833                            // 提高 tau 以增加穩定性（原 1.7 → 1.95）
+#define      Re         400                            // 目標雷諾數 (Ma < 0.3 限制)
+#define     tau         0.511                            // 降低 tau 以達到目標 Re
 #define     niu         ((tau-0.5)/3.0*dt)
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (dt / tau)                    // 剪切鬆弛參數 ≈ 0.513（更保守）
-#define     omega_2     1.19                            // 能量鬆弛（提高至 0.5，原 0.001）
+#define     omega_2     1.1                            // 能量鬆弛
 // 統一邊界定義：streaming 和 interpolation 必須一致
 // streaming_lower/upper: evolution.h 中用於判斷是否用 streaming 代替插值
 // interpolation_lower/upper: initialization.h 中用於判斷使用幾點插值
@@ -42,12 +42,12 @@
 
 //=== 動態 Streaming 邊界參數（分階段漸進式擴大解析層）===//
 // 初始值（保守，更大的 streaming 區域）
-#define     streaming_lower_init     (10)            // 初始下界 (k <= 50 用 streaming)
-#define     streaming_upper_init     (NZ6-10)        // 初始上界 (k >= NZ6-51 用 streaming)
+#define     streaming_lower_init     (30)            // 初始下界 (k <= 50 用 streaming)
+#define     streaming_upper_init     (NZ6-20)        // 初始上界 (k >= NZ6-51 用 streaming)
 
 // === 第一階段：開放七點插值區 (streaming → interpolation_lower) ===
-#define     streaming_lower_phase1   (5)  // 第一階段目標: 25
-#define     streaming_upper_phase1   (NZ6-7)  // 第一階段目標: NZ6-26
+#define     streaming_lower_phase1   (20)  // 第一階段目標: 25
+#define     streaming_upper_phase1   (NZ6-15)  // 第一階段目標: NZ6-26
 #define     phase1_start_time        (0)             // 第一階段開始
 #define     phase1_end_time          (20000)        // 第一階段結束
 
@@ -75,7 +75,7 @@ extern int streaming_upper;  // 動態上界，由 UpdateStreamingBounds() 更�
 //#define RESTART_FROM_VTK    ""
 
 // 載入特定 VTK 檔案
-#define RESTART_FROM_VTK    "output/flow_025000.vtk"
+#define RESTART_FROM_VTK    "output/flow_051000.vtk"
 
 // 自動載入最新的 VTK 檔案
 //#define RESTART_FROM_VTK    "LATEST"

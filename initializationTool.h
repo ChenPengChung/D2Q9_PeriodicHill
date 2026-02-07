@@ -131,7 +131,7 @@ double GetNonuniParameter() {
         } else {
             a_temp[1] = a_mid;
         }
-    } while (fabs( dx - minSize) > 1e-14 );
+    } while (fabs( dx - minSize) > 1e-14  ||  fabs( minSize)/fabs(dx) >= 1 );
     return a_mid;
 }
 

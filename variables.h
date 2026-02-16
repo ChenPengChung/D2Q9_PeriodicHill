@@ -15,7 +15,7 @@
 //設定Lattice大小，定義為最小物理網格大小的0.6倍，作為一格粒子的移動距離
 //CFL number 為 速度/格子速度 ，在此為比較 晶格大小/最小物理網格大小
 //所以最小物理大小的CFL才是晶格大小，為minSize
-#define     CFL                 0.8
+#define     CFL                 0.65
 #define     minSize             ((LZ-1.0)/(NZ6-6)*CFL)
 //非均勻網格之判斷式
 //1 : Yes,  0 : No
@@ -32,7 +32,7 @@
 #define     Uref        (Re*niu)
 #define     L_char      1.0                             // 特徵長度 (山坡高度 h)
 #define     omega_7     (1.0 / tau)                     // 剪切鬆弛參數 ≈ 1.964 → 1.2 (更保守)
-#define     omega_2     1.0                             // 能量鬆弛（降至1.0提高穩定性）
+#define     omega_2     1.3                             // 能量鬆弛（降至1.0提高穩定性）
 //=== 次要參數 ===/
 #define     dt          minSize
 #define     cs          (1.0/1.732050807568877)

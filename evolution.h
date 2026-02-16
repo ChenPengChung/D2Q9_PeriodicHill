@@ -191,11 +191,10 @@ for(int j = 3 ; j < NY6-3 ; j++){
         
         // Y 方向邊界檢查（週期性邊界需要用 streaming，不用插值）
         // 擴大 Y 邊界區域：包含 j <= 5 和 j >= NY6-6，以避免插值存取到邊界異常值
-        bool y_boundary = (j <= 3) || (j >= NY6-4);
-        bool z_lower = (k <= 11);
-        bool z_upper = (k >= NZ6-10);  // k >= 121
+        bool z_lower = (k <= 3);
+        bool z_upper = (k >= NZ6-4);  // k >= 121
         
-        if( z_lower || z_upper || y_boundary ) {
+        if( z_lower || z_upper ) {
             // 邊界附近：使用簡單的 streaming 替代插值
             
             // F1,F3: Y方向 streaming，需要週期性 wrap
@@ -227,14 +226,6 @@ for(int j = 3 ; j < NY6-3 ; j++){
                 F5_in = f5_old[jm1*NZ6 + k-1];
                 F6_in = f6_old[jp1*NZ6 + k-1];
                 
-            } else {
-                // Y邊界但非Z邊界：使用簡單 streaming
-                F2_in = f2_old[j*NZ6 + k-1];
-                F4_in = f4_old[j*NZ6 + k+1];
-                F5_in = f5_old[jm1*NZ6 + k-1];
-                F6_in = f6_old[jp1*NZ6 + k-1];
-                F7_in = f7_old[jp1*NZ6 + k+1];
-                F8_in = f8_old[jm1*NZ6 + k+1];
             }
             
         } else {
